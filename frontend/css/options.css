@@ -1,0 +1,142 @@
+.options-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  padding: 1rem;
+  max-width: 1600px;
+  margin: 0 auto;
+  min-height: calc(100vh - 60px);
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.nav-link {
+  color: var(--accent);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.controls {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #000;
+  border: none;
+  padding: 0.4rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+select {
+  background: #21262d;
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+}
+
+.auto-label {
+  font-size: 0.85rem;
+}
+
+.summary-bar {
+  display: flex;
+  gap: 2rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0.75rem;
+}
+
+.summary-bar strong {
+  display: block;
+  font-size: 1.1rem;
+}
+
+.table-wrap {
+  overflow: auto;
+  max-height: calc(100vh - 280px);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+th, td {
+  padding: 0.45rem 0.5rem;
+  text-align: right;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+th {
+  color: var(--muted);
+  font-weight: 500;
+  position: sticky;
+  top: 0;
+  background: var(--card);
+}
+
+tr:hover td {
+  background: #21262d;
+}
+
+.type-call { color: var(--bull); }
+.type-put { color: var(--bear); }
+.side-long { color: var(--bull); }
+.side-short { color: var(--bear); }
+
+.graph-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.graph-hint {
+  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+}
+
+#risk-chart {
+  flex: 1;
+  min-height: 500px;
+}
+
+.screener-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 1100px) {
+  .options-layout {
+    grid-template-columns: 1fr;
+  }
+  #risk-chart {
+    min-height: 400px;
+  }
+}

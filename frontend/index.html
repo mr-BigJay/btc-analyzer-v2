@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BTC Analyzer</title>
+  <link rel="stylesheet" href="/css/style.css?v=202406-dashboard-v2" />
+  <script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
+</head>
+<body>
+  <header class="header">
+    <div class="header-brand">
+      <h1>BTC Analyzer</h1>
+      <span class="version-badge" title="نسخه داشبورد">Dashboard v2</span>
+      <a href="/options.html" class="nav-link">Options →</a>
+    </div>
+    <span id="updated-at" class="muted">در حال بارگذاری...</span>
+  </header>
+
+  <main class="container">
+    <!-- لایه ۱: وضعیت کلی -->
+    <section class="hero card">
+      <div class="price-block">
+        <div class="label">قیمت BTC</div>
+        <div id="price" class="price">—</div>
+        <div id="change" class="change">—</div>
+      </div>
+      <div class="confidence-block">
+        <div class="label">اعتماد کلی</div>
+        <div id="confidence" class="gauge">—</div>
+        <div id="score" class="muted">امتیاز: —</div>
+      </div>
+    </section>
+
+    <section class="summary card">
+      <h2>جمع‌بندی</h2>
+      <p id="summary">—</p>
+      <div id="mtf-badge" class="badge">—</div>
+    </section>
+
+    <!-- لایه ۲: نمودار + MTF -->
+    <section class="chart card">
+      <div class="chart-header">
+        <h2>نمودار</h2>
+        <div class="tf-tabs">
+          <button class="tab active" data-tf="4h">4h</button>
+          <button class="tab" data-tf="1d">1d</button>
+          <button class="tab" data-tf="1w">1w</button>
+        </div>
+      </div>
+      <div id="chart-container"></div>
+    </section>
+
+    <section class="mtf-grid">
+      <div class="card mtf-card" id="card-4h">
+        <h3>4 ساعته</h3>
+        <div class="trend" data-tf="4h">—</div>
+        <div class="score-bar"><div class="fill"></div></div>
+        <div class="score-text">—</div>
+      </div>
+      <div class="card mtf-card" id="card-1d">
+        <h3>روزانه</h3>
+        <div class="trend" data-tf="1d">—</div>
+        <div class="score-bar"><div class="fill"></div></div>
+        <div class="score-text">—</div>
+      </div>
+      <div class="card mtf-card" id="card-1w">
+        <h3>هفتگی</h3>
+        <div class="trend" data-tf="1w">—</div>
+        <div class="score-bar"><div class="fill"></div></div>
+        <div class="score-text">—</div>
+      </div>
+    </section>
+
+    <!-- لایه ۳: ساختار قیمت -->
+    <div class="section-group">
+      <div class="section-label">ساختار قیمت</div>
+
+      <section class="card structure-card">
+        <h2>سطوح کلیدی و SMC <span class="subtitle">4h</span></h2>
+        <div class="levels-grid">
+          <div><span class="label">حمایت</span><span id="support">—</span></div>
+          <div><span class="label">مقاومت</span><span id="resistance">—</span></div>
+          <div><span class="label">فیبوناچی</span><span id="fib-level">—</span></div>
+          <div><span class="label">SMC</span><span id="smc-signal">—</span></div>
+          <div><span class="label">FVG فعال</span><span id="fvg-active">—</span></div>
+          <div><span class="label">Order Block</span><span id="order-block">—</span></div>
+        </div>
+
+        <div class="structure-divider"></div>
+
+        <h3 class="sub-heading">نقشه لیکوئیدیشن</h3>
+        <div id="liq-map" class="liq-map">در حال بارگذاری...</div>
+      </section>
+    </div>
+
+    <!-- لایه ۴: محیط بازار -->
+    <div class="section-group">
+      <div class="section-label">محیط بازار</div>
+
+      <div class="market-env-grid">
+        <section class="metrics card">
+          <h2>ماکرو</h2>
+          <p class="card-hint">SPX · Nasdaq · DXY</p>
+          <div class="metrics-grid">
+            <div><span class="label">S&P 500</span><span id="spx">—</span></div>
+            <div><span class="label">Nasdaq</span><span id="ndx">—</span></div>
+            <div><span class="label">DXY (دلار)</span><span id="dxy">—</span></div>
+            <div><span class="label">بایاس ماکرو</span><span id="macro-bias">—</span></div>
+          </div>
+        </section>
+
+        <section class="metrics card">
+          <h2>مشتقات</h2>
+          <p class="card-hint">پوزیشنینگ کوتاه‌مدت</p>
+          <div class="metrics-grid">
+            <div><span class="label">Funding Rate</span><span id="funding">—</span></div>
+            <div><span class="label">تغییر OI</span><span id="oi">—</span></div>
+            <div><span class="label">Long/Short</span><span id="ls">—</span></div>
+          </div>
+        </section>
+
+        <section class="metrics card">
+          <h2>آنچین و احساسات</h2>
+          <p class="card-hint">فاندامنتال + روانشناسی جمعی</p>
+          <div class="metrics-grid">
+            <div><span class="label">MVRV</span><span id="mvrv">—</span></div>
+            <div><span class="label">آدرس فعال</span><span id="active-addr">—</span></div>
+            <div><span class="label">Fear & Greed</span><span id="fg">—</span></div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <!-- لایه ۵: اعتبارسنجی -->
+    <section class="backtest card">
+      <h2>اعتبارسنجی سیگنال</h2>
+      <p class="card-hint">بک‌تست walk-forward + بهینه‌سازی خودکار</p>
+      <div id="optimized-params" class="backtest-grid muted">در حال بارگذاری...</div>
+      <div id="backtest-results" class="backtest-grid">در حال بارگذاری...</div>
+    </section>
+
+    <!-- لایه ۶: جمع‌بندی متنی -->
+    <section class="tech-brief card" aria-label="تحلیل فنی">
+      <div class="tech-brief-header">
+        <span class="tech-brief-icon" aria-hidden="true">◈</span>
+        <h2>تحلیل فنی</h2>
+        <span class="tech-brief-tag">خودکار · هر ۱۵ دقیقه</span>
+      </div>
+      <p id="tech-brief" class="tech-brief-body muted">در حال تولید تحلیل...</p>
+    </section>
+  </main>
+
+  <script src="/js/app.js?v=202406-dashboard-v2"></script>
+</body>
+</html>

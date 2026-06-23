@@ -65,6 +65,74 @@ body {
 .label { color: var(--muted); font-size: 0.85rem; }
 .muted { color: var(--muted); font-size: 0.9rem; }
 
+.card h2 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.subtitle {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.card-hint {
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-bottom: 0.5rem;
+}
+
+.sub-heading {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 0.5rem;
+}
+
+.section-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.section-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 0 0.25rem;
+}
+
+.structure-card .levels-grid {
+  margin-top: 0.5rem;
+}
+
+.structure-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 1.25rem 0 1rem;
+}
+
+.market-env-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.market-env-grid .metrics-grid {
+  margin-top: 0.5rem;
+}
+
+.backtest .backtest-grid:first-of-type {
+  margin-top: 0.75rem;
+}
+
+.backtest .backtest-grid + .backtest-grid {
+  margin-top: 0.75rem;
+}
+
 .mtf-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));

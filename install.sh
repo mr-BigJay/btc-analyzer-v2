@@ -12,7 +12,7 @@ PROJECT_DIR="${INSTALL_DIR:-$SCRIPT_DIR}"
 SERVICE_NAME="btc-analyzer"
 TELEGRAM_SERVICE_NAME="btc-analyzer-telegram"
 SYSTEMD_DIR="/etc/systemd/system"
-EXPECTED_BUILD="forecast-v1"
+EXPECTED_BUILD="clarity-v1"
 
 USE_DOCKER=0
 SKIP_OPTIMIZE=0
@@ -359,7 +359,7 @@ verify_deploy() {
     for attempt in $(seq 1 20); do
         health=$(curl -sf "http://127.0.0.1:${port}/api/health" 2>/dev/null || true)
         if echo "$health" | grep -qi "$EXPECTED_BUILD"; then
-            log "✓ داشبورد جدید فعال است (Forecast v1)"
+            log "✓ داشبورد جدید فعال است (Clarity v1)"
             log "  http://${ip:-localhost}:${port}"
             log "  http://${ip:-localhost}:${port}/options.html"
             return 0

@@ -4,147 +4,229 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>BTC Analyzer</title>
-  <link rel="stylesheet" href="/css/style.css?v=202406-forecast-v1" />
+  <link rel="stylesheet" href="/css/style.css?v=202406-clarity-v1" />
   <script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
 </head>
 <body>
   <header class="header">
     <div class="header-brand">
       <h1>BTC Analyzer</h1>
-      <span class="version-badge" title="نسخه داشبورد">Forecast v1</span>
+      <span class="version-badge" title="نسخه داشبورد">Clarity v1</span>
       <a href="/options.html" class="nav-link">Options →</a>
     </div>
     <span id="updated-at" class="muted">در حال بارگذاری...</span>
   </header>
 
   <main class="container">
-    <!-- لایه ۱: وضعیت کلی -->
-    <section class="hero card">
-      <div class="price-block">
-        <div class="label">قیمت BTC</div>
-        <div id="price" class="price">—</div>
-        <div id="change" class="change">—</div>
-      </div>
-      <div class="confidence-block">
-        <div class="label">اعتماد کلی</div>
-        <div id="confidence" class="gauge">—</div>
-        <div id="score" class="muted">امتیاز: —</div>
+
+    <!-- راهنمای سریع -->
+    <section class="guide card" id="dashboard-guide">
+      <button class="guide-toggle" id="guide-toggle" type="button" aria-expanded="true">
+        <span>📖 راهنمای داشبورد — هر بخش چی می‌گه؟</span>
+        <span class="guide-chevron">▾</span>
+      </button>
+      <div class="guide-body" id="guide-body">
+        <div class="guide-grid">
+          <div class="guide-item">
+            <span class="guide-num">۱</span>
+            <div>
+              <strong>وضعیت لحظه‌ای</strong>
+              <p>قیمت الان + امتیاز کلی بازار (میانگین 4h، روزانه، هفتگی). <em>پیش‌بینی نیست.</em></p>
+            </div>
+          </div>
+          <div class="guide-item">
+            <span class="guide-num">۲</span>
+            <div>
+              <strong>پیش‌بینی ۴ ساعت آینده</strong>
+              <p>تنها بخش <em>آینده‌نگر</em> — جهت احتمالی، هدف و ریسک‌ها برای ۴ ساعت بعد.</p>
+            </div>
+          </div>
+          <div class="guide-item">
+            <span class="guide-num">۳</span>
+            <div>
+              <strong>نمودار + کارت‌های MTF</strong>
+              <p>روند <em>فعلی</em> هر تایم‌فریم. کارت 4h ≠ پیش‌بینی — فقط وضعیت الان کندل 4h.</p>
+            </div>
+          </div>
+          <div class="guide-item">
+            <span class="guide-num">۴</span>
+            <div>
+              <strong>ساختار قیمت</strong>
+              <p>جزئیات فنی (SMC، فیبو، لیکوئیدیشن) که پیش‌بینی از آن‌ها استفاده می‌کند.</p>
+            </div>
+          </div>
+          <div class="guide-item">
+            <span class="guide-num">۵</span>
+            <div>
+              <strong>محیط بازار</strong>
+              <p>ماکرو، مشتقات، آنچین — زمینه بیرونی بازار، نه سیگنال مستقیم 4h.</p>
+            </div>
+          </div>
+          <div class="guide-item">
+            <span class="guide-num">۶</span>
+            <div>
+              <strong>گزارش کامل</strong>
+              <p>خلاصه متنی همه لایه‌ها — برای مطالعه عمیق‌تر، نه تصمیم سریع.</p>
+            </div>
+          </div>
+        </div>
+        <p class="guide-tip">💡 <strong>قانون طلایی:</strong> برای معامله کوتاه‌مدت فقط بخش ۲ (پیش‌بینی) را بخوان. بقیه برای درک زمینه است.</p>
       </div>
     </section>
 
-    <section class="summary card">
-      <h2>جمع‌بندی</h2>
-      <p id="summary">—</p>
-      <div id="mtf-badge" class="badge">—</div>
-    </section>
-
-    <!-- پیش‌بینی ۴ ساعته -->
-    <section class="forecast card" id="forecast-panel">
-      <div class="forecast-header">
-        <div>
-          <h2>پیش‌بینی روند — ۴ ساعت آینده</h2>
-          <p class="card-hint">مدل چندلایه · آپشن · مشتقات · لیکوئیدیشن</p>
-        </div>
-        <div id="forecast-direction" class="forecast-direction neutral">—</div>
-      </div>
-
-      <div class="forecast-hero">
-        <div class="forecast-metric">
-          <span class="label">قیمت فعلی</span>
-          <strong id="fc-price">—</strong>
-        </div>
-        <div class="forecast-metric">
-          <span class="label">امتیاز جهت</span>
-          <strong id="fc-score">—</strong>
-        </div>
-        <div class="forecast-metric forecast-confidence">
-          <span class="label">اعتماد مدل</span>
-          <strong id="fc-confidence">—</strong>
-          <div class="conf-track"><div id="fc-conf-bar" class="conf-fill"></div></div>
-        </div>
-      </div>
-
-      <div class="forecast-levels">
-        <div class="level-pill support">
-          <span class="label">حمایت</span>
-          <span id="fc-support">—</span>
-        </div>
-        <div class="level-pill resistance">
-          <span class="label">مقاومت</span>
-          <span id="fc-resistance">—</span>
-        </div>
-        <div class="level-pill target">
-          <span class="label" id="fc-target-label">هدف محتمل</span>
-          <span id="fc-target">—</span>
-        </div>
-        <div class="level-pill invalidation">
-          <span class="label">باطل‌کننده</span>
-          <span id="fc-invalidation">—</span>
-        </div>
-      </div>
-
-      <div class="forecast-tags" id="fc-tags"></div>
-
-      <div class="forecast-columns">
-        <div class="forecast-col bullish-col">
-          <h3>دلایل صعودی</h3>
-          <ul id="fc-bullish" class="forecast-list"></ul>
-        </div>
-        <div class="forecast-col risk-col">
-          <h3>ریسک‌ها</h3>
-          <ul id="fc-risks" class="forecast-list"></ul>
-        </div>
-      </div>
-
-      <div class="forecast-summary-box">
-        <h3>جمع‌بندی</h3>
-        <p id="fc-summary">—</p>
-      </div>
-    </section>
-
-    <!-- لایه ۲: نمودار + MTF -->
-    <section class="chart card">
-      <div class="chart-header">
-        <h2>نمودار</h2>
-        <div class="tf-tabs">
-          <button class="tab active" data-tf="4h">4h</button>
-          <button class="tab" data-tf="1d">1d</button>
-          <button class="tab" data-tf="1w">1w</button>
-        </div>
-      </div>
-      <div id="chart-container"></div>
-    </section>
-
-    <section class="mtf-grid">
-      <div class="card mtf-card" id="card-4h">
-        <h3>4 ساعته</h3>
-        <div class="trend" data-tf="4h">—</div>
-        <div class="score-bar"><div class="fill"></div></div>
-        <div class="score-text">—</div>
-      </div>
-      <div class="card mtf-card" id="card-1d">
-        <h3>روزانه</h3>
-        <div class="trend" data-tf="1d">—</div>
-        <div class="score-bar"><div class="fill"></div></div>
-        <div class="score-text">—</div>
-      </div>
-      <div class="card mtf-card" id="card-1w">
-        <h3>هفتگی</h3>
-        <div class="trend" data-tf="1w">—</div>
-        <div class="score-bar"><div class="fill"></div></div>
-        <div class="score-text">—</div>
-      </div>
-    </section>
-
-    <!-- لایه ۳: ساختار قیمت -->
+    <!-- ۱. وضعیت لحظه‌ای -->
     <div class="section-group">
-      <div class="section-label">ساختار قیمت</div>
+      <div class="section-label">۱ · وضعیت لحظه‌ای</div>
+      <section class="hero card">
+        <div class="price-block">
+          <div class="label">قیمت BTC الان</div>
+          <div id="price" class="price">—</div>
+          <div id="change" class="change">—</div>
+        </div>
+        <div class="confidence-block">
+          <div class="label">اعتماد کلی بازار</div>
+          <div id="confidence" class="gauge">—</div>
+          <div id="score" class="muted">امتیاز: —</div>
+          <p class="field-hint">میانگین وزنی 4h (۲۵٪) + روزانه (۳۵٪) + هفتگی (۴۰٪)</p>
+        </div>
+      </section>
+
+      <section class="summary card">
+        <h2>خلاصه یک‌خطی</h2>
+        <p class="card-hint">نگاه کلی همه تایم‌فریم‌ها — نه فقط 4h</p>
+        <p id="summary">—</p>
+        <div id="mtf-badge" class="badge">—</div>
+      </section>
+    </div>
+
+    <!-- ۲. پیش‌بینی ۴ ساعت -->
+    <div class="section-group">
+      <div class="section-label">۲ · پیش‌بینی ۴ ساعت آینده</div>
+      <section class="forecast card" id="forecast-panel">
+        <div class="section-explainer">
+          <strong>این بخش چیست؟</strong>
+          مدل ترکیبی از تکنیکال 4h + مشتقات + آپشن + لیکوئیدیشن — فقط برای ۴ ساعت بعد.
+          با «روند فعلی 4h» در پایین فرق دارد: آن وضعیت الان است، این پیش‌بینی آینده است.
+        </div>
+
+        <div class="forecast-header">
+          <div>
+            <h2>جهت احتمالی ۴ ساعت بعد</h2>
+          </div>
+          <div id="forecast-direction" class="forecast-direction neutral">—</div>
+        </div>
+
+        <div class="forecast-hero">
+          <div class="forecast-metric">
+            <span class="label">امتیاز جهت</span>
+            <strong id="fc-score">—</strong>
+            <p class="field-hint">منفی = نزولی · مثبت = صعودی · نزدیک صفر = رنج</p>
+          </div>
+          <div class="forecast-metric forecast-confidence">
+            <span class="label">اعتماد مدل</span>
+            <strong id="fc-confidence">—</strong>
+            <div class="conf-track"><div id="fc-conf-bar" class="conf-fill"></div></div>
+            <p class="field-hint">هرگز ۱۰۰٪ نیست — بالای ۷۰٪ = سیگنال قوی‌تر</p>
+          </div>
+        </div>
+
+        <div class="forecast-levels">
+          <div class="level-pill support">
+            <span class="label">حمایت</span>
+            <span id="fc-support">—</span>
+            <span class="pill-hint">کف محتمل</span>
+          </div>
+          <div class="level-pill resistance">
+            <span class="label">مقاومت</span>
+            <span id="fc-resistance">—</span>
+            <span class="pill-hint">سقف محتمل</span>
+          </div>
+          <div class="level-pill target">
+            <span class="label" id="fc-target-label">هدف</span>
+            <span id="fc-target">—</span>
+            <span class="pill-hint">مقصد اگر جهت درست باشد</span>
+          </div>
+          <div class="level-pill invalidation">
+            <span class="label">باطل‌کننده</span>
+            <span id="fc-invalidation">—</span>
+            <span class="pill-hint">شکست = پیش‌بینی لغو</span>
+          </div>
+        </div>
+
+        <div class="forecast-tags" id="fc-tags"></div>
+
+        <div class="forecast-columns">
+          <div class="forecast-col bullish-col">
+            <h3>چرا ممکنه صعود کنه؟</h3>
+            <ul id="fc-bullish" class="forecast-list"></ul>
+          </div>
+          <div class="forecast-col risk-col">
+            <h3>چرا ممکنه نزول کنه؟</h3>
+            <ul id="fc-risks" class="forecast-list"></ul>
+          </div>
+        </div>
+
+        <div class="forecast-summary-box">
+          <h3>جمع‌بندی پیش‌بینی</h3>
+          <p id="fc-summary">—</p>
+        </div>
+      </section>
+    </div>
+
+    <!-- ۳. نمودار + MTF -->
+    <div class="section-group">
+      <div class="section-label">۳ · روند فعلی (الان، نه آینده)</div>
+
+      <section class="chart card">
+        <div class="chart-header">
+          <div>
+            <h2>نمودار قیمت</h2>
+            <p class="card-hint">تب‌ها را عوض کن — پیش‌بینی فقط روی 4h است</p>
+          </div>
+          <div class="tf-tabs">
+            <button class="tab active" data-tf="4h">4h</button>
+            <button class="tab" data-tf="1d">1d</button>
+            <button class="tab" data-tf="1w">1w</button>
+          </div>
+        </div>
+        <div id="chart-container"></div>
+      </section>
+
+      <p class="mtf-explainer">کارت‌های زیر <strong>روند فعلی</strong> هر تایم‌فریم را نشان می‌دهند. کارت «4 ساعته» وضعیت الان بازار است، نه پیش‌بینی ۴ ساعت بعد.</p>
+
+      <section class="mtf-grid">
+        <div class="card mtf-card" id="card-4h">
+          <h3>4h — الان</h3>
+          <div class="mtf-role">کوتاه‌مدت</div>
+          <div class="trend" data-tf="4h">—</div>
+          <div class="score-bar"><div class="fill"></div></div>
+          <div class="score-text">—</div>
+        </div>
+        <div class="card mtf-card" id="card-1d">
+          <h3>روزانه — الان</h3>
+          <div class="mtf-role">میان‌مدت</div>
+          <div class="trend" data-tf="1d">—</div>
+          <div class="score-bar"><div class="fill"></div></div>
+          <div class="score-text">—</div>
+        </div>
+        <div class="card mtf-card" id="card-1w">
+          <h3>هفتگی — الان</h3>
+          <div class="mtf-role">بلندمدت</div>
+          <div class="trend" data-tf="1w">—</div>
+          <div class="score-bar"><div class="fill"></div></div>
+          <div class="score-text">—</div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ۴. ساختار قیمت -->
+    <div class="section-group">
+      <div class="section-label">۴ · جزئیات ساختاری (ورودی پیش‌بینی)</div>
 
       <section class="card structure-card">
-        <h2>سطوح کلیدی و SMC <span class="subtitle">4h</span></h2>
+        <h2>ساختار فنی 4h</h2>
+        <p class="card-hint">SMC، فیبوناچی و لیکوئیدیشن — حمایت/مقاومت در بخش پیش‌بینی بالاست</p>
         <div class="levels-grid">
-          <div><span class="label">حمایت</span><span id="support">—</span></div>
-          <div><span class="label">مقاومت</span><span id="resistance">—</span></div>
           <div><span class="label">فیبوناچی</span><span id="fib-level">—</span></div>
           <div><span class="label">SMC</span><span id="smc-signal">—</span></div>
           <div><span class="label">FVG فعال</span><span id="fvg-active">—</span></div>
@@ -154,18 +236,19 @@
         <div class="structure-divider"></div>
 
         <h3 class="sub-heading">نقشه لیکوئیدیشن</h3>
+        <p class="field-hint">قرمز = لیکوئید لانگ · سبز = لیکوئید شورت</p>
         <div id="liq-map" class="liq-map">در حال بارگذاری...</div>
       </section>
     </div>
 
-    <!-- لایه ۴: محیط بازار -->
+    <!-- ۵. محیط بازار -->
     <div class="section-group">
-      <div class="section-label">محیط بازار</div>
+      <div class="section-label">۵ · محیط بیرونی بازار</div>
 
       <div class="market-env-grid">
         <section class="metrics card">
           <h2>ماکرو</h2>
-          <p class="card-hint">SPX · Nasdaq · DXY</p>
+          <p class="card-hint">تأثیر بورس و دلار روی BTC</p>
           <div class="metrics-grid">
             <div><span class="label">S&P 500</span><span id="spx">—</span></div>
             <div><span class="label">Nasdaq</span><span id="ndx">—</span></div>
@@ -176,7 +259,7 @@
 
         <section class="metrics card">
           <h2>مشتقات</h2>
-          <p class="card-hint">پوزیشنینگ کوتاه‌مدت</p>
+          <p class="card-hint">پوزیشن‌های فیوچرز — فشار خرید/فروش</p>
           <div class="metrics-grid">
             <div><span class="label">Funding Rate</span><span id="funding">—</span></div>
             <div><span class="label">تغییر OI</span><span id="oi">—</span></div>
@@ -186,7 +269,7 @@
 
         <section class="metrics card">
           <h2>آنچین و احساسات</h2>
-          <p class="card-hint">فاندامنتال + روانشناسی جمعی</p>
+          <p class="card-hint">داده بلندمدت‌تر از نمودار</p>
           <div class="metrics-grid">
             <div><span class="label">MVRV</span><span id="mvrv">—</span></div>
             <div><span class="label">آدرس فعال</span><span id="active-addr">—</span></div>
@@ -196,25 +279,31 @@
       </div>
     </div>
 
-    <!-- لایه ۵: اعتبارسنجی -->
-    <section class="backtest card">
-      <h2>اعتبارسنجی سیگنال</h2>
-      <p class="card-hint">بک‌تست walk-forward + بهینه‌سازی خودکار</p>
-      <div id="optimized-params" class="backtest-grid muted">در حال بارگذاری...</div>
-      <div id="backtest-results" class="backtest-grid">در حال بارگذاری...</div>
-    </section>
+    <!-- ۶. اعتبارسنجی + گزارش -->
+    <div class="section-group">
+      <div class="section-label">۶ · اعتبارسنجی و گزارش کامل</div>
 
-    <!-- لایه ۶: جمع‌بندی متنی -->
-    <section class="tech-brief card" aria-label="تحلیل فنی">
-      <div class="tech-brief-header">
-        <span class="tech-brief-icon" aria-hidden="true">◈</span>
-        <h2>تحلیل فنی</h2>
-        <span class="tech-brief-tag">خودکار · هر ۱۵ دقیقه</span>
-      </div>
-      <p id="tech-brief" class="tech-brief-body muted">در حال تولید تحلیل...</p>
-    </section>
+      <section class="backtest card">
+        <h2>اعتبارسنجی سیگنال</h2>
+        <p class="card-hint">آیا سیگنال‌های گذشته درست بوده؟ — بک‌تست خودکار</p>
+        <div id="optimized-params" class="backtest-grid muted">در حال بارگذاری...</div>
+        <div id="backtest-results" class="backtest-grid">در حال بارگذاری...</div>
+      </section>
+
+      <section class="tech-brief card" aria-label="گزارش کامل">
+        <div class="tech-brief-header">
+          <span class="tech-brief-icon" aria-hidden="true">◈</span>
+          <div>
+            <h2>گزارش تحلیل کامل</h2>
+            <p class="card-hint">همه لایه‌ها در یک پاراگراف — برای مطالعه عمیق، نه جایگزین بخش پیش‌بینی</p>
+          </div>
+          <span class="tech-brief-tag">خودکار · هر ۱۵ دقیقه</span>
+        </div>
+        <p id="tech-brief" class="tech-brief-body muted">در حال تولید تحلیل...</p>
+      </section>
+    </div>
   </main>
 
-  <script src="/js/app.js?v=202406-forecast-v1"></script>
+  <script src="/js/app.js?v=202406-clarity-v1"></script>
 </body>
 </html>

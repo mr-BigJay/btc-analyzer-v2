@@ -580,3 +580,125 @@ body {
   color: #c9d1d9;
   margin: 0;
 }
+
+/* Dashboard guide & explainers */
+.guide {
+  padding: 0;
+  overflow: hidden;
+  border-color: rgba(88, 166, 255, 0.25);
+}
+
+.guide-toggle {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: right;
+}
+
+.guide-toggle:hover { background: rgba(255, 255, 255, 0.03); }
+
+.guide-chevron { color: var(--muted); font-size: 0.85rem; }
+
+.guide-body {
+  padding: 0 1.25rem 1.25rem;
+  border-top: 1px solid var(--border);
+}
+
+.guide-body.collapsed { display: none; }
+
+.guide-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0.85rem;
+  margin-top: 1rem;
+}
+
+.guide-item {
+  display: flex;
+  gap: 0.65rem;
+  align-items: flex-start;
+  padding: 0.75rem;
+  background: #21262d;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.guide-num {
+  flex-shrink: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: rgba(88, 166, 255, 0.15);
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.guide-item strong { display: block; font-size: 0.88rem; margin-bottom: 0.2rem; }
+.guide-item p { font-size: 0.8rem; color: var(--muted); line-height: 1.55; margin: 0; }
+.guide-item em { color: #79c0ff; font-style: normal; }
+
+.guide-tip {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  background: rgba(240, 180, 41, 0.08);
+  border: 1px solid rgba(240, 180, 41, 0.2);
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: #e6edf3;
+}
+
+.section-explainer {
+  padding: 0.85rem 1rem;
+  margin-bottom: 1rem;
+  border-radius: 8px;
+  background: rgba(88, 166, 255, 0.06);
+  border: 1px solid rgba(88, 166, 255, 0.18);
+  font-size: 0.85rem;
+  line-height: 1.7;
+  color: #b6c2cf;
+}
+
+.section-explainer strong { color: var(--accent); }
+
+.field-hint, .pill-hint {
+  font-size: 0.72rem;
+  color: var(--muted);
+  line-height: 1.4;
+  margin: 0;
+}
+
+.pill-hint { margin-top: 0.15rem; font-weight: 400; }
+
+.mtf-explainer {
+  font-size: 0.85rem;
+  color: var(--muted);
+  line-height: 1.6;
+  padding: 0 0.25rem;
+}
+
+.mtf-role {
+  font-size: 0.7rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.35rem;
+}
+
+.level-pill {
+  gap: 0.15rem;
+}
+
+.tech-brief-header > div { flex: 1; }

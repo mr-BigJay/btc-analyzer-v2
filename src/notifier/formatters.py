@@ -1,4 +1,5 @@
 from src.analyzer.models import OverviewAnalysis, TimeframeAnalysis, Trend
+from src.analyzer.forecast import Forecast4h
 
 
 TREND_FA = {
@@ -57,6 +58,57 @@ def overview_message(analysis: OverviewAnalysis) -> str:
 
     lines.append("")
     lines.append("⚠️ تحلیل است، نه توصیه سرمایه‌گذاری")
+    return "\n".join(lines)
+
+
+def forecast_4h_message(forecast: Forecast4h) -> str:
+    dir_emoji = {"bullish": "🟢", "bearish": "🔴", "neutral": "🟡"}.get(
+        forecast.direction, "🟡"
+    )
+    conf_bar = "█" * int(forecast.confidence / 10) + "░" * (10 - int(forecast.confidence / 10))
+
+    lines = [
+        "╔══════════════════════════════════╗",
+        "║  <b>پیش‌بینی روند — ۴ ساعت آینده</b>  ║",
+        "╚══════════════════════════════════╝",
+        "",
+        f"💰 قیمت فعلی: <b>${forecast.price:,.0f}</b>",
+        "",
+        f"{dir_emoji} جهت: <b>{forecast.direction_label}</b>",
+        f"📊 امتیاز جهت: <b>{forecast.direction_score:+.1f}</b>",
+        f"🎯 اعتماد مدل: <b>{forecast.confidence:.0f}%</b>",
+        f"<code>{conf_bar}</code>",
+        "",
+        "┏━━━━━━━━ <b>سطوح کلیدی</b> ━━━━━━━━┓",
+    ]
+
+    if forecast.support:
+        lines.append(f"┃ 🟢 حمایت: <b>${forecast.support:,.0f}</b>")
+    if forecast.resistance:
+        lines.append(f"┃ 🔴 مقاومت: <b>${forecast.resistance:,.0f}</b>")
+    if forecast.primary_target:
+        label = "هدف نزولی" if forecast.direction == "bearish" else "هدف صعودی" if forecast.direction == "bullish" else "هدف محتمل"
+        lines.append(f"┃ 🎯 {label}: <b>${forecast.primary_target:,.0f}</b>")
+    if forecast.invalidation:
+        lines.append(f"┃ ⚠️ باطل‌کننده: <b>${forecast.invalidation:,.0f}</b>")
+    lines.append("┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛")
+
+    lines.extend(["", "🟢 <b>دلایل صعودی</b>"])
+    for r in forecast.bullish_reasons:
+        lines.append(f"  • {r}")
+
+    lines.extend(["", "🔴 <b>ریسک‌ها</b>"])
+    for r in forecast.risks:
+        lines.append(f"  • {r}")
+
+    lines.extend([
+        "",
+        "┏━━━━━━━━ <b>جمع‌بندی</b> ━━━━━━━━┓",
+        f"┃ {forecast.summary}",
+        "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛",
+        "",
+        "⚠️ تحلیل است، نه توصیه سرمایه‌گذاری",
+    ])
     return "\n".join(lines)
 
 

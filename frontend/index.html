@@ -4,14 +4,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>BTC Analyzer</title>
-  <link rel="stylesheet" href="/css/style.css?v=202406-dashboard-v2" />
+  <link rel="stylesheet" href="/css/style.css?v=202406-forecast-v1" />
   <script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
 </head>
 <body>
   <header class="header">
     <div class="header-brand">
       <h1>BTC Analyzer</h1>
-      <span class="version-badge" title="نسخه داشبورد">Dashboard v2</span>
+      <span class="version-badge" title="نسخه داشبورد">Forecast v1</span>
       <a href="/options.html" class="nav-link">Options →</a>
     </div>
     <span id="updated-at" class="muted">در حال بارگذاری...</span>
@@ -36,6 +36,70 @@
       <h2>جمع‌بندی</h2>
       <p id="summary">—</p>
       <div id="mtf-badge" class="badge">—</div>
+    </section>
+
+    <!-- پیش‌بینی ۴ ساعته -->
+    <section class="forecast card" id="forecast-panel">
+      <div class="forecast-header">
+        <div>
+          <h2>پیش‌بینی روند — ۴ ساعت آینده</h2>
+          <p class="card-hint">مدل چندلایه · آپشن · مشتقات · لیکوئیدیشن</p>
+        </div>
+        <div id="forecast-direction" class="forecast-direction neutral">—</div>
+      </div>
+
+      <div class="forecast-hero">
+        <div class="forecast-metric">
+          <span class="label">قیمت فعلی</span>
+          <strong id="fc-price">—</strong>
+        </div>
+        <div class="forecast-metric">
+          <span class="label">امتیاز جهت</span>
+          <strong id="fc-score">—</strong>
+        </div>
+        <div class="forecast-metric forecast-confidence">
+          <span class="label">اعتماد مدل</span>
+          <strong id="fc-confidence">—</strong>
+          <div class="conf-track"><div id="fc-conf-bar" class="conf-fill"></div></div>
+        </div>
+      </div>
+
+      <div class="forecast-levels">
+        <div class="level-pill support">
+          <span class="label">حمایت</span>
+          <span id="fc-support">—</span>
+        </div>
+        <div class="level-pill resistance">
+          <span class="label">مقاومت</span>
+          <span id="fc-resistance">—</span>
+        </div>
+        <div class="level-pill target">
+          <span class="label" id="fc-target-label">هدف محتمل</span>
+          <span id="fc-target">—</span>
+        </div>
+        <div class="level-pill invalidation">
+          <span class="label">باطل‌کننده</span>
+          <span id="fc-invalidation">—</span>
+        </div>
+      </div>
+
+      <div class="forecast-tags" id="fc-tags"></div>
+
+      <div class="forecast-columns">
+        <div class="forecast-col bullish-col">
+          <h3>دلایل صعودی</h3>
+          <ul id="fc-bullish" class="forecast-list"></ul>
+        </div>
+        <div class="forecast-col risk-col">
+          <h3>ریسک‌ها</h3>
+          <ul id="fc-risks" class="forecast-list"></ul>
+        </div>
+      </div>
+
+      <div class="forecast-summary-box">
+        <h3>جمع‌بندی</h3>
+        <p id="fc-summary">—</p>
+      </div>
     </section>
 
     <!-- لایه ۲: نمودار + MTF -->
@@ -151,6 +215,6 @@
     </section>
   </main>
 
-  <script src="/js/app.js?v=202406-dashboard-v2"></script>
+  <script src="/js/app.js?v=202406-forecast-v1"></script>
 </body>
 </html>

@@ -7,6 +7,7 @@ from starlette.requests import Request
 from starlette.responses import Response
 
 from src.api.options_routes import router as options_router
+from src.analyzer.forecast import ForecastEngine, forecast_to_dict
 from src.analyzer.serialize import analysis_to_dict
 from src.analyzer.service import AnalysisService
 from src.config import BASE_DIR, settings
@@ -21,7 +22,7 @@ from src.db.models import (
 )
 
 app = FastAPI(title="BTC Analyzer", version="2.4.0")
-FRONTEND_BUILD = "2024.06-dashboard-v2"
+FRONTEND_BUILD = "2024.06-forecast-v1"
 
 app.add_middleware(
     CORSMiddleware,
@@ -44,6 +45,7 @@ class NoCacheHtmlMiddleware(BaseHTTPMiddleware):
 app.add_middleware(NoCacheHtmlMiddleware)
 
 analysis_service = AnalysisService()
+forecast_engine = ForecastEngine()
 
 app.include_router(options_router)
 
@@ -183,6 +185,17 @@ def liquidation_map():
             "total_usd": sum(z["total_usd"] for z in zones),
             "updated_at": latest.isoformat(),
         }
+    finally:
+        session.close()
+
+
+@app.get("/api/v1/forecast/4h")
+def forecast_4h():
+    session = get_session()
+    try:
+        analysis = analysis_service.analyze(session)
+        forecast = forecast_engine.build(session, analysis)
+        return forecast_to_dict(forecast)
     finally:
         session.close()
 

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BTC Options — Deribit</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="stylesheet" href="/css/options.css" />
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+</head>
+<body>
+  <header class="header">
+    <div class="header-left">
+      <a href="/" class="nav-link">← Spot</a>
+      <h1>Options Analytics</h1>
+    </div>
+    <div class="header-right">
+      <span id="spot-price" class="muted">—</span>
+      <span id="mode-badge" class="badge">—</span>
+    </div>
+  </header>
+
+  <main class="options-layout">
+    <!-- Screener Panel -->
+    <section class="card screener-panel">
+      <div class="panel-header">
+        <h2>Market Screener</h2>
+        <div class="controls">
+          <button class="tab tf-btn active" data-tf="1d">1d</button>
+          <button class="tab tf-btn" data-tf="4h">4h</button>
+          <button class="tab tf-btn" data-tf="1h">1h</button>
+          <select id="min-size">
+            <option value="0">همه</option>
+            <option value="0.5" selected>≥ 0.5</option>
+            <option value="1">≥ 1</option>
+            <option value="5">≥ 5</option>
+          </select>
+          <button id="btn-fetch" class="btn-primary">Fetch</button>
+        </div>
+      </div>
+
+      <div class="summary-bar">
+        <div><span class="label">تعداد</span><strong id="sum-count">—</strong></div>
+        <div><span class="label">حجم کل</span><strong id="sum-size">—</strong></div>
+        <div><span class="label">ارزش ورود (USD)</span><strong id="sum-value">—</strong></div>
+      </div>
+
+      <div class="table-wrap">
+        <table id="screener-table">
+          <thead>
+            <tr>
+              <th>Type</th>
+              <th>Expiry</th>
+              <th>Strike</th>
+              <th>Underlying</th>
+              <th>Price & IV</th>
+              <th>Side</th>
+              <th>Size</th>
+              <th>Entry Value</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody id="screener-body">
+            <tr><td colspan="9" class="muted">Fetch بزنید</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Risk Graph Panel -->
+    <section class="card graph-panel">
+      <div class="panel-header">
+        <h2>Risk Profile</h2>
+        <div class="controls">
+          <button class="tab mode-btn active" data-mode="auto">Auto</button>
+          <button class="tab mode-btn" data-mode="public">Public</button>
+          <button class="tab mode-btn" data-mode="private">Private</button>
+          <button id="btn-refresh-graph" class="btn-primary">Refresh</button>
+        </div>
+      </div>
+      <p id="graph-subtitle" class="muted graph-hint">
+        PnL, Delta, Gamma, Theta, Vega, Rho بر اساس قیمت BTC
+      </p>
+      <div id="risk-chart"></div>
+    </section>
+  </main>
+
+  <script src="/js/options.js"></script>
+</body>
+</html>

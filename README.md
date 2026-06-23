@@ -25,6 +25,7 @@
 
 ### خروجی
 - **داشبورد وب** — نمودار + کارت‌های MTF
+- **داشبورد آپشن** — اسکرینر Deribit + نمودار Greeks/PnL
 - **تلگرام** — `/status`, `/4h`, `/1d`, `/1w` + اعلان خودکار
 
 ## نصب روی Ubuntu 24
@@ -97,6 +98,28 @@ GET /api/v1/signals
 GET /api/v1/backtest
 ```
 
+## داشبورد آپشن (Deribit)
+
+آدرس: `http://YOUR_SERVER:8000/options.html`
+
+در `.env`:
+```env
+DERIBIT_CLIENT_ID=your_id
+DERIBIT_CLIENT_SECRET=your_secret
+```
+
+| حالت | توضیح |
+|------|--------|
+| Public | معاملات بزرگ آپشن + نمودار ریسک |
+| Private | پوزیشن‌های واقعی حساب Deribit |
+| Selected | کلیک روی ردیف‌های جدول |
+
+```
+GET /api/v1/options/screener?timeframe=1d&min_size=0.5
+GET /api/v1/options/risk-profile?mode=auto
+GET /api/v1/options/status
+```
+
 ## systemd (اختیاری)
 
 ```ini
@@ -120,8 +143,10 @@ WantedBy=multi-user.target
 
 ```
 src/
-├── collector/     # جمع‌آوری داده (Binance/OKX + Fear&Greed)
-├── analyzer/      # تحلیل تکنیکال چندلایه
+├── collector/     # جمع‌آوری داده (Binance/OKX + Fear&Greed + On-chain)
+├── analyzer/      # تحلیل تکنیکال + بک‌تست
+│   ├── indicators.py
+│   └── backtest.py
 ├── notifier/      # تلگرام
 ├── api/           # FastAPI + داشبورد
 ├── db/            # مدل‌های SQLite

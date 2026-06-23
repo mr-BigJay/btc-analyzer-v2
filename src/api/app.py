@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import desc, select
 
+from src.api.options_routes import router as options_router
 from src.analyzer.serialize import analysis_to_dict
 from src.analyzer.service import AnalysisService
 from src.config import BASE_DIR, settings
@@ -17,6 +18,8 @@ app.add_middleware(
 )
 
 analysis_service = AnalysisService()
+
+app.include_router(options_router)
 
 
 @app.on_event("startup")

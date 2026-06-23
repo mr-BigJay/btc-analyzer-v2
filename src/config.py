@@ -36,6 +36,16 @@ class Settings(BaseSettings):
     api_host: str = "0.0.0.0"
     api_port: int = 8000
 
+    # Deribit Options (phase 3)
+    deribit_client_id: str = ""
+    deribit_client_secret: str = ""
+    deribit_base_url: str = "https://www.deribit.com/api/v2"
+    deribit_currency: str = "BTC"
+
+    @property
+    def deribit_configured(self) -> bool:
+        return bool(self.deribit_client_id and self.deribit_client_secret)
+
     @property
     def data_dir(self) -> Path:
         return BASE_DIR / "data"

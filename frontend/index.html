@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BTC Analyzer</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
+</head>
+<body>
+  <header class="header">
+    <h1>BTC Analyzer</h1>
+    <span id="updated-at" class="muted">در حال بارگذاری...</span>
+  </header>
+
+  <main class="container">
+    <section class="hero card">
+      <div class="price-block">
+        <div class="label">قیمت BTC</div>
+        <div id="price" class="price">—</div>
+        <div id="change" class="change">—</div>
+      </div>
+      <div class="confidence-block">
+        <div class="label">اعتماد کلی</div>
+        <div id="confidence" class="gauge">—</div>
+        <div id="score" class="muted">امتیاز: —</div>
+      </div>
+    </section>
+
+    <section class="summary card">
+      <h2>جمع‌بندی</h2>
+      <p id="summary">—</p>
+      <div id="mtf-badge" class="badge">—</div>
+    </section>
+
+    <section class="mtf-grid">
+      <div class="card mtf-card" id="card-1w">
+        <h3>هفتگی</h3>
+        <div class="trend" data-tf="1w">—</div>
+        <div class="score-bar"><div class="fill"></div></div>
+        <div class="score-text">—</div>
+      </div>
+      <div class="card mtf-card" id="card-1d">
+        <h3>روزانه</h3>
+        <div class="trend" data-tf="1d">—</div>
+        <div class="score-bar"><div class="fill"></div></div>
+        <div class="score-text">—</div>
+      </div>
+      <div class="card mtf-card" id="card-4h">
+        <h3>4 ساعته</h3>
+        <div class="trend" data-tf="4h">—</div>
+        <div class="score-bar"><div class="fill"></div></div>
+        <div class="score-text">—</div>
+      </div>
+    </section>
+
+    <section class="metrics card">
+      <h2>مشتقات و احساسات</h2>
+      <div class="metrics-grid">
+        <div><span class="label">Funding Rate</span><span id="funding">—</span></div>
+        <div><span class="label">تغییر OI</span><span id="oi">—</span></div>
+        <div><span class="label">Long/Short</span><span id="ls">—</span></div>
+        <div><span class="label">Fear & Greed</span><span id="fg">—</span></div>
+      </div>
+    </section>
+
+    <section class="chart card">
+      <div class="chart-header">
+        <h2>نمودار</h2>
+        <div class="tf-tabs">
+          <button class="tab active" data-tf="4h">4h</button>
+          <button class="tab" data-tf="1d">1d</button>
+          <button class="tab" data-tf="1w">1w</button>
+        </div>
+      </div>
+      <div id="chart-container"></div>
+    </section>
+  </main>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>

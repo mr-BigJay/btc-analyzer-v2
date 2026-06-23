@@ -1,0 +1,33 @@
+services:
+  btc-analyzer:
+    build: .
+    container_name: btc-analyzer
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+    command: python -m src.main start
+
+  dashboard:
+    build: .
+    container_name: btc-dashboard
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "8080:8000"
+    volumes:
+      - ./data:/app/data
+    command: python -m src.main serve
+    profiles: ["dashboard"]
+
+  telegram:
+    build: .
+    container_name: btc-telegram
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - ./data:/app/data
+    command: python -m src.main telegram
+    profiles: ["telegram"]

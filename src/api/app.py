@@ -7,7 +7,15 @@ from src.api.options_routes import router as options_router
 from src.analyzer.serialize import analysis_to_dict
 from src.analyzer.service import AnalysisService
 from src.config import BASE_DIR, settings
-from src.db.models import AnalysisSnapshot, BacktestResult, OHLCVCandle, get_session, init_db
+from src.db.models import (
+    AnalysisSnapshot,
+    BacktestResult,
+    LiquidationLevel,
+    OptimizedParams,
+    OHLCVCandle,
+    get_session,
+    init_db,
+)
 
 app = FastAPI(title="BTC Analyzer", version="1.0.0")
 app.add_middleware(
@@ -125,6 +133,60 @@ def backtest_results(limit: int = 10):
             }
             for r in rows
         ]
+    finally:
+        session.close()
+
+
+@app.get("/api/v1/liquidations")
+def liquidation_map():
+    session = get_session()
+    try:
+        rows = session.execute(
+            select(LiquidationLevel)
+            .order_by(desc(LiquidationLevel.snapshot_at))
+            .limit(30)
+        ).scalars().all()
+        if not rows:
+            return {"zones": [], "total_usd": 0}
+        latest = rows[0].snapshot_at
+        zones = [
+            {
+                "price": r.price_level,
+                "long_usd": r.long_liq_usd,
+                "short_usd": r.short_liq_usd,
+                "total_usd": r.total_usd,
+            }
+            for r in rows
+            if r.snapshot_at == latest
+        ]
+        zones.sort(key=lambda z: z["price"])
+        return {
+            "zones": zones,
+            "total_usd": sum(z["total_usd"] for z in zones),
+            "updated_at": latest.isoformat(),
+        }
+    finally:
+        session.close()
+
+
+@app.get("/api/v1/optimized-params")
+def optimized_params():
+    session = get_session()
+    try:
+        from src.analyzer.optimize import BacktestOptimizer
+
+        params = BacktestOptimizer.get_all_best(session)
+        return {
+            tf: {
+                "confidence": p.confidence_threshold,
+                "min_score_bull": p.min_score_bull,
+                "max_score_bear": p.max_score_bear,
+                "win_rate": p.win_rate,
+                "profit_factor": p.profit_factor,
+                "updated_at": p.created_at.isoformat(),
+            }
+            for tf, p in params.items()
+        }
     finally:
         session.close()
 

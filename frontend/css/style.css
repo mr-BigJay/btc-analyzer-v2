@@ -154,6 +154,24 @@ body {
 
 #chart-container { height: 400px; width: 100%; }
 
+.liq-map { display: flex; flex-direction: column; gap: 0.35rem; margin-top: 0.75rem; }
+.liq-bar-row {
+  display: grid;
+  grid-template-columns: 80px 1fr 70px;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+}
+.liq-bar-bg {
+  height: 14px;
+  background: #21262d;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.liq-bar-fill { height: 100%; border-radius: 4px; }
+.liq-long { background: #ef5350; }
+.liq-short { background: #26a69a; }
+
 @media (max-width: 600px) {
   .price { font-size: 1.6rem; }
   #chart-container { height: 280px; }

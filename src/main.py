@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 import uvicorn
 
 from src.analyzer.backtest import BacktestEngine
+from src.analyzer.optimize import BacktestOptimizer
 from src.analyzer.serialize import analysis_to_json
 from src.analyzer.service import AnalysisService
 from src.collector.orchestrator import CollectionOrchestrator
@@ -71,6 +72,25 @@ def cmd_backtest() -> int:
                 f"Signals: {r.total_signals} | Win rate: {r.win_rate}% | "
                 f"PF: {r.profit_factor} | Avg return: {r.avg_return_pct}% | "
                 f"Max DD: {r.max_drawdown_pct}%"
+            )
+        return 0
+    finally:
+        session.close()
+
+
+def cmd_optimize() -> int:
+    init_db()
+    session = get_session()
+    try:
+        optimizer = BacktestOptimizer()
+        results = optimizer.optimize_all(session)
+        engine = BacktestEngine()
+        engine.run_all_timeframes(session, save=True)
+        for r in results:
+            print(
+                f"{r.timeframe}: conf={r.confidence_threshold:.0f} "
+                f"bull={r.min_score_bull:.0f} bear={r.max_score_bear:.0f} "
+                f"WR={r.win_rate}% PF={r.profit_factor}"
             )
         return 0
     finally:
@@ -151,6 +171,7 @@ def main() -> int:
     sub.add_parser("run", help="Start scheduler (collect + analyze loop)")
     sub.add_parser("start", help="Scheduler + dashboard API together")
     sub.add_parser("backtest", help="Run walk-forward backtest")
+    sub.add_parser("optimize", help="Optimize backtest parameters")
     sub.add_parser("telegram", help="Start Telegram bot")
 
     args = parser.parse_args()
@@ -158,6 +179,7 @@ def main() -> int:
         "collect": cmd_collect,
         "analyze": cmd_analyze,
         "backtest": cmd_backtest,
+        "optimize": cmd_optimize,
         "init-db": cmd_init_db,
         "serve": cmd_serve,
         "run": cmd_run,

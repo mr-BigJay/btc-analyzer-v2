@@ -19,6 +19,18 @@ async function fetchBacktest() {
   return res.json();
 }
 
+async function fetchLiquidations() {
+  const res = await fetch("/api/v1/liquidations");
+  if (!res.ok) return null;
+  return res.json();
+}
+
+async function fetchOptimizedParams() {
+  const res = await fetch("/api/v1/optimized-params");
+  if (!res.ok) return {};
+  return res.json();
+}
+
 function formatPrice(n) {
   return "$" + Number(n).toLocaleString("en-US", { maximumFractionDigits: 2 });
 }
@@ -96,10 +108,59 @@ function updateOverview(data) {
     lv.resistance != null ? formatPrice(lv.resistance) : "—";
   document.getElementById("fib-level").textContent =
     lv.fib_nearest ? `${lv.fib_nearest} (${lv.fib_signal || ""})` : "—";
-  document.getElementById("bb-signal").textContent =
-    tf4h.indicators.bb_signal || "—";
-  document.getElementById("stoch-signal").textContent =
-    tf4h.indicators.stoch_signal || "—";
+
+  const SMC_FA = {
+    bos_bullish: "BOS صعودی", bos_bearish: "BOS نزولی",
+    choch_bullish: "CHoCH صعودی", choch_bearish: "CHoCH نزولی", none: "—",
+  };
+  document.getElementById("smc-signal").textContent =
+    SMC_FA[lv.smc_signal] || lv.smc_signal || "—";
+  const fvg = lv.active_fvg;
+  document.getElementById("fvg-active").textContent = fvg
+    ? `${fvg.type} (${fvg.bottom?.toFixed(0)}–${fvg.top?.toFixed(0)})` : "—";
+  const ob = lv.nearest_ob;
+  document.getElementById("order-block").textContent = ob
+    ? `${ob.type} (${ob.bottom?.toFixed(0)}–${ob.top?.toFixed(0)})` : "—";
+}
+
+function renderLiquidations(data) {
+  const el = document.getElementById("liq-map");
+  if (!data || !data.zones.length) {
+    el.textContent = "منتظر جمع‌آوری خودکار...";
+    return;
+  }
+  const maxTotal = Math.max(...data.zones.map((z) => z.total_usd), 1);
+  el.innerHTML = data.zones
+    .slice(-12)
+    .map((z) => {
+      const pct = (z.total_usd / maxTotal) * 100;
+      const cls = z.long_usd > z.short_usd ? "liq-long" : "liq-short";
+      return `<div class="liq-bar-row">
+        <span>$${z.price.toLocaleString()}</span>
+        <div class="liq-bar-bg"><div class="liq-bar-fill ${cls}" style="width:${pct}%"></div></div>
+        <span>$${(z.total_usd / 1000).toFixed(0)}k</span>
+      </div>`;
+    })
+    .join("");
+}
+
+function updateOptimizedParams(params) {
+  const el = document.getElementById("optimized-params");
+  const keys = Object.keys(params);
+  if (!keys.length) {
+    el.textContent = "بهینه‌سازی خودکار با scheduler اجرا می‌شود";
+    return;
+  }
+  el.innerHTML = keys
+    .map(
+      (tf) => `<div class="backtest-item">
+        <strong>${tf} — پارامتر بهینه</strong>
+        <span>اعتماد: ${params[tf].confidence}</span>
+        <span>WR: ${params[tf].win_rate}%</span>
+        <span>PF: ${params[tf].profit_factor}</span>
+      </div>`
+    )
+    .join("");
 }
 
 function updateBacktest(rows) {
@@ -166,9 +227,16 @@ document.querySelectorAll(".tab").forEach((btn) => {
 
 async function refresh() {
   try {
-    const [overview, backtest] = await Promise.all([fetchOverview(), fetchBacktest()]);
+    const [overview, backtest, liq, optParams] = await Promise.all([
+      fetchOverview(),
+      fetchBacktest(),
+      fetchLiquidations(),
+      fetchOptimizedParams(),
+    ]);
     updateOverview(overview);
     updateBacktest(backtest);
+    renderLiquidations(liq);
+    updateOptimizedParams(optParams);
     await loadChart(currentTf);
   } catch (e) {
     console.error(e);

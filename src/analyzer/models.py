@@ -58,6 +58,15 @@ class DerivativesContext:
 
 
 @dataclass
+class LiquidationContext:
+    zones_above: list[dict]
+    zones_below: list[dict]
+    nearest_zone: dict | None
+    total_24h_usd: float
+    signal: str
+
+
+@dataclass
 class MacroContext:
     spx: float | None
     spx_change_7d: float | None
@@ -91,3 +100,4 @@ class OverviewAnalysis:
     updated_at: str
     onchain: OnChainContext | None = None
     macro: MacroContext | None = None
+    liquidations: LiquidationContext | None = None

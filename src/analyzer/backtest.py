@@ -79,7 +79,12 @@ class BacktestEngine:
             ]
         )
 
-    def run(self, session: Session, timeframe: str) -> BacktestReport:
+    def run(
+        self,
+        session: Session,
+        timeframe: str,
+        step: int = 1,
+    ) -> BacktestReport:
         df = self._load_candles(session, timeframe)
         if len(df) < MIN_HISTORY + FORWARD_BARS.get(timeframe, 5):
             raise ValueError(f"Not enough data for backtest on {timeframe}")
@@ -87,7 +92,7 @@ class BacktestEngine:
         forward = FORWARD_BARS.get(timeframe, 5)
         trades: list[TradeSignal] = []
 
-        for i in range(MIN_HISTORY, len(df) - forward):
+        for i in range(MIN_HISTORY, len(df) - forward, step):
             window = df.iloc[: i + 1].copy()
             try:
                 result = self.analyzer.analyze_dataframe(window, timeframe)

@@ -22,13 +22,17 @@
 - فیلتر MTF Confluence
 - **آنچین:** MVRV + آدرس‌های فعال (CoinMetrics)
 - **ماکرو:** SPX, Nasdaq, DXY (Yahoo Finance — خودکار)
+- **لیکوئیدیشن:** نقشه از OKX (خودکار)
+- **SMC:** FVG, BOS/CHoCH, Order Block (از کندل‌ها)
+- **بک‌تست:** walk-forward + بهینه‌سازی خودکار پارامترها
 - **آپشن Deribit:** اسکرینر + Greeks — **کاملاً خودکار**
-- **بک‌تست walk-forward** با Win Rate و Profit Factor
 
 ### خروجی
-- **داشبورد وب** — نمودار + کارت‌های MTF
-- **داشبورد آپشن** — اسکرینر Deribit + نمودار Greeks/PnL
+- **داشبورد وب** — نمودار + کارت‌های MTF + ماکرو
+- **داشبورد آپشن** — اسکرینر Deribit + نمودار Greeks (خودکار)
 - **تلگرام** — `/status`, `/4h`, `/1d`, `/1w` + اعلان خودکار
+
+> **اصل طراحی:** هیچ ورودی دستی لازم نیست — scheduler همه داده‌ها را جمع و تحلیل می‌کند.
 
 ## نصب روی Ubuntu 24
 
@@ -104,21 +108,18 @@ GET /api/v1/backtest
 
 آدرس: `http://YOUR_SERVER:8000/options.html`
 
-در `.env`:
+**کاملاً خودکار** — هر ۱۵ دقیقه با scheduler جمع‌آوری می‌شود. نیازی به Fetch یا کلیک نیست.
+
+برای پوزیشن‌های شخصی (اختیاری، یک‌بار در `.env`):
 ```env
 DERIBIT_CLIENT_ID=your_id
 DERIBIT_CLIENT_SECRET=your_secret
 ```
 
-| حالت | توضیح |
-|------|--------|
-| Public | معاملات بزرگ آپشن + نمودار ریسک |
-| Private | پوزیشن‌های واقعی حساب Deribit |
-| Selected | کلیک روی ردیف‌های جدول |
-
 ```
-GET /api/v1/options/screener?timeframe=1d&min_size=0.5
-GET /api/v1/options/risk-profile?mode=auto
+GET /api/v1/options/latest      # screener + risk profile
+GET /api/v1/options/screener
+GET /api/v1/options/risk-profile
 GET /api/v1/options/status
 ```
 

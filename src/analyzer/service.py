@@ -14,9 +14,11 @@ from src.analyzer.indicators import (
     find_support_resistance,
     stochastic_signal,
 )
+from src.analyzer.smc import analyze_smc
 from src.analyzer.models import (
     DerivativesContext,
     LayerScore,
+    LiquidationContext,
     MarketRegime,
     OnChainContext,
     OverviewAnalysis,
@@ -34,6 +36,7 @@ from src.db.models import (
     OnChainMetric,
     OpenInterest,
     MacroMetric,
+    LiquidationLevel,
     TakerVolume,
     TickerSnapshot,
 )
@@ -74,12 +77,13 @@ class TechnicalAnalyzer:
         stoch = stochastic_signal(latest, prev, df)
         sr = find_support_resistance(df)
         fib = fibonacci_levels(df)
+        smc = analyze_smc(df, price)
 
         trend_layer = self._score_trend(latest, prev)
         momentum_layer = self._score_momentum(latest, prev, df, stoch)
         volume_layer = self._score_volume(latest, df)
         volatility_layer = self._score_volatility(latest, df, bb)
-        structure_layer, structure_label = self._score_structure(df, sr, fib)
+        structure_layer, structure_label = self._score_structure(df, sr, fib, smc)
 
         layers = [trend_layer, momentum_layer, volume_layer, volatility_layer, structure_layer]
         score = sum(layer.score * layer.weight for layer in layers)
@@ -118,6 +122,10 @@ class TechnicalAnalyzer:
             "fibonacci": fib.get("levels"),
             "fib_nearest": fib.get("nearest_level"),
             "fib_signal": fib.get("signal"),
+            "smc_signal": smc.get("signal"),
+            "active_fvg": smc.get("active_fvg"),
+            "nearest_ob": smc.get("nearest_ob"),
+            "bos_choch": smc.get("bos_choch"),
         }
 
         return TimeframeAnalysis(
@@ -256,7 +264,7 @@ class TechnicalAnalyzer:
 
         return LayerScore("volatility", max(0, min(100, score)), LAYER_WEIGHTS["volatility"], details)
 
-    def _score_structure(self, df: pd.DataFrame, sr: dict, fib: dict) -> tuple[LayerScore, str]:
+    def _score_structure(self, df: pd.DataFrame, sr: dict, fib: dict, smc: dict) -> tuple[LayerScore, str]:
         score = 50.0
         lookback = min(20, len(df) - 1)
         if lookback < 5:
@@ -283,12 +291,14 @@ class TechnicalAnalyzer:
 
         score += sr.get("score_delta", 0)
         score += fib.get("score_delta", 0)
+        score += smc.get("score_delta", 0)
         score = max(0, min(100, score))
 
         details = {
             "pattern": label,
             "sr_signal": sr.get("signal"),
             "fib_signal": fib.get("signal"),
+            "smc_signal": smc.get("signal"),
             "support": sr.get("support"),
             "resistance": sr.get("resistance"),
         }
@@ -552,6 +562,62 @@ class AnalysisService:
             macro_bias=macro_bias,
         )
 
+    def _liquidation_context(self, session: Session, price: float) -> LiquidationContext | None:
+        rows = session.execute(
+            select(LiquidationLevel)
+            .where(LiquidationLevel.symbol == settings.symbol)
+            .order_by(desc(LiquidationLevel.snapshot_at))
+            .limit(50)
+        ).scalars().all()
+        if not rows:
+            return None
+
+        latest_snap = rows[0].snapshot_at
+        levels = [r for r in rows if r.snapshot_at == latest_snap]
+        total = sum(r.total_usd for r in levels)
+
+        above = sorted(
+            [r for r in levels if r.price_level > price],
+            key=lambda x: x.total_usd,
+            reverse=True,
+        )[:3]
+        below = sorted(
+            [r for r in levels if r.price_level < price],
+            key=lambda x: x.total_usd,
+            reverse=True,
+        )[:3]
+
+        def _zone(r: LiquidationLevel) -> dict:
+            return {
+                "price": r.price_level,
+                "total_usd": round(r.total_usd, 0),
+                "long_usd": round(r.long_liq_usd, 0),
+                "short_usd": round(r.short_liq_usd, 0),
+            }
+
+        zones_above = [_zone(r) for r in above]
+        zones_below = [_zone(r) for r in below]
+
+        nearest = None
+        if levels:
+            nearest_r = min(levels, key=lambda r: abs(r.price_level - price))
+            nearest = _zone(nearest_r)
+
+        signal = "neutral"
+        if nearest and nearest["total_usd"] > total * 0.2:
+            if nearest["price"] > price:
+                signal = "liq_cluster_above"
+            else:
+                signal = "liq_cluster_below"
+
+        return LiquidationContext(
+            zones_above=zones_above,
+            zones_below=zones_below,
+            nearest_zone=nearest,
+            total_24h_usd=round(total, 0),
+            signal=signal,
+        )
+
     def _build_summary(
         self,
         timeframes: dict[str, TimeframeAnalysis],
@@ -559,6 +625,7 @@ class AnalysisService:
         derivatives: DerivativesContext,
         onchain: OnChainContext | None,
         macro: MacroContext | None = None,
+        liquidations: LiquidationContext | None = None,
     ) -> str:
         tf_order = ["1w", "1d", "4h"]
         trends = {tf: timeframes[tf].trend.value for tf in tf_order if tf in timeframes}
@@ -590,6 +657,17 @@ class AnalysisService:
             elif macro.macro_bias == "bearish_crypto":
                 base += " — ماکرو: فشار دلار/ریسک‌گریز"
 
+        if liquidations and liquidations.signal == "liq_cluster_above":
+            base += " — خوشه لیکوئیدیشن بالای قیمت"
+        elif liquidations and liquidations.signal == "liq_cluster_below":
+            base += " — خوشه لیکوئیدیشن زیر قیمت"
+
+        tf4h = timeframes.get("4h")
+        if tf4h and tf4h.levels.get("smc_signal") in ("bos_bullish", "choch_bullish"):
+            base += " — SMC صعودی"
+        elif tf4h and tf4h.levels.get("smc_signal") in ("bos_bearish", "choch_bearish"):
+            base += " — SMC نزولی"
+
         return base
 
     def analyze(self, session: Session) -> OverviewAnalysis:
@@ -618,7 +696,10 @@ class AnalysisService:
         sentiment = self._sentiment_context(session)
         onchain = self._onchain_context(session)
         macro = self._macro_context(session)
-        summary = self._build_summary(timeframes, mtf_aligned, derivatives, onchain, macro)
+        liquidations = self._liquidation_context(session, price)
+        summary = self._build_summary(
+            timeframes, mtf_aligned, derivatives, onchain, macro, liquidations
+        )
 
         if derivatives.funding_signal == "overleveraged_long" and overall_score > 60:
             overall_confidence = max(30, overall_confidence - 10)
@@ -644,4 +725,5 @@ class AnalysisService:
             updated_at=datetime.now(timezone.utc).isoformat(),
             onchain=onchain,
             macro=macro,
+            liquidations=liquidations,
         )

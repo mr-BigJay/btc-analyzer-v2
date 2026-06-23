@@ -51,6 +51,9 @@ class Settings(BaseSettings):
         "dxy": "DX-Y.NYB",
     }
 
+    liquidation_bin_pct: float = 0.5
+    backtest_optimize_hour: int = 3
+
     @property
     def deribit_configured(self) -> bool:
         return bool(self.deribit_client_id and self.deribit_client_secret)

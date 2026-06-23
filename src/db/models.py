@@ -265,6 +265,57 @@ class OptionsSnapshot(Base):
     )
 
 
+class LiquidationEvent(Base):
+    __tablename__ = "liquidation_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    symbol: Mapped[str] = mapped_column(String(20), nullable=False)
+    price: Mapped[float] = mapped_column(Float, nullable=False)
+    size: Mapped[float] = mapped_column(Float, nullable=False)
+    side: Mapped[str] = mapped_column(String(10), nullable=False)
+    pos_side: Mapped[str] = mapped_column(String(10), nullable=False)
+    value_usd: Mapped[float] = mapped_column(Float, nullable=False)
+    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    collected_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+
+    __table_args__ = (
+        Index("ix_liq_symbol_time_price", "symbol", "timestamp", "price"),
+    )
+
+
+class LiquidationLevel(Base):
+    __tablename__ = "liquidation_levels"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    symbol: Mapped[str] = mapped_column(String(20), nullable=False)
+    price_level: Mapped[float] = mapped_column(Float, nullable=False)
+    long_liq_usd: Mapped[float] = mapped_column(Float, default=0)
+    short_liq_usd: Mapped[float] = mapped_column(Float, default=0)
+    total_usd: Mapped[float] = mapped_column(Float, nullable=False)
+    snapshot_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class OptimizedParams(Base):
+    __tablename__ = "optimized_params"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    timeframe: Mapped[str] = mapped_column(String(10), nullable=False)
+    confidence_threshold: Mapped[float] = mapped_column(Float, nullable=False)
+    min_score_bull: Mapped[float] = mapped_column(Float, nullable=False)
+    max_score_bear: Mapped[float] = mapped_column(Float, nullable=False)
+    win_rate: Mapped[float] = mapped_column(Float, nullable=False)
+    profit_factor: Mapped[float] = mapped_column(Float, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+
+
 engine = create_engine(
     settings.database_url,
     connect_args={"check_same_thread": False} if settings.database_url.startswith("sqlite") else {},

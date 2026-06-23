@@ -40,37 +40,36 @@
 git clone https://github.com/mr-BigJay/btc-analyzer-v2.git
 cd btc-analyzer-v2
 chmod +x install.sh
-./install.sh --systemd
+./install.sh
 ```
 
-اسکریپت `install.sh` به‌صورت خودکار:
-- پیش‌نیازهای سیستم (`python3-venv`, `git`, ...) را نصب می‌کند
-- محیط مجازی و پکیج‌های Python را می‌سازد/آپدیت می‌کند
-- `.env` را از نمونه می‌سازد (اگر نباشد)
-- `init-db` → `collect` → `analyze` → `optimize` را اجرا می‌کند
-- با `--systemd` سرویس دائمی نصب و راه‌اندازی می‌کند
+اسکریپت `install.sh` **همه‌چیز را خودکار** انجام می‌دهد:
+- نصب پیش‌نیازهای سیستم (`python3-venv`, `git`, ...)
+- `git pull` از شاخه `main`
+- ساخت/آپدیت venv و پکیج‌های Python
+- `init-db` → `collect` → `analyze` → `optimize`
+- نصب و ری‌استارت سرویس **systemd** (پیش‌فرض روی Linux)
+- توقف پروسه/سرویس قدیمی
+- تأیید نسخه داشبورد (`Dashboard v2` در هدر)
 
 ### آپدیت بعدی
 
 ```bash
 cd btc-analyzer-v2
-./install.sh update
-# یا همان دستور بدون آرگومان — تشخیص خودکار آپدیت
 ./install.sh
 ```
 
-### گزینه‌های مفید
+همین — نیازی به `git pull`، `systemctl restart` یا کار دستی دیگر نیست.
+
+### گزینه‌های اختیاری
 
 | دستور | توضیح |
 |--------|--------|
-| `./install.sh` | نصب یا آپدیت (تشخیص خودکار) |
-| `./install.sh update` | git pull + pip + دیتابیس + ری‌استارت |
-| `./install.sh --systemd` | نصب سرویس systemd |
-| `./install.sh --no-optimize` | بدون بهینه‌سازی بک‌تست (سریع‌تر) |
-| `./install.sh --docker` | اجرا با Docker Compose |
-| `./install.sh status` | وضعیت سرویس |
-
-بعد از نصب، `.env` را ویرایش کنید (توکن تلگرام) و `./install.sh update` بزنید.
+| `./install.sh` | نصب یا آپدیت کامل (پیش‌فرض) |
+| `./install.sh --no-optimize` | بدون بهینه‌سازی بک‌تست |
+| `./install.sh --docker` | اجرا با Docker به‌جای systemd |
+| `./install.sh --no-systemd` | فقط برای محیط توسعه |
+| `./install.sh status` | وضعیت سرویس و API |
 
 ### نصب دستی (اختیاری)
 

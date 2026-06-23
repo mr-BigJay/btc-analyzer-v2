@@ -100,11 +100,6 @@ function buildTechnicalBrief(data, liq, backtest) {
     ? `ساختار SMC در 4h نشان‌دهنده ${chip(lv.smc_signal.replace(/_/g, " "), lv.smc_signal.includes("bull") ? "bull" : "bear")} است`
     : "ساختار SMC فعلاً بدون شکست ساختاری معنادار است";
 
-  const levelsPart =
-    lv.support != null && lv.resistance != null
-      ? `باند قیمتی میان ${chip(formatPrice(lv.support), "bull")} (حمایت) و ${chip(formatPrice(lv.resistance), "bear")} (مقاومت)`
-      : "";
-
   const liqPart =
     liq?.zones?.length
       ? `نقشه لیکوئیدیشن OKX تمرکز نقدینگی اجباری را در محدوده‌های نزدیک قیمت فعلی نشان می‌دهد — ${chip(liq.zones.length + " زون", "dim")}`
@@ -118,12 +113,10 @@ function buildTechnicalBrief(data, liq, backtest) {
     : "";
 
   return [
-    `بیت‌کوین در ${chip(formatPrice(data.price), "dim")} با تغییر ۲۴ساعته ${chip((data.change_24h_pct >= 0 ? "+" : "") + data.change_24h_pct.toFixed(2) + "%", data.change_24h_pct >= 0 ? "bull" : "bear")} معامله می‌شود؛`,
-    `امتیاز کلی ${chip(data.overall_score.toFixed(0) + "/100", data.overall_score >= 55 ? "bull" : data.overall_score <= 45 ? "bear" : "warn")} با اعتماد ${chip(data.overall_confidence.toFixed(0) + "%", "dim")} از ترکیب پنج لایه تحلیل (روند، مومنتوم، حجم، نوسان، ساختار) به‌دست آمده است.`,
-    `در MTF، روند ${chip(TREND_FA[tf1w.trend], trendClass(tf1w.trend))} هفتگی، ${chip(TREND_FA[tf1d.trend], trendClass(tf1d.trend))} روزانه و ${chip(TREND_FA[tf4h.trend], trendClass(tf4h.trend))} در 4h دیده می‌شود — رژیم 4h: ${chip(regimeFa(tf4h.regime), "dim")}؛ ${mtfNote}.`,
-    levelsPart,
-    smcPart + (lv.fib_nearest ? ` و نزدیک‌ترین سطح فیبوناچی ${chip(lv.fib_nearest, "warn")} قرار دارد` : "") + ".",
-    `بازار مشتقات: ${funding}${oi ? "، " + oi : ""}${ls ? "، " + ls : ""}.`,
+    `نگاه کلی بازار: امتیاز ${chip(data.overall_score.toFixed(0) + "/100", data.overall_score >= 55 ? "bull" : data.overall_score <= 45 ? "bear" : "warn")} با اعتماد ${chip(data.overall_confidence.toFixed(0) + "%", "dim")} (ترکیب 4h+روزانه+هفتگی).`,
+    `روند فعلی — هفتگی: ${chip(TREND_FA[tf1w.trend], trendClass(tf1w.trend))}، روزانه: ${chip(TREND_FA[tf1d.trend], trendClass(tf1d.trend))}، 4h: ${chip(TREND_FA[tf4h.trend], trendClass(tf4h.trend))}؛ ${mtfNote}.`,
+    `ساختار 4h: ${smcPart}${lv.fib_nearest ? " — فیبو " + chip(lv.fib_nearest, "warn") : ""}.`,
+    `مشتقات: ${funding}${oi ? "، " + oi : ""}${ls ? "، " + ls : ""}.`,
     macroPart ? macroPart + "." : "",
     oc
       ? `آنچین: ${mvrv || chip("—", "dim")}${oc.active_addresses != null ? " و آدرس‌های فعال " + chip(oc.active_addresses.toLocaleString(), "dim") : ""}${fg ? "؛ احساسات بازار " + fg : ""}.`
@@ -132,7 +125,7 @@ function buildTechnicalBrief(data, liq, backtest) {
         : "",
     liqPart ? liqPart + "." : "",
     btPart ? btPart + "." : "",
-    `داده‌ها هر ۱۵ دقیقه از OKX، CoinMetrics، Yahoo Finance و Deribit جمع‌آوری و بدون ورودی دستی تحلیل می‌شوند — این متن جایگزین مشاوره مالی نیست.`
+    `⚠️ گزارش زمینه‌ای — برای تصمیم ۴ ساعت آینده بخش ۲ (پیش‌بینی) را ببینید.`
   ]
     .filter(Boolean)
     .join(" ");
@@ -146,6 +139,7 @@ function updateTechnicalBrief(data, liq, backtest) {
 }
 
 function updateOverview(data) {
+  document.getElementById("price").textContent = formatPrice(data.price);
   const changeEl = document.getElementById("change");
   const ch = Number(data.change_24h_pct);
   changeEl.textContent = `${ch >= 0 ? "+" : ""}${ch.toFixed(2)}% (24h)`;
@@ -206,10 +200,6 @@ function updateOverview(data) {
 
   const tf4h = data.timeframes["4h"];
   const lv = tf4h.levels || {};
-  document.getElementById("support").textContent =
-    lv.support != null ? formatPrice(lv.support) : "—";
-  document.getElementById("resistance").textContent =
-    lv.resistance != null ? formatPrice(lv.resistance) : "—";
   document.getElementById("fib-level").textContent =
     lv.fib_nearest ? `${lv.fib_nearest} (${lv.fib_signal || ""})` : "—";
 
@@ -345,7 +335,6 @@ function updateForecast(fc) {
   dirEl.textContent = fc.direction_label;
   dirEl.className = "forecast-direction " + fc.direction;
 
-  document.getElementById("fc-price").textContent = fmtUsd(fc.price);
   const scoreEl = document.getElementById("fc-score");
   scoreEl.textContent = (fc.direction_score >= 0 ? "+" : "") + fc.direction_score.toFixed(1);
   scoreEl.style.color = fc.direction_score >= 0 ? "#3dd6c5" : "#ff8a80";
@@ -411,3 +400,11 @@ async function refresh() {
 initChart();
 refresh();
 setInterval(refresh, 5 * 60 * 1000);
+
+document.getElementById("guide-toggle")?.addEventListener("click", () => {
+  const body = document.getElementById("guide-body");
+  const btn = document.getElementById("guide-toggle");
+  const open = body.classList.toggle("collapsed");
+  btn.setAttribute("aria-expanded", String(!open));
+  btn.querySelector(".guide-chevron").textContent = open ? "▸" : "▾";
+});

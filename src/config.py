@@ -42,6 +42,15 @@ class Settings(BaseSettings):
     deribit_base_url: str = "https://www.deribit.com/api/v2"
     deribit_currency: str = "BTC"
 
+    options_min_size: float = 1.0
+    options_top_legs: int = 30
+
+    macro_symbols: dict[str, str] = {
+        "spx": "^GSPC",
+        "ndx": "^IXIC",
+        "dxy": "DX-Y.NYB",
+    }
+
     @property
     def deribit_configured(self) -> bool:
         return bool(self.deribit_client_id and self.deribit_client_secret)

@@ -71,6 +71,23 @@ function updateOverview(data) {
         : "—";
   }
 
+  const macro = data.macro;
+  const BIAS_FA = {
+    bullish_crypto: "مثبت BTC",
+    bearish_crypto: "منفی BTC",
+    neutral: "خنثی",
+  };
+  if (macro) {
+    document.getElementById("spx").textContent =
+      macro.spx != null ? `${macro.spx.toFixed(0)} (${macro.spx_change_7d:+.1f}%)` : "—";
+    document.getElementById("ndx").textContent =
+      macro.ndx != null ? `${macro.ndx.toFixed(0)} (${macro.ndx_change_7d:+.1f}%)` : "—";
+    document.getElementById("dxy").textContent =
+      macro.dxy != null ? `${macro.dxy.toFixed(2)} (${macro.dxy_change_7d:+.1f}%)` : "—";
+    document.getElementById("macro-bias").textContent =
+      BIAS_FA[macro.macro_bias] || macro.macro_bias;
+  }
+
   const tf4h = data.timeframes["4h"];
   const lv = tf4h.levels || {};
   document.getElementById("support").textContent =
@@ -88,7 +105,7 @@ function updateOverview(data) {
 function updateBacktest(rows) {
   const el = document.getElementById("backtest-results");
   if (!rows.length) {
-    el.textContent = "هنوز بک‌تستی اجرا نشده — python -m src.main backtest";
+    el.textContent = "بک‌تست خودکار با scheduler اجرا می‌شود";
     return;
   }
   el.innerHTML = rows

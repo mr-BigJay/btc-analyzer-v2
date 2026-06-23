@@ -21,6 +21,7 @@ from src.analyzer.models import (
     OnChainContext,
     OverviewAnalysis,
     SentimentContext,
+    MacroContext,
     TimeframeAnalysis,
     Trend,
 )
@@ -32,6 +33,7 @@ from src.db.models import (
     OHLCVCandle,
     OnChainMetric,
     OpenInterest,
+    MacroMetric,
     TakerVolume,
     TickerSnapshot,
 )
@@ -501,12 +503,62 @@ class AnalysisService:
             active_addresses_signal=aa_signal,
         )
 
+    def _macro_context(self, session: Session) -> MacroContext | None:
+        rows = session.execute(
+            select(MacroMetric).order_by(desc(MacroMetric.timestamp))
+        ).scalars().all()
+        if not rows:
+            return None
+
+        latest_by_symbol: dict[str, MacroMetric] = {}
+        for r in rows:
+            if r.symbol not in latest_by_symbol:
+                latest_by_symbol[r.symbol] = r
+
+        spx = latest_by_symbol.get("spx")
+        ndx = latest_by_symbol.get("ndx")
+        dxy = latest_by_symbol.get("dxy")
+
+        if not any([spx, ndx, dxy]):
+            return None
+
+        spx_signal = "neutral"
+        if spx and spx.change_7d_pct > 2:
+            spx_signal = "risk_on"
+        elif spx and spx.change_7d_pct < -2:
+            spx_signal = "risk_off"
+
+        dxy_signal = "neutral"
+        if dxy and dxy.change_7d_pct > 1:
+            dxy_signal = "dollar_strength"
+        elif dxy and dxy.change_7d_pct < -1:
+            dxy_signal = "dollar_weakness"
+
+        macro_bias = "neutral"
+        if spx_signal == "risk_on" and dxy_signal != "dollar_strength":
+            macro_bias = "bullish_crypto"
+        elif spx_signal == "risk_off" or dxy_signal == "dollar_strength":
+            macro_bias = "bearish_crypto"
+
+        return MacroContext(
+            spx=spx.price if spx else None,
+            spx_change_7d=spx.change_7d_pct if spx else None,
+            ndx=ndx.price if ndx else None,
+            ndx_change_7d=ndx.change_7d_pct if ndx else None,
+            dxy=dxy.price if dxy else None,
+            dxy_change_7d=dxy.change_7d_pct if dxy else None,
+            spx_signal=spx_signal,
+            dxy_signal=dxy_signal,
+            macro_bias=macro_bias,
+        )
+
     def _build_summary(
         self,
         timeframes: dict[str, TimeframeAnalysis],
         mtf_aligned: bool,
         derivatives: DerivativesContext,
         onchain: OnChainContext | None,
+        macro: MacroContext | None = None,
     ) -> str:
         tf_order = ["1w", "1d", "4h"]
         trends = {tf: timeframes[tf].trend.value for tf in tf_order if tf in timeframes}
@@ -531,6 +583,12 @@ class AnalysisService:
             base += " — MVRV بالا"
         elif onchain and onchain.mvrv_signal == "undervalued":
             base += " — MVRV پایین (ارزشمند)"
+
+        if macro:
+            if macro.macro_bias == "bullish_crypto":
+                base += " — ماکرو: محیط ریسک‌پذیر"
+            elif macro.macro_bias == "bearish_crypto":
+                base += " — ماکرو: فشار دلار/ریسک‌گریز"
 
         return base
 
@@ -559,7 +617,8 @@ class AnalysisService:
         derivatives = self._derivatives_context(session)
         sentiment = self._sentiment_context(session)
         onchain = self._onchain_context(session)
-        summary = self._build_summary(timeframes, mtf_aligned, derivatives, onchain)
+        macro = self._macro_context(session)
+        summary = self._build_summary(timeframes, mtf_aligned, derivatives, onchain, macro)
 
         if derivatives.funding_signal == "overleveraged_long" and overall_score > 60:
             overall_confidence = max(30, overall_confidence - 10)
@@ -567,6 +626,10 @@ class AnalysisService:
             overall_confidence = max(30, overall_confidence - 8)
         if onchain and onchain.mvrv_signal == "overvalued" and overall_score > 60:
             overall_confidence = max(30, overall_confidence - 7)
+        if macro and macro.macro_bias == "bearish_crypto" and overall_score > 55:
+            overall_confidence = max(30, overall_confidence - 5)
+        if macro and macro.macro_bias == "bullish_crypto" and overall_score > 55:
+            overall_confidence = min(95, overall_confidence + 3)
 
         return OverviewAnalysis(
             price=price,
@@ -580,4 +643,5 @@ class AnalysisService:
             sentiment=sentiment,
             updated_at=datetime.now(timezone.utc).isoformat(),
             onchain=onchain,
+            macro=macro,
         )

@@ -21,6 +21,8 @@
 - تشخیص رژیم بازار (Trending / Ranging / Volatile)
 - فیلتر MTF Confluence
 - **آنچین:** MVRV + آدرس‌های فعال (CoinMetrics)
+- **ماکرو:** SPX, Nasdaq, DXY (Yahoo Finance — خودکار)
+- **آپشن Deribit:** اسکرینر + Greeks — **کاملاً خودکار**
 - **بک‌تست walk-forward** با Win Rate و Profit Factor
 
 ### خروجی
@@ -148,6 +150,7 @@ src/
 │   ├── indicators.py
 │   └── backtest.py
 ├── notifier/      # تلگرام
+├── options/       # Deribit screener + Greeks risk profile
 ├── api/           # FastAPI + داشبورد
 ├── db/            # مدل‌های SQLite
 └── main.py        # CLI

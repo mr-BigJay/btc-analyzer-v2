@@ -58,6 +58,19 @@ class DerivativesContext:
 
 
 @dataclass
+class MacroContext:
+    spx: float | None
+    spx_change_7d: float | None
+    ndx: float | None
+    ndx_change_7d: float | None
+    dxy: float | None
+    dxy_change_7d: float | None
+    spx_signal: str
+    dxy_signal: str
+    macro_bias: str
+
+
+@dataclass
 class SentimentContext:
     fear_greed_value: int | None
     fear_greed_label: str | None
@@ -77,3 +90,4 @@ class OverviewAnalysis:
     sentiment: SentimentContext
     updated_at: str
     onchain: OnChainContext | None = None
+    macro: MacroContext | None = None

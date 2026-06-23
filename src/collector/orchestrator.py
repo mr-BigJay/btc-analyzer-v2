@@ -3,9 +3,11 @@ from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
+from src.collector.macro import MacroCollector
 from src.collector.market import MarketDataCollector
 from src.collector.onchain import OnChainCollector
 from src.collector.sentiment import SentimentCollector
+from src.options.pipeline import OptionsPipeline
 from src.db.models import CollectionLog, get_session
 
 logger = logging.getLogger(__name__)
@@ -18,6 +20,8 @@ class CollectionOrchestrator:
         self.market = MarketDataCollector()
         self.sentiment = SentimentCollector()
         self.onchain = OnChainCollector()
+        self.macro = MacroCollector()
+        self.options = OptionsPipeline()
 
     def _log_collection(
         self,
@@ -49,6 +53,8 @@ class CollectionOrchestrator:
             ("derivatives", self._collect_derivatives),
             ("sentiment", self._collect_sentiment),
             ("onchain", self._collect_onchain),
+            ("macro", self._collect_macro),
+            ("options", self._collect_options),
         ]
 
         for name, func in collectors:
@@ -81,3 +87,9 @@ class CollectionOrchestrator:
 
     def _collect_onchain(self, session: Session) -> int:
         return self.onchain.collect(session)
+
+    def _collect_macro(self, session: Session) -> int:
+        return self.macro.collect(session)
+
+    def _collect_options(self, session: Session) -> int:
+        return self.options.run(session)

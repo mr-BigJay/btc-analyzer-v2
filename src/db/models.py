@@ -230,6 +230,41 @@ class BacktestResult(Base):
     )
 
 
+class MacroMetric(Base):
+    __tablename__ = "macro_metrics"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    symbol: Mapped[str] = mapped_column(String(20), nullable=False)
+    price: Mapped[float] = mapped_column(Float, nullable=False)
+    change_1d_pct: Mapped[float] = mapped_column(Float, nullable=False)
+    change_7d_pct: Mapped[float] = mapped_column(Float, nullable=False)
+    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    collected_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+
+    __table_args__ = (
+        Index("ix_macro_symbol_time", "symbol", "timestamp", unique=True),
+    )
+
+
+class OptionsSnapshot(Base):
+    __tablename__ = "options_snapshots"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    mode: Mapped[str] = mapped_column(String(20), nullable=False)
+    spot_current: Mapped[float] = mapped_column(Float, nullable=False)
+    screener_payload: Mapped[str] = mapped_column(Text, nullable=False)
+    risk_payload: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+
+
 engine = create_engine(
     settings.database_url,
     connect_args={"check_same_thread": False} if settings.database_url.startswith("sqlite") else {},

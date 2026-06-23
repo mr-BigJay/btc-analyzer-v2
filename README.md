@@ -59,6 +59,7 @@ PYTHONPATH=. python -m src.main analyze
 |--------|--------|
 | `python -m src.main collect` | جمع‌آوری همه داده‌ها |
 | `python -m src.main analyze` | اجرای تحلیل |
+| `python -m src.main backtest` | بک‌تست walk-forward |
 | `python -m src.main serve` | داشبورد + API روی پورت 8000 |
 | `python -m src.main telegram` | ربات تلگرام |
 | `python -m src.main run` | scheduler خودکار (جمع‌آوری + تحلیل) |
@@ -93,6 +94,7 @@ GET /api/v1/overview
 GET /api/v1/timeframe/{4h|1d|1w}
 GET /api/v1/chart/{4h|1d|1w}
 GET /api/v1/signals
+GET /api/v1/backtest
 ```
 
 ## systemd (اختیاری)

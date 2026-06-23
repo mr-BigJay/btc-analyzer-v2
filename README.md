@@ -34,27 +34,52 @@
 
 > **اصل طراحی:** هیچ ورودی دستی لازم نیست — scheduler همه داده‌ها را جمع و تحلیل می‌کند.
 
-## نصب روی Ubuntu 24
+## نصب روی Ubuntu 24 (یک دستور)
 
 ```bash
-# پیش‌نیازها
-sudo apt update
-sudo apt install -y python3.12-venv python3-pip git
-
-# کلون پروژه
-git clone <repo-url> btc-analyzer-v2
+git clone https://github.com/mr-BigJay/btc-analyzer-v2.git
 cd btc-analyzer-v2
+git checkout cursor/btc-analyzer-phase4-390e
+chmod +x install.sh
+./install.sh --systemd
+```
 
-# محیط مجازی
-python3 -m venv .venv
-source .venv/bin/activate
+اسکریپت `install.sh` به‌صورت خودکار:
+- پیش‌نیازهای سیستم (`python3-venv`, `git`, ...) را نصب می‌کند
+- محیط مجازی و پکیج‌های Python را می‌سازد/آپدیت می‌کند
+- `.env` را از نمونه می‌سازد (اگر نباشد)
+- `init-db` → `collect` → `analyze` → `optimize` را اجرا می‌کند
+- با `--systemd` سرویس دائمی نصب و راه‌اندازی می‌کند
+
+### آپدیت بعدی
+
+```bash
+cd btc-analyzer-v2
+./install.sh update
+# یا همان دستور بدون آرگومان — تشخیص خودکار آپدیت
+./install.sh
+```
+
+### گزینه‌های مفید
+
+| دستور | توضیح |
+|--------|--------|
+| `./install.sh` | نصب یا آپدیت (تشخیص خودکار) |
+| `./install.sh update` | git pull + pip + دیتابیس + ری‌استارت |
+| `./install.sh --systemd` | نصب سرویس systemd |
+| `./install.sh --no-optimize` | بدون بهینه‌سازی بک‌تست (سریع‌تر) |
+| `./install.sh --docker` | اجرا با Docker Compose |
+| `./install.sh status` | وضعیت سرویس |
+
+بعد از نصب، `.env` را ویرایش کنید (توکن تلگرام) و `./install.sh update` بزنید.
+
+### نصب دستی (اختیاری)
+
+```bash
+sudo apt update && sudo apt install -y python3.12-venv python3-pip git
+python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-
-# تنظیمات
 cp .env.example .env
-# ویرایش .env — توکن تلگرام و Chat ID
-
-# راه‌اندازی دیتابیس و جمع‌آوری اولیه
 PYTHONPATH=. python -m src.main init-db
 PYTHONPATH=. python -m src.main collect
 PYTHONPATH=. python -m src.main analyze
@@ -67,6 +92,7 @@ PYTHONPATH=. python -m src.main analyze
 | `python -m src.main collect` | جمع‌آوری همه داده‌ها |
 | `python -m src.main analyze` | اجرای تحلیل |
 | `python -m src.main backtest` | بک‌تست walk-forward |
+| `python -m src.main optimize` | بهینه‌سازی پارامترها (خودکار روزانه) |
 | `python -m src.main serve` | داشبورد + API روی پورت 8000 |
 | `python -m src.main telegram` | ربات تلگرام |
 | `python -m src.main run` | scheduler خودکار (جمع‌آوری + تحلیل) |
@@ -102,6 +128,8 @@ GET /api/v1/timeframe/{4h|1d|1w}
 GET /api/v1/chart/{4h|1d|1w}
 GET /api/v1/signals
 GET /api/v1/backtest
+GET /api/v1/liquidations
+GET /api/v1/optimized-params
 ```
 
 ## داشبورد آپشن (Deribit)

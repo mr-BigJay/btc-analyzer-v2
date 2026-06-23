@@ -6,7 +6,8 @@ from telegram.ext import Application, CommandHandler, ContextTypes, Update
 from src.analyzer.service import AnalysisService
 from src.config import settings
 from src.db.models import get_session, init_db
-from src.notifier.formatters import overview_message, timeframe_message
+from src.analyzer.forecast import ForecastEngine
+from src.notifier.formatters import forecast_4h_message, overview_message, timeframe_message
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +21,7 @@ TF_COMMANDS = {
 class TelegramBotService:
     def __init__(self) -> None:
         self.analysis = AnalysisService()
+        self.forecast = ForecastEngine()
         self._app: Application | None = None
         self._bot: Bot | None = None
 
@@ -48,7 +50,7 @@ class TelegramBotService:
             "سلام! من ربات تحلیل BTC هستم.\n\n"
             "دستورات:\n"
             "/status — خلاصه بازار\n"
-            "/4h — تحلیل 4 ساعته\n"
+            "/4h — پیش‌بینی ۴ ساعت آینده\n"
             "/1d — تحلیل روزانه\n"
             "/1w — تحلیل هفتگی\n"
             "/help — راهنما"
@@ -84,7 +86,18 @@ class TelegramBotService:
             session.close()
 
     async def cmd_4h(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        await self._cmd_timeframe(update, "4h")
+        if not self._allowed(update):
+            return await self._deny(update)
+        session = get_session()
+        try:
+            analysis = self.analysis.analyze(session)
+            fc = self.forecast.build(session, analysis)
+            await update.message.reply_text(
+                forecast_4h_message(fc),
+                parse_mode="HTML",
+            )
+        finally:
+            session.close()
 
     async def cmd_1d(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         await self._cmd_timeframe(update, "1d")

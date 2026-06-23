@@ -329,15 +329,74 @@ document.querySelectorAll(".tab").forEach((btn) => {
   });
 });
 
+async function fetchForecast() {
+  const res = await fetch("/api/v1/forecast/4h");
+  if (!res.ok) throw new Error("forecast failed");
+  return res.json();
+}
+
+function fmtUsd(n) {
+  if (n == null) return "—";
+  return "$" + Number(n).toLocaleString("en-US", { maximumFractionDigits: 0 });
+}
+
+function updateForecast(fc) {
+  const dirEl = document.getElementById("forecast-direction");
+  dirEl.textContent = fc.direction_label;
+  dirEl.className = "forecast-direction " + fc.direction;
+
+  document.getElementById("fc-price").textContent = fmtUsd(fc.price);
+  const scoreEl = document.getElementById("fc-score");
+  scoreEl.textContent = (fc.direction_score >= 0 ? "+" : "") + fc.direction_score.toFixed(1);
+  scoreEl.style.color = fc.direction_score >= 0 ? "#3dd6c5" : "#ff8a80";
+
+  document.getElementById("fc-confidence").textContent = fc.confidence.toFixed(0) + "%";
+  document.getElementById("fc-conf-bar").style.width = fc.confidence + "%";
+
+  document.getElementById("fc-support").textContent = fmtUsd(fc.support);
+  document.getElementById("fc-resistance").textContent = fmtUsd(fc.resistance);
+
+  const targetLabel = document.getElementById("fc-target-label");
+  if (fc.direction === "bearish") targetLabel.textContent = "هدف نزولی";
+  else if (fc.direction === "bullish") targetLabel.textContent = "هدف صعودی";
+  else targetLabel.textContent = "هدف محتمل";
+
+  document.getElementById("fc-target").textContent = fmtUsd(fc.primary_target);
+  document.getElementById("fc-invalidation").textContent = fmtUsd(fc.invalidation);
+
+  const tags = [
+    fc.cvd_signal,
+    fc.options_flow,
+    fc.gamma_regime_label,
+    fc.whale_signal,
+  ].filter(Boolean);
+  if (fc.put_wall) tags.push(`Put Wall ${fmtUsd(fc.put_wall)}`);
+  if (fc.call_wall) tags.push(`Call Wall ${fmtUsd(fc.call_wall)}`);
+
+  document.getElementById("fc-tags").innerHTML = tags
+    .map((t) => `<span class="fc-tag">${t}</span>`)
+    .join("");
+
+  document.getElementById("fc-bullish").innerHTML = fc.bullish_reasons
+    .map((r) => `<li>${r}</li>`)
+    .join("");
+  document.getElementById("fc-risks").innerHTML = fc.risks
+    .map((r) => `<li>${r}</li>`)
+    .join("");
+  document.getElementById("fc-summary").textContent = fc.summary;
+}
+
 async function refresh() {
   try {
-    const [overview, backtest, liq, optParams] = await Promise.all([
+    const [overview, backtest, liq, optParams, forecast] = await Promise.all([
       fetchOverview(),
       fetchBacktest(),
       fetchLiquidations(),
       fetchOptimizedParams(),
+      fetchForecast(),
     ]);
     updateOverview(overview);
+    updateForecast(forecast);
     updateBacktest(backtest);
     renderLiquidations(liq);
     updateOptimizedParams(optParams);

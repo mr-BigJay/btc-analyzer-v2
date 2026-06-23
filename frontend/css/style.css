@@ -27,6 +27,35 @@ body {
   border-bottom: 1px solid var(--border);
 }
 
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.header-brand h1 {
+  font-size: 1.15rem;
+}
+
+.version-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  background: linear-gradient(135deg, rgba(88, 166, 255, 0.2), rgba(38, 166, 154, 0.15));
+  color: #79c0ff;
+  border: 1px solid rgba(88, 166, 255, 0.35);
+}
+
+.nav-link {
+  color: var(--accent);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
 .container {
   max-width: 1100px;
   margin: 0 auto;

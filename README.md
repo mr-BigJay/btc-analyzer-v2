@@ -39,7 +39,6 @@
 ```bash
 git clone https://github.com/mr-BigJay/btc-analyzer-v2.git
 cd btc-analyzer-v2
-git checkout cursor/btc-analyzer-phase4-390e
 chmod +x install.sh
 ./install.sh --systemd
 ```

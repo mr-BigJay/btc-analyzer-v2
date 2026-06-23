@@ -2,6 +2,9 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import desc, select
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
+from starlette.responses import Response
 
 from src.api.options_routes import router as options_router
 from src.analyzer.serialize import analysis_to_dict
@@ -17,13 +20,28 @@ from src.db.models import (
     init_db,
 )
 
-app = FastAPI(title="BTC Analyzer", version="1.0.0")
+app = FastAPI(title="BTC Analyzer", version="2.4.0")
+FRONTEND_BUILD = "2024.06-dashboard-v2"
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+class NoCacheHtmlMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next) -> Response:
+        response = await call_next(request)
+        path = request.url.path
+        if path == "/" or path.endswith(".html"):
+            response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+            response.headers["Pragma"] = "no-cache"
+        return response
+
+
+app.add_middleware(NoCacheHtmlMiddleware)
 
 analysis_service = AnalysisService()
 
@@ -37,7 +55,7 @@ def startup() -> None:
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok"}
+    return {"status": "ok", "frontend_build": FRONTEND_BUILD, "version": "2.4.0"}
 
 
 @app.get("/api/v1/overview")

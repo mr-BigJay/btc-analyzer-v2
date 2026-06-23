@@ -3,7 +3,7 @@
 set -euo pipefail
 
 REPO_URL="${BTC_ANALYZER_REPO:-https://github.com/mr-BigJay/btc-analyzer-v2.git}"
-DEFAULT_BRANCH="${BTC_ANALYZER_BRANCH:-cursor/btc-analyzer-phase4-390e}"
+DEFAULT_BRANCH="${BTC_ANALYZER_BRANCH:-main}"
 INSTALL_DIR="${BTC_ANALYZER_DIR:-}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -39,7 +39,7 @@ usage() {
   --docker        استفاده از Docker Compose
   --no-optimize   رد کردن بهینه‌سازی بک‌تست (سریع‌تر)
   --no-start      بدون راه‌اندازی در پایان
-  --branch NAME   شاخه git (پیش‌فرض: cursor/btc-analyzer-phase4-390e)
+  --branch NAME   شاخه git (پیش‌فرض: main)
 
 متغیرهای محیطی:
   BTC_ANALYZER_REPO    آدرس ریپو
@@ -49,10 +49,30 @@ usage() {
 مثال نصب روی سرور تازه:
   git clone https://github.com/mr-BigJay/btc-analyzer-v2.git
   cd btc-analyzer-v2
-  git checkout cursor/btc-analyzer-phase4-390e
   chmod +x install.sh
   ./install.sh --systemd
 EOF
+}
+
+verify_deploy() {
+    local port=8000
+    if [[ -f "$PROJECT_DIR/.env" ]] && grep -q '^API_PORT=' "$PROJECT_DIR/.env"; then
+        port=$(grep '^API_PORT=' "$PROJECT_DIR/.env" | cut -d= -f2 | tr -d ' ')
+    fi
+
+    sleep 2
+    local health
+    health=$(curl -sf "http://127.0.0.1:${port}/api/health" 2>/dev/null || true)
+
+    if echo "$health" | grep -qi "dashboard-v2"; then
+        log "✓ داشبورد جدید فعال است — در هدر باید «Dashboard v2» ببینید"
+        log "  آدرس: http://$(hostname -I 2>/dev/null | awk '{print $1}'):${port}"
+    elif [[ -n "$health" ]]; then
+        warn "سرویس بالا است ولی نسخه قدیمی — حتماً ./install.sh update بزنید و Ctrl+Shift+R"
+        log "  پاسخ health: $health"
+    else
+        warn "سرویس روی پورت ${port} پاسخ نمی‌دهد — ./install.sh start یا systemctl restart ${SERVICE_NAME}"
+    fi
 }
 
 parse_args() {
@@ -294,7 +314,7 @@ start_docker() {
     if ! command -v docker >/dev/null 2>&1; then
         die "Docker نصب نیست — ابتدا Docker را نصب کنید یا بدون --docker اجرا کنید"
     fi
-    docker compose build --quiet
+    docker compose build
     docker compose up -d btc-analyzer
     if grep -qE '^TELEGRAM_BOT_TOKEN=.+$' .env 2>/dev/null; then
         docker compose --profile telegram up -d telegram
@@ -378,10 +398,13 @@ do_update() {
 
     if [[ "$USE_DOCKER" -eq 1 ]]; then
         start_docker
-    elif [[ "${RESTART_AFTER:-0}" -eq 1 ]] || [[ "$USE_SYSTEMD" -eq 1 ]]; then
+    elif systemctl list-unit-files 2>/dev/null | grep -q "${SERVICE_NAME}.service"; then
+        [[ "$NO_START" -eq 0 ]] && start_systemd
+    elif [[ "${RESTART_AFTER:-0}" -eq 1 ]]; then
         [[ "$NO_START" -eq 0 ]] && start_systemd
     fi
 
+    verify_deploy
     log "=== آپدیت کامل شد ==="
 }
 

@@ -6,7 +6,7 @@ from sqlalchemy import desc, select
 from src.analyzer.serialize import analysis_to_dict
 from src.analyzer.service import AnalysisService
 from src.config import BASE_DIR, settings
-from src.db.models import AnalysisSnapshot, OHLCVCandle, get_session, init_db
+from src.db.models import AnalysisSnapshot, BacktestResult, OHLCVCandle, get_session, init_db
 
 app = FastAPI(title="BTC Analyzer", version="1.0.0")
 app.add_middleware(
@@ -95,6 +95,29 @@ def signals(limit: int = 20):
                 "overall_score": r.overall_score,
                 "overall_confidence": r.overall_confidence,
                 "summary": r.summary,
+                "created_at": r.created_at.isoformat(),
+            }
+            for r in rows
+        ]
+    finally:
+        session.close()
+
+
+@app.get("/api/v1/backtest")
+def backtest_results(limit: int = 10):
+    session = get_session()
+    try:
+        rows = session.execute(
+            select(BacktestResult).order_by(desc(BacktestResult.created_at)).limit(limit)
+        ).scalars().all()
+        return [
+            {
+                "timeframe": r.timeframe,
+                "total_signals": r.total_signals,
+                "win_rate": r.win_rate,
+                "profit_factor": r.profit_factor,
+                "avg_return_pct": r.avg_return_pct,
+                "max_drawdown_pct": r.max_drawdown_pct,
                 "created_at": r.created_at.isoformat(),
             }
             for r in rows

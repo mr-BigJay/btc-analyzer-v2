@@ -114,6 +114,26 @@ body {
   gap: 0.25rem;
 }
 
+.levels-grid, .backtest-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+
+.levels-grid div, .backtest-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.backtest-item {
+  background: #21262d;
+  border-radius: 8px;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+}
+
 .chart-header {
   display: flex;
   justify-content: space-between;

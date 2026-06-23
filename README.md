@@ -15,10 +15,13 @@
 
 ### تحلیل
 - امتیازدهی چندلایه (روند، مومنتوم، حجم، نوسان، ساختار)
+- **Bollinger Bands** + **Stochastic**
+- **حمایت/مقاومت** + **فیبوناچی retracement**
 - تحلیل در سه تایم‌فریم: **4h / 1d / 1w**
 - تشخیص رژیم بازار (Trending / Ranging / Volatile)
 - فیلتر MTF Confluence
-- لحاظ کردن داده‌های مشتقات و احساسات
+- **آنچین:** MVRV + آدرس‌های فعال (CoinMetrics)
+- **بک‌تست walk-forward** با Win Rate و Profit Factor
 
 ### خروجی
 - **داشبورد وب** — نمودار + کارت‌های MTF

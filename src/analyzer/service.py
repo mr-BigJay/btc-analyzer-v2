@@ -6,10 +6,19 @@ import pandas_ta as ta
 from sqlalchemy import desc, select
 from sqlalchemy.orm import Session
 
+from src.analyzer.indicators import (
+    add_bollinger,
+    add_stochastic,
+    bollinger_signal,
+    fibonacci_levels,
+    find_support_resistance,
+    stochastic_signal,
+)
 from src.analyzer.models import (
     DerivativesContext,
     LayerScore,
     MarketRegime,
+    OnChainContext,
     OverviewAnalysis,
     SentimentContext,
     TimeframeAnalysis,
@@ -21,6 +30,7 @@ from src.db.models import (
     FundingRate,
     LongShortRatio,
     OHLCVCandle,
+    OnChainMetric,
     OpenInterest,
     TakerVolume,
     TickerSnapshot,
@@ -51,16 +61,23 @@ class TechnicalAnalyzer:
         df["atr"] = ta.atr(df["high"], df["low"], df["close"], length=14)
         df["vol_ma20"] = df["volume"].rolling(20).mean()
         df["obv"] = ta.obv(df["close"], df["volume"])
+        df = add_bollinger(df)
+        df = add_stochastic(df)
 
         latest = df.iloc[-1]
         prev = df.iloc[-2] if len(df) > 1 else latest
         price = float(latest["close"])
 
+        bb = bollinger_signal(latest, df)
+        stoch = stochastic_signal(latest, prev, df)
+        sr = find_support_resistance(df)
+        fib = fibonacci_levels(df)
+
         trend_layer = self._score_trend(latest, prev)
-        momentum_layer = self._score_momentum(latest, prev, df)
+        momentum_layer = self._score_momentum(latest, prev, df, stoch)
         volume_layer = self._score_volume(latest, df)
-        volatility_layer = self._score_volatility(latest, df)
-        structure_layer, structure_label = self._score_structure(df)
+        volatility_layer = self._score_volatility(latest, df, bb)
+        structure_layer, structure_label = self._score_structure(df, sr, fib)
 
         layers = [trend_layer, momentum_layer, volume_layer, volatility_layer, structure_layer]
         score = sum(layer.score * layer.weight for layer in layers)
@@ -85,6 +102,20 @@ class TechnicalAnalyzer:
                 if latest.get("vol_ma20") and latest["vol_ma20"] > 0
                 else None
             ),
+            "bb_pct_b": bb.get("pct_b"),
+            "bb_signal": bb.get("signal"),
+            "stoch_k": stoch.get("stoch_k"),
+            "stoch_d": stoch.get("stoch_d"),
+            "stoch_signal": stoch.get("signal"),
+        }
+
+        levels = {
+            "support": sr.get("support"),
+            "resistance": sr.get("resistance"),
+            "sr_signal": sr.get("signal"),
+            "fibonacci": fib.get("levels"),
+            "fib_nearest": fib.get("nearest_level"),
+            "fib_signal": fib.get("signal"),
         }
 
         return TimeframeAnalysis(
@@ -97,6 +128,7 @@ class TechnicalAnalyzer:
             layers=layers,
             indicators=indicators,
             structure=structure_label,
+            levels=levels,
         )
 
     def _score_trend(self, latest: pd.Series, prev: pd.Series) -> LayerScore:
@@ -131,7 +163,7 @@ class TechnicalAnalyzer:
 
         return LayerScore("trend", max(0, min(100, score)), LAYER_WEIGHTS["trend"], details)
 
-    def _score_momentum(self, latest: pd.Series, prev: pd.Series, df: pd.DataFrame) -> LayerScore:
+    def _score_momentum(self, latest: pd.Series, prev: pd.Series, df: pd.DataFrame, stoch: dict) -> LayerScore:
         score = 50.0
         details: dict = {}
         rsi = latest.get("rsi")
@@ -159,6 +191,12 @@ class TechnicalAnalyzer:
                     details["macd"] = "negative"
                 if pd.notna(prev_hist) and hist > prev_hist:
                     score += 5
+
+        score += stoch.get("score_delta", 0)
+        if stoch.get("signal"):
+            details["stochastic"] = stoch["signal"]
+        if stoch.get("crossover"):
+            details["stoch_crossover"] = stoch["crossover"]
 
         return LayerScore("momentum", max(0, min(100, score)), LAYER_WEIGHTS["momentum"], details)
 
@@ -194,7 +232,7 @@ class TechnicalAnalyzer:
 
         return LayerScore("volume", max(0, min(100, score)), LAYER_WEIGHTS["volume"], details)
 
-    def _score_volatility(self, latest: pd.Series, df: pd.DataFrame) -> LayerScore:
+    def _score_volatility(self, latest: pd.Series, df: pd.DataFrame, bb: dict) -> LayerScore:
         score = 50.0
         details: dict = {}
         atr = latest.get("atr")
@@ -210,9 +248,13 @@ class TechnicalAnalyzer:
                 score += 5
                 details["regime_hint"] = "low_volatility"
 
+        score += bb.get("score_delta", 0) * 0.5
+        if bb.get("signal"):
+            details["bollinger"] = bb["signal"]
+
         return LayerScore("volatility", max(0, min(100, score)), LAYER_WEIGHTS["volatility"], details)
 
-    def _score_structure(self, df: pd.DataFrame) -> tuple[LayerScore, str]:
+    def _score_structure(self, df: pd.DataFrame, sr: dict, fib: dict) -> tuple[LayerScore, str]:
         score = 50.0
         lookback = min(20, len(df) - 1)
         if lookback < 5:
@@ -237,7 +279,19 @@ class TechnicalAnalyzer:
             score = 50
             label = "mixed_structure"
 
-        return LayerScore("structure", score, LAYER_WEIGHTS["structure"], {"pattern": label}), label
+        score += sr.get("score_delta", 0)
+        score += fib.get("score_delta", 0)
+        score = max(0, min(100, score))
+
+        details = {
+            "pattern": label,
+            "sr_signal": sr.get("signal"),
+            "fib_signal": fib.get("signal"),
+            "support": sr.get("support"),
+            "resistance": sr.get("resistance"),
+        }
+
+        return LayerScore("structure", score, LAYER_WEIGHTS["structure"], details), label
 
     def _detect_regime(self, latest: pd.Series, df: pd.DataFrame) -> MarketRegime:
         adx = latest.get("adx")
@@ -397,11 +451,62 @@ class AnalysisService:
 
         return SentimentContext(fg.value, fg.classification, signal)
 
+    def _onchain_context(self, session: Session) -> OnChainContext | None:
+        aa_rows = session.execute(
+            select(OnChainMetric)
+            .where(OnChainMetric.metric_name == "active_addresses")
+            .order_by(desc(OnChainMetric.timestamp))
+            .limit(8)
+        ).scalars().all()
+
+        mvrv_row = session.execute(
+            select(OnChainMetric)
+            .where(OnChainMetric.metric_name == "mvrv")
+            .order_by(desc(OnChainMetric.timestamp))
+            .limit(1)
+        ).scalar_one_or_none()
+
+        if not aa_rows and not mvrv_row:
+            return None
+
+        active = int(aa_rows[0].value) if aa_rows else None
+        aa_change = None
+        aa_signal = "neutral"
+        if len(aa_rows) >= 2 and aa_rows[-1].value:
+            aa_change = round(
+                (aa_rows[0].value - aa_rows[-1].value) / aa_rows[-1].value * 100, 2
+            )
+            if aa_change > 5:
+                aa_signal = "growing"
+            elif aa_change < -5:
+                aa_signal = "declining"
+
+        mvrv = mvrv_row.value if mvrv_row else None
+        mvrv_signal = "neutral"
+        if mvrv is not None:
+            if mvrv > 3.0:
+                mvrv_signal = "overvalued"
+            elif mvrv > 2.0:
+                mvrv_signal = "elevated"
+            elif mvrv < 1.0:
+                mvrv_signal = "undervalued"
+            else:
+                mvrv_signal = "fair_value"
+
+        return OnChainContext(
+            active_addresses=active,
+            active_addresses_change_pct=aa_change,
+            mvrv=round(mvrv, 3) if mvrv is not None else None,
+            mvrv_signal=mvrv_signal,
+            active_addresses_signal=aa_signal,
+        )
+
     def _build_summary(
         self,
         timeframes: dict[str, TimeframeAnalysis],
         mtf_aligned: bool,
         derivatives: DerivativesContext,
+        onchain: OnChainContext | None,
     ) -> str:
         tf_order = ["1w", "1d", "4h"]
         trends = {tf: timeframes[tf].trend.value for tf in tf_order if tf in timeframes}
@@ -421,6 +526,11 @@ class AnalysisService:
             base += " — هشدار: فاندینگ بالا"
         elif derivatives.funding_signal == "overleveraged_short":
             base += " — فاندینگ منفی شدید"
+
+        if onchain and onchain.mvrv_signal == "overvalued":
+            base += " — MVRV بالا"
+        elif onchain and onchain.mvrv_signal == "undervalued":
+            base += " — MVRV پایین (ارزشمند)"
 
         return base
 
@@ -448,12 +558,15 @@ class AnalysisService:
 
         derivatives = self._derivatives_context(session)
         sentiment = self._sentiment_context(session)
-        summary = self._build_summary(timeframes, mtf_aligned, derivatives)
+        onchain = self._onchain_context(session)
+        summary = self._build_summary(timeframes, mtf_aligned, derivatives, onchain)
 
         if derivatives.funding_signal == "overleveraged_long" and overall_score > 60:
             overall_confidence = max(30, overall_confidence - 10)
         if sentiment.signal == "extreme_greed" and overall_score > 65:
             overall_confidence = max(30, overall_confidence - 8)
+        if onchain and onchain.mvrv_signal == "overvalued" and overall_score > 60:
+            overall_confidence = max(30, overall_confidence - 7)
 
         return OverviewAnalysis(
             price=price,
@@ -466,4 +579,5 @@ class AnalysisService:
             derivatives=derivatives,
             sentiment=sentiment,
             updated_at=datetime.now(timezone.utc).isoformat(),
+            onchain=onchain,
         )

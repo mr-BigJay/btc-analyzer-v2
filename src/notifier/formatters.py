@@ -89,6 +89,18 @@ def timeframe_message(tf_analysis: TimeframeAnalysis) -> str:
         lines.append(f"• ADX: {ind['adx']:.1f}")
     if ind.get("volume_ratio"):
         lines.append(f"• حجم/میانگین: {ind['volume_ratio']:.2f}x")
+    if ind.get("stoch_k"):
+        lines.append(f"• Stochastic K: {ind['stoch_k']:.1f}")
+    if ind.get("bb_signal"):
+        lines.append(f"• Bollinger: {ind['bb_signal']}")
+
+    lv = tf_analysis.levels or {}
+    if lv.get("support"):
+        lines.append(f"\nحمایت: ${lv['support']:,.0f}")
+    if lv.get("resistance"):
+        lines.append(f"مقاومت: ${lv['resistance']:,.0f}")
+    if lv.get("fib_nearest"):
+        lines.append(f"فیبوناچی: {lv['fib_nearest']}")
 
     lines.append(f"\nساختار: {tf_analysis.structure}")
     return "\n".join(lines)

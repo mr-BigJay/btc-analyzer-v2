@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 
 from src.collector.market import MarketDataCollector
+from src.collector.onchain import OnChainCollector
 from src.collector.sentiment import SentimentCollector
 from src.db.models import CollectionLog, get_session
 
@@ -16,6 +17,7 @@ class CollectionOrchestrator:
     def __init__(self) -> None:
         self.market = MarketDataCollector()
         self.sentiment = SentimentCollector()
+        self.onchain = OnChainCollector()
 
     def _log_collection(
         self,
@@ -46,6 +48,7 @@ class CollectionOrchestrator:
             ("ticker", self._collect_ticker),
             ("derivatives", self._collect_derivatives),
             ("sentiment", self._collect_sentiment),
+            ("onchain", self._collect_onchain),
         ]
 
         for name, func in collectors:
@@ -75,3 +78,6 @@ class CollectionOrchestrator:
 
     def _collect_sentiment(self, session: Session) -> int:
         return self.sentiment.collect_fear_greed(session)
+
+    def _collect_onchain(self, session: Session) -> int:
+        return self.onchain.collect(session)

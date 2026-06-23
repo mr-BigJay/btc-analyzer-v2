@@ -2,15 +2,16 @@ import argparse
 import logging
 import sys
 
+from datetime import datetime, timezone
+
 import uvicorn
 
-from src.collector.orchestrator import CollectionOrchestrator
-from src.config import settings
-from src.db.models import get_session, init_db
+from src.analyzer.backtest import BacktestEngine
 from src.analyzer.serialize import analysis_to_json
 from src.analyzer.service import AnalysisService
-from src.db.models import AnalysisSnapshot
-from datetime import datetime, timezone
+from src.collector.orchestrator import CollectionOrchestrator
+from src.config import settings
+from src.db.models import AnalysisSnapshot, get_session, init_db
 
 logging.basicConfig(
     level=logging.INFO,
@@ -53,6 +54,24 @@ def cmd_analyze() -> int:
         for tf in settings.timeframes:
             t = analysis.timeframes[tf]
             logger.info("  %s: %s score=%.1f confidence=%.1f", tf, t.trend.value, t.score, t.confidence)
+        return 0
+    finally:
+        session.close()
+
+
+def cmd_backtest() -> int:
+    init_db()
+    session = get_session()
+    try:
+        engine = BacktestEngine()
+        reports = engine.run_all_timeframes(session)
+        for r in reports:
+            print(
+                f"\n=== {r.timeframe} ===\n"
+                f"Signals: {r.total_signals} | Win rate: {r.win_rate}% | "
+                f"PF: {r.profit_factor} | Avg return: {r.avg_return_pct}% | "
+                f"Max DD: {r.max_drawdown_pct}%"
+            )
         return 0
     finally:
         session.close()
@@ -131,12 +150,14 @@ def main() -> int:
     sub.add_parser("serve", help="Start API + dashboard")
     sub.add_parser("run", help="Start scheduler (collect + analyze loop)")
     sub.add_parser("start", help="Scheduler + dashboard API together")
+    sub.add_parser("backtest", help="Run walk-forward backtest")
     sub.add_parser("telegram", help="Start Telegram bot")
 
     args = parser.parse_args()
     commands = {
         "collect": cmd_collect,
         "analyze": cmd_analyze,
+        "backtest": cmd_backtest,
         "init-db": cmd_init_db,
         "serve": cmd_serve,
         "run": cmd_run,

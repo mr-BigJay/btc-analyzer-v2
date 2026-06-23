@@ -13,6 +13,12 @@ async function fetchChart(tf) {
   return res.json();
 }
 
+async function fetchBacktest() {
+  const res = await fetch("/api/v1/backtest?limit=3");
+  if (!res.ok) return [];
+  return res.json();
+}
+
 function formatPrice(n) {
   return "$" + Number(n).toLocaleString("en-US", { maximumFractionDigits: 2 });
 }
@@ -54,6 +60,49 @@ function updateOverview(data) {
   const s = data.sentiment;
   document.getElementById("fg").textContent =
     s.fear_greed_value != null ? `${s.fear_greed_value} (${s.fear_greed_label})` : "—";
+
+  const oc = data.onchain;
+  if (oc) {
+    document.getElementById("mvrv").textContent =
+      oc.mvrv != null ? `${oc.mvrv} (${oc.mvrv_signal})` : "—";
+    document.getElementById("active-addr").textContent =
+      oc.active_addresses != null
+        ? `${oc.active_addresses.toLocaleString()} (${oc.active_addresses_signal})`
+        : "—";
+  }
+
+  const tf4h = data.timeframes["4h"];
+  const lv = tf4h.levels || {};
+  document.getElementById("support").textContent =
+    lv.support != null ? formatPrice(lv.support) : "—";
+  document.getElementById("resistance").textContent =
+    lv.resistance != null ? formatPrice(lv.resistance) : "—";
+  document.getElementById("fib-level").textContent =
+    lv.fib_nearest ? `${lv.fib_nearest} (${lv.fib_signal || ""})` : "—";
+  document.getElementById("bb-signal").textContent =
+    tf4h.indicators.bb_signal || "—";
+  document.getElementById("stoch-signal").textContent =
+    tf4h.indicators.stoch_signal || "—";
+}
+
+function updateBacktest(rows) {
+  const el = document.getElementById("backtest-results");
+  if (!rows.length) {
+    el.textContent = "هنوز بک‌تستی اجرا نشده — python -m src.main backtest";
+    return;
+  }
+  el.innerHTML = rows
+    .map(
+      (r) => `
+    <div class="backtest-item">
+      <strong>${r.timeframe}</strong>
+      <span>سیگنال: ${r.total_signals}</span>
+      <span>Win rate: ${r.win_rate}%</span>
+      <span>PF: ${r.profit_factor}</span>
+      <span>Avg: ${r.avg_return_pct}%</span>
+    </div>`
+    )
+    .join("");
 }
 
 function initChart() {
@@ -100,8 +149,9 @@ document.querySelectorAll(".tab").forEach((btn) => {
 
 async function refresh() {
   try {
-    const overview = await fetchOverview();
+    const [overview, backtest] = await Promise.all([fetchOverview(), fetchBacktest()]);
     updateOverview(overview);
+    updateBacktest(backtest);
     await loadChart(currentTf);
   } catch (e) {
     console.error(e);

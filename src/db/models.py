@@ -194,6 +194,42 @@ class AnalysisSnapshot(Base):
     )
 
 
+class OnChainMetric(Base):
+    __tablename__ = "onchain_metrics"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    metric_name: Mapped[str] = mapped_column(String(50), nullable=False)
+    value: Mapped[float] = mapped_column(Float, nullable=False)
+    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    collected_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+
+    __table_args__ = (
+        Index("ix_onchain_metric_time", "metric_name", "timestamp", unique=True),
+    )
+
+
+class BacktestResult(Base):
+    __tablename__ = "backtest_results"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    timeframe: Mapped[str] = mapped_column(String(10), nullable=False)
+    total_signals: Mapped[int] = mapped_column(Integer, nullable=False)
+    win_rate: Mapped[float] = mapped_column(Float, nullable=False)
+    profit_factor: Mapped[float] = mapped_column(Float, nullable=False)
+    avg_return_pct: Mapped[float] = mapped_column(Float, nullable=False)
+    max_drawdown_pct: Mapped[float] = mapped_column(Float, nullable=False)
+    payload: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+
+
 engine = create_engine(
     settings.database_url,
     connect_args={"check_same_thread": False} if settings.database_url.startswith("sqlite") else {},

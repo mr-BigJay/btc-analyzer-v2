@@ -33,6 +33,16 @@ class TimeframeAnalysis:
     layers: list[LayerScore]
     indicators: dict
     structure: str
+    levels: dict = field(default_factory=dict)
+
+
+@dataclass
+class OnChainContext:
+    active_addresses: int | None
+    active_addresses_change_pct: float | None
+    mvrv: float | None
+    mvrv_signal: str
+    active_addresses_signal: str
 
 
 @dataclass
@@ -66,3 +76,4 @@ class OverviewAnalysis:
     derivatives: DerivativesContext
     sentiment: SentimentContext
     updated_at: str
+    onchain: OnChainContext | None = None

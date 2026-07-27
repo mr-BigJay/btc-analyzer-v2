@@ -59,7 +59,11 @@ def parse_ai_research(payload: dict[str, Any], symbol: str = "BTCUSDT") -> dict[
         elif orient in {"down", "bearish", "short"}:
             bearish.append(line)
 
-    support, resistance = _extract_levels_from_text(f"{core}\n{content}")
+    s_core, r_core = _extract_range_levels(core)
+    s_lbl = _extract_levels(f"{core}\n{content}", ("support", "支撑"))
+    r_lbl = _extract_levels(f"{core}\n{content}", ("resistance", "阻力"))
+    support = _dedupe_floats(s_core + s_lbl)[:10]
+    resistance = _dedupe_floats(r_core + r_lbl)[:10]
     bias = _bias_from_trend(trend, bullish, bearish)
     scenarios = _scenarios_from_trend(trend)
     pub = _publication_time(data.get("created_at"))
@@ -163,11 +167,10 @@ def _extract_labeled_sections(content: str, labels: tuple[str, ...]) -> list[str
     return hits
 
 
-def _extract_levels_from_text(text: str) -> tuple[list[float], list[float]]:
+def _extract_range_levels(text: str) -> tuple[list[float], list[float]]:
+    """Extract lo/hi pairs from phrases like 'between 64,640 and 65,130'."""
     support: list[float] = []
     resistance: list[float] = []
-
-    # Price ranges like "64,640 and 65,130" or "64640-65130"
     for a, b in re.findall(
         r"(\d{2,3}(?:,\d{3})+(?:\.\d+)?|\d{5,6}(?:\.\d+)?)\s*(?:and|to|-|–|—)\s*(\d{2,3}(?:,\d{3})+(?:\.\d+)?|\d{5,6}(?:\.\d+)?)",
         text,
@@ -182,11 +185,7 @@ def _extract_levels_from_text(text: str) -> tuple[list[float], list[float]]:
                 resistance.append(hi)
         except ValueError:
             continue
-
-    support.extend(_extract_levels(text, ("support", "支撑")))
-    resistance.extend(_extract_levels(text, ("resistance", "阻力")))
-
-    return _dedupe_floats(support)[:10], _dedupe_floats(resistance)[:10]
+    return support, resistance
 
 
 def _is_btc_price(value: float) -> bool:

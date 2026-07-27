@@ -27,8 +27,9 @@ def cmd_init_db() -> int:
 def cmd_status() -> int:
     print(f"BTC Analyzer {__version__}")
     print("Product: Decision Support System (DSS)")
-    print("Phase: Enterprise Design Book — Chapter 9 (Scoring & Decision Model)")
-    print("Pipeline: Analysis → Intelligence → Scoring (MBS/CS/RS/DQS) → AI Decision")
+    print("Phase: Enterprise Design Book — Chapter 10 (Report Generation)")
+    print("Pipeline: Analysis → Intelligence → Scoring → AI → Report Delivery")
+    print("Channels: API · Dashboard · Telegram · Export · WebSocket alerts")
     print("Stack: FastAPI · PostgreSQL · Redis · APScheduler · Loguru")
     print(f"Database: {settings.database_url}")
     print(f"Redis: {settings.redis_url or 'memory-fallback'}")
@@ -73,22 +74,28 @@ def cmd_analyze() -> int:
 
 
 def cmd_outlook() -> int:
-    from src.services import DecisionService
+    from src.services import ReportService
 
     init_db()
-    out = DecisionService().run(multi_timeframe=False)
-    intel = out.get("market_intelligence") or {}
-    print(f"bias={out['market_bias']} conf={out['confidence']} band={out['confidence_band']}")
-    print(f"narrative={out['primary_narrative']} risk={out['risk_level']}")
-    print(
-        f"regime={out['market_regime']} cycle={intel.get('market_cycle')} "
-        f"mhi={intel.get('market_health_index')} msi={intel.get('market_stress_index')}"
-    )
-    print(f"primary={out['primary_scenario']}")
-    print(f"scenarios={[s['name']+':'+str(s['probability']) for s in out.get('scenarios', [])]}")
-    print(f"plan={out['trading_plan'].get('preferred_direction')}")
-    summary = (out.get("daily_outlook") or {}).get("executive_summary") or ""
-    print(f"summary={summary[:240]}")
+    out = ReportService().daily_outlook(audience="professional", persist=True, export=True)
+    print(f"type={out['report_type']} bias={out['market_bias']} conf={out['confidence']}")
+    print(f"regime={out['market_regime']} publish={out.get('published')} qa={out.get('qa', {}).get('ok')}")
+    print(f"summary={out.get('executive_summary')}")
+    print(f"plan={(out.get('trading_plan') or {}).get('direction')}")
+    print(f"alerts={len(out.get('alerts') or [])}")
+    if out.get("exports"):
+        print(f"exports={out['exports']}")
+    print("--- telegram ---")
+    print((out.get("renders") or {}).get("telegram", "")[:500])
+    return 0
+
+
+def cmd_report() -> int:
+    from src.services import ReportService
+
+    init_db()
+    out = ReportService().daily_outlook(audience="executive", persist=False)
+    print((out.get("renders") or {}).get("markdown") or out.get("executive_summary"))
     return 0
 
 
@@ -150,7 +157,8 @@ def main() -> int:
     sub.add_parser("analyze", help="Run Chapter 6 Analysis Engine once")
     sub.add_parser("intelligence", help="Run Chapter 8 Market Intelligence Framework")
     sub.add_parser("score", help="Run Chapter 9 Scoring & Decision Model")
-    sub.add_parser("outlook", help="Run Chapter 7 AI Decision Engine / Daily Outlook")
+    sub.add_parser("outlook", help="Generate Chapter 10 Daily Outlook report")
+    sub.add_parser("report", help="Print executive markdown report (Ch.10)")
     sub.add_parser("migrate", help="Run Alembic migrations (upgrade head)")
     sub.add_parser("retention", help="Apply Ch.4 retention policy")
 
@@ -165,6 +173,7 @@ def main() -> int:
         "intelligence": cmd_intelligence,
         "score": cmd_score,
         "outlook": cmd_outlook,
+        "report": cmd_report,
         "migrate": cmd_migrate,
         "retention": cmd_retention,
     }

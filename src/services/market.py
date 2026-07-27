@@ -25,6 +25,7 @@ class MarketService:
             "trading_plan": redis_cache.get(CacheKeys.ACTIVE_TRADING_PLAN),
             "market_intelligence": redis_cache.get(CacheKeys.LATEST_MARKET_INTELLIGENCE),
             "decision_object": redis_cache.get(CacheKeys.LATEST_DECISION_OBJECT),
+            "latest_report": redis_cache.get(CacheKeys.LATEST_REPORT),
             "option_chain_summary": redis_cache.get(CacheKeys.LATEST_OPTION_CHAIN_SUMMARY),
             "cache_backend": redis_cache.backend,
         }

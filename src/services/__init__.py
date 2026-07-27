@@ -5,6 +5,7 @@ from src.services.collection import CollectionService
 from src.services.decision import DecisionService
 from src.services.intelligence import IntelligenceService
 from src.services.market import MarketService
+from src.services.reports import ReportService
 from src.services.scoring import ScoringService
 
 __all__ = [
@@ -13,5 +14,6 @@ __all__ = [
     "IntelligenceService",
     "ScoringService",
     "DecisionService",
+    "ReportService",
     "MarketService",
 ]

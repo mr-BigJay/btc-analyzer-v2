@@ -30,6 +30,7 @@ class AppScheduler:
         self._collection: CollectionService | None = None
         self._analysis: AnalysisService | None = None
         self._decision: DecisionService | None = None
+        self._reports = None
         self._ws_started = False
 
     @property
@@ -49,6 +50,14 @@ class AppScheduler:
         if self._decision is None:
             self._decision = DecisionService()
         return self._decision
+
+    @property
+    def reports(self):
+        if self._reports is None:
+            from src.services import ReportService
+
+            self._reports = ReportService()
+        return self._reports
 
     @property
     def engine(self):
@@ -122,25 +131,27 @@ class AppScheduler:
             except Exception as exc:  # noqa: BLE001
                 log.warning("retention failed: {}", exc)
             narr = self.collection.run_narrative()
-            # Ch.7 AI Decision Engine → Daily Outlook + Trading Plan
-            report = self.decision.run(timeframe="1d", multi_timeframe=True)
+            # Ch.10 Report Generator (runs AI → Decision → formatted Daily Outlook)
+            published = self.reports.daily_outlook(audience="professional", persist=True, export=True)
             log.info(
-                "Daily Outlook @ {:02d}:{:02d} UTC bias={} narrative={} conf={}",
+                "Daily Outlook report @ {:02d}:{:02d} UTC bias={} conf={} publish={} alerts={}",
                 settings.daily_outlook_hour_utc,
                 settings.daily_outlook_minute_utc,
-                report.get("market_bias"),
-                report.get("primary_narrative"),
-                report.get("confidence"),
+                published.get("market_bias"),
+                published.get("confidence"),
+                published.get("published"),
+                len(published.get("alerts") or []),
             )
-            return {"narrative": narr, "decision": report}
+            return {"narrative": narr, "report": published}
 
         self._run_isolated("daily_outlook", _job)
 
     def job_intraday_plan(self) -> None:
         def _job():
-            plan = self.decision.trading_plan(timeframe="15m", multi_timeframe=False)
-            log.info("Intraday plan direction={}", plan.get("preferred_direction"))
-            return plan
+            plan_report = self.reports.trading_plan(audience="professional", persist=True)
+            direction = (plan_report.get("trading_plan") or {}).get("direction")
+            log.info("Intraday plan report direction={} publish={}", direction, plan_report.get("published"))
+            return plan_report
 
         self._run_isolated("intraday_plan", _job)
 

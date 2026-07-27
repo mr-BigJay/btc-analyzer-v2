@@ -3,18 +3,11 @@
 Professional AI-powered **crypto market intelligence** platform.
 **Decision Support System (DSS)** — evidence-based scenarios, not guaranteed direction.
 
-> Enterprise Design Book is the source of truth.
-
 ## Pipeline
 
 ```
-Analysis Engine (8 layers)
-        ↓
- Market Intelligence (regime · cycle · MHI · MSI)
-        ↓
- Scoring & Decision Model (MBS · CS · RS · DQS · publish gate)
-        ↓
- AI Decision Engine → Daily Outlook + Trading Plan
+Analysis → Intelligence → Scoring → AI Decision → Report Generator
+        → API / Dashboard / Telegram / Export / Alerts
 ```
 
 ## CLI
@@ -23,15 +16,16 @@ Analysis Engine (8 layers)
 python -m src.main analyze
 python -m src.main intelligence
 python -m src.main score
-python -m src.main outlook
+python -m src.main outlook    # Ch.10 formatted Daily Outlook
+python -m src.main report     # executive markdown
 ```
 
 ## Design Book
 
 | Chapter | Topic | Status |
 |---------|--------|--------|
-| 01–09 | Intro → Scoring & Decision Model | ✅ |
+| 01–10 | Intro → Report Generation | ✅ |
 
 ## Status
 
-Chapters 1–9 applied on the rewrite branch.
+Chapters 1–10 applied on the rewrite branch.

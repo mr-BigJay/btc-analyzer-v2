@@ -94,6 +94,22 @@ def architecture(request: Request):
                 },
                 "endpoint": "/api/v1/market/scoring",
             },
+            "report_generation": {
+                "types": [
+                    "Daily Outlook",
+                    "Intraday Trading Plan",
+                    "Market Snapshot",
+                    "Futures Report",
+                    "Options Report",
+                    "Liquidity Report",
+                    "Risk Report",
+                    "Weekly Summary",
+                    "Alert Notification",
+                ],
+                "audiences": ["executive", "professional", "analyst"],
+                "channels": ["api", "dashboard", "telegram", "websocket", "export"],
+                "endpoints": ["/api/v1/market/outlook", "/api/v1/market/report"],
+            },
             "ai_decision_engine": {
                 "consumes": "MarketAnalysisOutput",
                 "raw_exchange_access": False,

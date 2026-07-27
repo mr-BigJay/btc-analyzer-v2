@@ -7,6 +7,7 @@ class CacheKeys:
     CURRENT_OPEN_INTEREST = "current_open_interest"
     LATEST_DAILY_OUTLOOK = "latest_daily_outlook"
     ACTIVE_TRADING_PLAN = "active_trading_plan"
+    LATEST_MARKET_INTELLIGENCE = "latest_market_intelligence"
     CURRENT_ORDER_BOOK = "current_order_book"
     LATEST_OPTION_CHAIN_SUMMARY = "latest_option_chain_summary"
     WS_BROADCAST = "ws_broadcast"

@@ -12,6 +12,7 @@ def calibrate_confidence(
     analysis: MarketAnalysisOutput | dict[str, Any],
     evidence: list[EvidenceItem],
     scenarios: list[ScenarioAssessment],
+    intelligence: dict[str, Any] | None = None,
 ) -> tuple[float, str, str]:
     """Return (confidence, band_label, explanation). High confidence ≠ guaranteed outcome."""
     if isinstance(analysis, MarketAnalysisOutput):
@@ -57,6 +58,21 @@ def calibrate_confidence(
     if fut and opt and "Bearish" in fut.signal and "Bearish" in opt.signal:
         conf = min(100.0, conf + 3)
 
+    # Ch.8 MHI / MSI / transition — quality vs stress
+    intel = intelligence or {}
+    mhi = intel.get("market_health_index")
+    if mhi is not None:
+        conf = 0.9 * conf + 0.1 * float(mhi)
+    msi = str(intel.get("market_stress_index") or "")
+    if msi in ("High", "Extreme"):
+        conf *= 0.88
+    elif msi == "Elevated":
+        conf *= 0.94
+    if float(intel.get("transition_probability") or 0) >= 55:
+        conf *= 0.92
+    if float(intel.get("data_completeness") or 1) < 0.5:
+        conf *= 0.95
+
     # Never claim impossible certainty
     conf = max(20.0, min(92.0, conf))
 
@@ -65,6 +81,10 @@ def calibrate_confidence(
         f"Calibrated confidence {conf:.0f}/100 ({band.value}).",
         f"Layer agreement ≈ {agreement:.0%}; average data quality {avg_quality:.0%}.",
     ]
+    if mhi is not None:
+        parts.append(f"MHI={float(mhi):.0f} ({intel.get('market_health_band')}).")
+    if msi:
+        parts.append(f"MSI={msi}.")
     if conflicts:
         parts.append("Conflicts present — confidence reduced.")
     if mtf.get("aligned"):

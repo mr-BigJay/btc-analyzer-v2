@@ -27,9 +27,8 @@ def cmd_init_db() -> int:
 def cmd_status() -> int:
     print(f"BTC Analyzer {__version__}")
     print("Product: Decision Support System (DSS)")
-    print("Phase: Enterprise Design Book — Chapter 7 (AI Decision Engine)")
-    print("Layers: Spot · Futures · Options · Technical · Structure · Pattern · Volatility · Liquidity")
-    print("AI: Evidence → Narrative → Probabilities → Risk → Daily Outlook / Trading Plan")
+    print("Phase: Enterprise Design Book — Chapter 8 (Market Intelligence Framework)")
+    print("Pipeline: Analysis → Market Intelligence (regime/cycle/MHI/MSI) → AI Decision")
     print("Stack: FastAPI · PostgreSQL · Redis · APScheduler · Loguru")
     print(f"Database: {settings.database_url}")
     print(f"Redis: {settings.redis_url or 'memory-fallback'}")
@@ -78,13 +77,33 @@ def cmd_outlook() -> int:
 
     init_db()
     out = DecisionService().run(multi_timeframe=False)
+    intel = out.get("market_intelligence") or {}
     print(f"bias={out['market_bias']} conf={out['confidence']} band={out['confidence_band']}")
     print(f"narrative={out['primary_narrative']} risk={out['risk_level']}")
+    print(
+        f"regime={out['market_regime']} cycle={intel.get('market_cycle')} "
+        f"mhi={intel.get('market_health_index')} msi={intel.get('market_stress_index')}"
+    )
     print(f"primary={out['primary_scenario']}")
     print(f"scenarios={[s['name']+':'+str(s['probability']) for s in out.get('scenarios', [])]}")
     print(f"plan={out['trading_plan'].get('preferred_direction')}")
     summary = (out.get("daily_outlook") or {}).get("executive_summary") or ""
     print(f"summary={summary[:240]}")
+    return 0
+
+
+def cmd_intelligence() -> int:
+    from src.services import IntelligenceService
+
+    init_db()
+    out = IntelligenceService().run(multi_timeframe=False)
+    print(f"regime={out['market_regime']} cycle={out['market_cycle']}")
+    print(f"participant={out['dominant_participant']} institutional={out['institutional_activity']}")
+    print(f"mhi={out['market_health_index']} ({out['market_health_band']}) msi={out['market_stress_index']}")
+    print(f"vol={out['volatility_regime']} liquidity={out['liquidity_state']}")
+    print(f"macro={out['macro_bias']} cross_asset={out['cross_asset_bias']}")
+    print(f"transition={out['transition_probability']}% {out.get('detected_transitions')}")
+    print(f"derivatives={out.get('derivatives_thesis')}")
     return 0
 
 
@@ -116,6 +135,7 @@ def main() -> int:
     sub.add_parser("run", help="Start scheduler (Ch.5 intervals)")
     sub.add_parser("collect", help="Run one full data collection cycle")
     sub.add_parser("analyze", help="Run Chapter 6 Analysis Engine once")
+    sub.add_parser("intelligence", help="Run Chapter 8 Market Intelligence Framework")
     sub.add_parser("outlook", help="Run Chapter 7 AI Decision Engine / Daily Outlook")
     sub.add_parser("migrate", help="Run Alembic migrations (upgrade head)")
     sub.add_parser("retention", help="Apply Ch.4 retention policy")
@@ -128,6 +148,7 @@ def main() -> int:
         "run": cmd_run,
         "collect": cmd_collect,
         "analyze": cmd_analyze,
+        "intelligence": cmd_intelligence,
         "outlook": cmd_outlook,
         "migrate": cmd_migrate,
         "retention": cmd_retention,

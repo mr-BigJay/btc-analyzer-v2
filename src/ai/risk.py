@@ -1,4 +1,4 @@
-"""Independent risk assessment (Ch.7 §7.11) — separate from market direction."""
+"""Independent risk assessment (Ch.7 §7.11) — MSI-aware via Ch.8."""
 
 from __future__ import annotations
 
@@ -14,6 +14,7 @@ def assess_risk(
     *,
     near_options_expiry: bool = False,
     macro_event: bool = False,
+    intelligence: dict[str, Any] | None = None,
 ) -> tuple[str, list[str], str]:
     """Return (risk_level, major_risks, risk_explanation)."""
     if isinstance(analysis, MarketAnalysisOutput):
@@ -73,7 +74,24 @@ def assess_risk(
         score += 1
         drivers.append("Two-sided excessive leverage")
 
-    # evidence unused for score but kept for API symmetry / future learning
+    intel = intelligence or {}
+    msi = str(intel.get("market_stress_index") or "")
+    if msi == "Extreme":
+        score += 4
+        drivers.append("Market Stress Index: Extreme")
+    elif msi == "High":
+        score += 3
+        drivers.append("Market Stress Index: High")
+    elif msi == "Elevated":
+        score += 2
+        drivers.append("Market Stress Index: Elevated")
+    if float(intel.get("transition_probability") or 0) >= 60:
+        score += 1
+        drivers.append("Elevated regime transition probability")
+    if intel.get("macro_bias") in ("Cautious", "Risk-Off", "Uncertain"):
+        score += 1
+        drivers.append(f"Macro bias {intel.get('macro_bias')}")
+
     _ = evidence
 
     if score >= 7:
@@ -87,12 +105,31 @@ def assess_risk(
     else:
         level = RiskCategory.LOW.value
 
+    # MSI can escalate the label even when directional bias is favorable (Ch.8 §8.13)
+    msi_map = {
+        "Extreme": RiskCategory.EXTREME.value,
+        "High": RiskCategory.HIGH.value,
+        "Elevated": RiskCategory.ELEVATED.value,
+    }
+    if msi in msi_map:
+        order = [
+            RiskCategory.LOW.value,
+            RiskCategory.MODERATE.value,
+            RiskCategory.ELEVATED.value,
+            RiskCategory.HIGH.value,
+            RiskCategory.EXTREME.value,
+        ]
+        if order.index(msi_map[msi]) > order.index(level):
+            level = msi_map[msi]
+
     if not drivers:
         drivers.append("No elevated structural risk drivers detected")
 
     explanation = (
         f"Risk assessed as {level} based on {len(drivers)} driver(s): "
         + "; ".join(drivers[:5])
-        + ". Risk is evaluated independently of directional bias."
+        + ". Risk is evaluated independently of directional bias"
+        + (f"; MSI={msi}" if msi else "")
+        + "."
     )
     return level, drivers[:8], explanation

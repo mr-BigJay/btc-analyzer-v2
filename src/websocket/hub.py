@@ -46,6 +46,7 @@ class WebSocketHub:
                     "open_interest": redis_cache.get(CacheKeys.CURRENT_OPEN_INTEREST),
                     "daily_outlook": redis_cache.get(CacheKeys.LATEST_DAILY_OUTLOOK),
                     "trading_plan": redis_cache.get(CacheKeys.ACTIVE_TRADING_PLAN),
+                    "market_intelligence": redis_cache.get(CacheKeys.LATEST_MARKET_INTELLIGENCE),
                 },
             },
         )

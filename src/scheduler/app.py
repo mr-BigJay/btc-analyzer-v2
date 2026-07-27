@@ -84,9 +84,18 @@ class AppScheduler:
         def _job():
             collected = self.collection.run_technical()
             analysis = self.analysis.refresh_technical()
-            # Full multi-layer pass on 5m cadence (uses cached OHLCV)
             full = self.analysis.run_full(timeframe="1h", multi_timeframe=False)
-            return {"ok": collected.ok, "warnings": collected.warnings, "analysis": analysis, "full": full.get("market_bias")}
+            from src.services import IntelligenceService
+
+            intel = IntelligenceService().run(timeframe="1h", multi_timeframe=False)
+            return {
+                "ok": collected.ok,
+                "warnings": collected.warnings,
+                "analysis": analysis,
+                "full": full.get("market_bias"),
+                "regime": intel.get("market_regime"),
+                "mhi": intel.get("market_health_index"),
+            }
 
         self._run_isolated("technical_5m", _job)
 

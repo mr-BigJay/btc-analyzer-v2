@@ -68,6 +68,20 @@ def architecture(request: Request):
                 "endpoint": "/api/v1/market/analysis",
                 "ai_inference_in_layers": False,
             },
+            "market_intelligence": {
+                "consumes": "MarketAnalysisOutput",
+                "feeds": "AIDecisionEngine",
+                "outputs": [
+                    "market_regime",
+                    "market_cycle",
+                    "MHI",
+                    "MSI",
+                    "participants",
+                    "liquidity_state",
+                    "transitions",
+                ],
+                "endpoint": "/api/v1/market/intelligence",
+            },
             "ai_decision_engine": {
                 "consumes": "MarketAnalysisOutput",
                 "raw_exchange_access": False,

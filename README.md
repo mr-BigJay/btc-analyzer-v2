@@ -11,29 +11,29 @@ Professional AI-powered **crypto market intelligence** platform.
 **Ch.3:** Collect ≠ Analyze · Retry/cache fallback · Isolated collectors  
 **Ch.4:** Database is SSOT · PostgreSQL + Redis · FK integrity · Alembic  
 **Ch.6:** 8 evidence layers · weighted scoring · conflict resolution · scenarios  
-**Ch.7:** AI Decision Engine · narratives · calibrated confidence · Daily Outlook / Trading Plan
+**Ch.7:** AI Decision Engine · narratives · calibrated confidence · Daily Outlook / Trading Plan  
+**Ch.8:** Market Intelligence · regime/cycle · MHI/MSI · participants · transitions
 
-## Analysis → AI Pipeline
+## Pipeline
 
 ```
 Analysis Engine (8 layers)
         ↓
- AI Decision Engine (evidence → narrative → probabilities → risk → NLG)
+ Market Intelligence Framework (regime · cycle · MHI · MSI · liquidity · macro)
         ↓
- Daily Outlook + Intraday Trading Plan
+ AI Decision Engine → Daily Outlook + Trading Plan
 ```
 
 API:  
-`GET /api/v1/market/analysis` · `/decision` · `/outlook` · `/trading-plan`  
-CLI: `python -m src.main analyze` · `python -m src.main outlook`
+`/api/v1/market/analysis` · `/intelligence` · `/decision` · `/outlook` · `/trading-plan`  
+
+CLI: `analyze` · `intelligence` · `outlook`
 
 ## Design Book
 
 | Chapter | Topic | Status |
 |---------|--------|--------|
-| 01–06 | Intro → Analysis Engine | ✅ |
-| 07 | AI Decision Engine | ✅ |
-| 08 | Presentation / UX | Pending |
+| 01–08 | Intro → Market Intelligence | ✅ |
 
 ## Quick Start
 
@@ -41,18 +41,11 @@ CLI: `python -m src.main analyze` · `python -m src.main outlook`
 pip install -r requirements.txt
 cp .env.example .env
 python -m src.main init-db
-python -m src.main serve     # API :8000  ·  /api/docs  ·  /ws
-python -m src.main run       # scheduler
-python -m src.main outlook   # AI Daily Outlook once
-```
-
-### Docker (Nginx + API + Scheduler + Postgres + Redis)
-
-```bash
-docker compose up -d
-# http://localhost/api/v1/health
+python -m src.main serve
+python -m src.main intelligence
+python -m src.main outlook
 ```
 
 ## Status
 
-Rewrite in progress. Chapters 1–7 applied. Awaiting Chapter 8 (Presentation).
+Chapters 1–8 applied on the rewrite branch.

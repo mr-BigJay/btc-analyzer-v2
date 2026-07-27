@@ -5,47 +5,33 @@ Professional AI-powered **crypto market intelligence** platform.
 
 > Enterprise Design Book is the source of truth.
 
-## Core Principles
-
-**Ch.1–2:** DSS · Modular architecture · Standardized `ModuleResult`  
-**Ch.3:** Collect ≠ Analyze · Retry/cache fallback · Isolated collectors  
-**Ch.4:** Database is SSOT · PostgreSQL + Redis · FK integrity · Alembic  
-**Ch.6:** 8 evidence layers · weighted scoring · conflict resolution · scenarios  
-**Ch.7:** AI Decision Engine · narratives · calibrated confidence · Daily Outlook / Trading Plan  
-**Ch.8:** Market Intelligence · regime/cycle · MHI/MSI · participants · transitions
-
 ## Pipeline
 
 ```
 Analysis Engine (8 layers)
         ↓
- Market Intelligence Framework (regime · cycle · MHI · MSI · liquidity · macro)
+ Market Intelligence (regime · cycle · MHI · MSI)
+        ↓
+ Scoring & Decision Model (MBS · CS · RS · DQS · publish gate)
         ↓
  AI Decision Engine → Daily Outlook + Trading Plan
 ```
 
-API:  
-`/api/v1/market/analysis` · `/intelligence` · `/decision` · `/outlook` · `/trading-plan`  
+## CLI
 
-CLI: `analyze` · `intelligence` · `outlook`
+```bash
+python -m src.main analyze
+python -m src.main intelligence
+python -m src.main score
+python -m src.main outlook
+```
 
 ## Design Book
 
 | Chapter | Topic | Status |
 |---------|--------|--------|
-| 01–08 | Intro → Market Intelligence | ✅ |
-
-## Quick Start
-
-```bash
-pip install -r requirements.txt
-cp .env.example .env
-python -m src.main init-db
-python -m src.main serve
-python -m src.main intelligence
-python -m src.main outlook
-```
+| 01–09 | Intro → Scoring & Decision Model | ✅ |
 
 ## Status
 
-Chapters 1–8 applied on the rewrite branch.
+Chapters 1–9 applied on the rewrite branch.

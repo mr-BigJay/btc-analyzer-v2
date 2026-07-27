@@ -1,53 +1,57 @@
-"""Dynamic layer weights (Ch.6 §6.8)."""
+"""Dynamic layer weights (Ch.6 §6.8 / Ch.9 §9.6).
+
+Ch.9 regime tables are canonical; this module remains for Analysis Engine
+compatibility and applies the same default/trend/range/high-vol profiles.
+"""
 
 from __future__ import annotations
 
-from copy import deepcopy
 from typing import Iterable
 
 from src.analysis.contracts import LayerResult
+from src.scoring.weights import (
+    DEFAULT_WEIGHTS,
+    HIGH_VOL_WEIGHTS,
+    RANGE_WEIGHTS,
+    TREND_WEIGHTS,
+    select_weights,
+)
 
-DEFAULT_WEIGHTS: dict[str, float] = {
-    "Spot": 0.20,
-    "Futures": 0.20,
-    "Options": 0.20,
-    "Technical": 0.15,
-    "Market Structure": 0.10,
-    "Liquidity": 0.07,
-    "Pattern Detection": 0.05,
-    "Volatility": 0.03,
-}
+__all__ = [
+    "DEFAULT_WEIGHTS",
+    "TREND_WEIGHTS",
+    "RANGE_WEIGHTS",
+    "HIGH_VOL_WEIGHTS",
+    "compute_weights",
+]
 
 
 def compute_weights(layer_results: Iterable[LayerResult], *, near_options_expiry: bool = False) -> dict[str, float]:
-    weights = deepcopy(DEFAULT_WEIGHTS)
-    tags = {t for r in layer_results for t in r.tags}
-    vol_tags = tags
+    results = list(layer_results)
+    tags = {t for r in results for t in r.tags}
+    rows = [
+        {
+            "layer": r.layer,
+            "data_quality": r.data_quality,
+            "tags": r.tags,
+        }
+        for r in results
+    ]
 
-    # Options expiry → boost Options
-    if near_options_expiry or "Gamma Pinning" in tags:
-        weights["Options"] = min(0.35, weights["Options"] + 0.08)
-        weights["Technical"] = max(0.08, weights["Technical"] - 0.03)
-        weights["Spot"] = max(0.12, weights["Spot"] - 0.03)
+    if "Expansion" in tags or "High Volatility" in tags:
+        regime, vol = "Expansion", "Elevated"
+    elif "Compression" in tags:
+        regime, vol = "Compression", "Low"
+    elif "Trend Strength" in tags or "BOS" in tags:
+        regime, vol = "Strong Uptrend", "Normal"
+    else:
+        regime, vol = "Range", "Normal"
 
-    # Breakout / BOS → Structure + Liquidity
-    if "BOS" in tags or "Breakout Probability" in tags:
-        weights["Market Structure"] = min(0.20, weights["Market Structure"] + 0.06)
-        weights["Liquidity"] = min(0.14, weights["Liquidity"] + 0.04)
-        weights["Pattern Detection"] = min(0.10, weights["Pattern Detection"] + 0.02)
-        weights["Volatility"] = max(0.02, weights["Volatility"] - 0.01)
-
-    # High volatility regime
-    if "Expansion" in vol_tags or "High Volatility" in vol_tags:
-        weights["Volatility"] = min(0.12, weights["Volatility"] + 0.06)
-        weights["Futures"] = min(0.25, weights["Futures"] + 0.02)
-        weights["Technical"] = max(0.10, weights["Technical"] - 0.03)
-
-    # Down-weight low-quality layers
-    for r in layer_results:
-        if r.layer in weights and r.data_quality < 0.45:
-            weights[r.layer] *= 0.4
-
-    # Renormalize
-    total = sum(weights.values()) or 1.0
-    return {k: v / total for k, v in weights.items()}
+    weights, _key = select_weights(
+        market_regime=regime,
+        volatility_regime=vol,
+        layer_scores={r.layer: 0.0 for r in results},
+        layer_results=rows,
+        near_options_expiry=near_options_expiry or "Gamma Pinning" in tags,
+    )
+    return weights

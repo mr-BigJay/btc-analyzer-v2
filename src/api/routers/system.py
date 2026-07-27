@@ -82,6 +82,18 @@ def architecture(request: Request):
                 ],
                 "endpoint": "/api/v1/market/intelligence",
             },
+            "scoring_decision_model": {
+                "layer_score_range": [-100, 100],
+                "composites": ["MBS", "CS", "RS", "MHI", "MSI", "DQS"],
+                "decision_matrix_weights": {
+                    "MBS": 0.40,
+                    "CS": 0.25,
+                    "RS": 0.15,
+                    "MHI": 0.10,
+                    "MSI": 0.10,
+                },
+                "endpoint": "/api/v1/market/scoring",
+            },
             "ai_decision_engine": {
                 "consumes": "MarketAnalysisOutput",
                 "raw_exchange_access": False,

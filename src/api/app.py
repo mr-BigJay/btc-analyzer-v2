@@ -23,7 +23,7 @@ log = get_logger("api")
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     init_db()
-    log.info("API started chapter=08 timezone={}", settings.timezone)
+    log.info("API started chapter=09 timezone={}", settings.timezone)
     yield
 
 

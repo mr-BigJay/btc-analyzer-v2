@@ -67,6 +67,10 @@ class Settings(BaseSettings):
     api_port: int = 8000
     api_rate_limit_per_minute: int = 120
 
+    # Scoring (Ch.9 §9.15)
+    scoring_min_dqs: float = 60.0
+    scoring_min_confidence: float = 55.0
+
     @property
     def data_dir(self) -> Path:
         return BASE_DIR / "data"

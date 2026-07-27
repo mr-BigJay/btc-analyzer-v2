@@ -48,7 +48,17 @@ def build_trading_plan(
             position_sizing_guidance="Flat — no position while uncertainty/stress is elevated.",
         )
 
-    bullish = market_bias in (SignalBias.BULLISH.value, SignalBias.SLIGHTLY_BULLISH.value)
+    bullish = "Bullish" in market_bias
+    bearish = "Bearish" in market_bias
+    if not bullish and not bearish:
+        # Neutral / High Uncertainty already handled above; treat as no_trade safety
+        return TradingPlanSpec(
+            preferred_direction="no_trade",
+            confirmation_conditions=["Await clearer Ch.9 Market Bias Score"],
+            session_notes="Directional bias not actionable.",
+            confidence=confidence,
+            position_sizing_guidance="Flat.",
+        )
     direction = "long" if bullish else "short"
 
     entry: list[float] = []

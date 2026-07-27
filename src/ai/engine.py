@@ -27,6 +27,8 @@ from src.config import settings
 from src.intelligence.contracts import MarketIntelligenceOutput
 from src.intelligence.engine import MarketIntelligenceEngine
 from src.logging_setup import get_logger
+from src.scoring.contracts import DecisionObject
+from src.scoring.engine import ScoringEngine
 from src.storage.redis_cache import redis_cache
 from src.storage.repository import CentralRepository
 
@@ -34,17 +36,19 @@ log = get_logger("ai.engine")
 
 
 class AIDecisionEngine:
-    """Cognitive pipeline Ch.7 §7.3 — enriched by Ch.8 strategic context."""
+    """Cognitive pipeline Ch.7 — grounded by Ch.8 intelligence + Ch.9 scoring."""
 
     def __init__(self, repository: CentralRepository | None = None) -> None:
         self.repository = repository or CentralRepository()
         self.analysis_engine = AnalysisEngine(self.repository)
         self.intelligence_engine = MarketIntelligenceEngine(self.repository)
+        self.scoring_engine = ScoringEngine(self.repository)
 
     def decide(
         self,
         analysis: MarketAnalysisOutput | dict[str, Any] | None = None,
         intelligence: MarketIntelligenceOutput | dict[str, Any] | None = None,
+        decision: DecisionObject | dict[str, Any] | None = None,
         *,
         symbol: str | None = None,
         timeframe: str = "1h",
@@ -84,7 +88,19 @@ class AIDecisionEngine:
             )
         intel = intelligence.to_dict() if isinstance(intelligence, MarketIntelligenceOutput) else dict(intelligence)
 
-        fingerprint = _fingerprint(analysis_dict, intel)
+        if decision is None:
+            decision = self.scoring_engine.score(
+                analysis=analysis_dict,
+                intelligence=intel,
+                symbol=symbol,
+                near_options_expiry=near_options_expiry,
+                macro_event=macro_event,
+                persist=persist,
+                run_upstream_if_missing=False,
+            )
+        decision_dict = decision.to_dict() if isinstance(decision, DecisionObject) else dict(decision)
+
+        fingerprint = _fingerprint(analysis_dict, intel, decision_dict)
 
         # 1–2 Evidence aggregation + prioritization
         evidence = aggregate_evidence(analysis_dict)
@@ -99,7 +115,7 @@ class AIDecisionEngine:
         )
         scenarios, distribution = _apply_intelligence_to_scenarios(scenarios, distribution, intel)
 
-        # 6 Risk assessment — MSI overrides when stress is elevated (Ch.8 §8.13)
+        # 6 Risk assessment — prefer Ch.9 Risk Score; keep drivers from assess_risk
         risk_level, major_risks, risk_explanation = assess_risk(
             analysis_dict,
             evidence,
@@ -107,14 +123,24 @@ class AIDecisionEngine:
             macro_event=macro_event,
             intelligence=intel,
         )
+        rs = float(decision_dict.get("risk_score") or 0)
+        risk_level = _risk_label_from_score(rs, fallback=risk_level)
+        risk_explanation = (
+            f"Ch.9 Risk Score={rs:.0f}/100. {risk_explanation}"
+        )
 
-        # 7 Confidence calibration + explainability (MHI informs quality)
-        confidence, band, conf_explanation = calibrate_confidence(
+        # 7 Confidence — prefer Ch.9 Confidence Score as canonical numeric
+        confidence = float(decision_dict.get("confidence_score") or 50)
+        _, band, conf_explanation = calibrate_confidence(
             analysis_dict, evidence, scenarios, intelligence=intel
         )
+        conf_explanation = (
+            f"Ch.9 Confidence Score={confidence:.0f}/100 "
+            f"(DQS={decision_dict.get('data_quality_score')}). {conf_explanation}"
+        )
         conflicts = list(analysis_dict.get("conflicts") or [])
-        market_bias = str(analysis_dict.get("market_bias") or "Neutral")
-        # Prefer Ch.8 regime classification over Ch.6 coarse regime
+        # Prefer Ch.9 classified bias over Analysis Engine coarse bias
+        market_bias = str(decision_dict.get("market_bias") or analysis_dict.get("market_bias") or "Neutral")
         market_regime = str(intel.get("market_regime") or analysis_dict.get("market_regime") or "Range")
         layer_results = list(analysis_dict.get("layer_results") or [])
 
@@ -130,16 +156,33 @@ class AIDecisionEngine:
         )
         reasoning.primary_conclusion = (
             f"{reasoning.primary_conclusion} "
+            f"Scoring: MBS={decision_dict.get('market_bias_score')}, "
+            f"CS={decision_dict.get('confidence_score')}, RS={decision_dict.get('risk_score')}, "
+            f"publish={decision_dict.get('publish')}. "
             f"Strategic context: cycle={intel.get('market_cycle')}, "
             f"dominant={intel.get('dominant_participant')}, "
             f"MHI={intel.get('market_health_index')}, MSI={intel.get('market_stress_index')}."
         )
+        for note in decision_dict.get("publication_notes") or []:
+            if note and note not in reasoning.uncertainty_note:
+                reasoning.uncertainty_note = (reasoning.uncertainty_note + " " + note).strip()
+        if str(analysis_dict.get("market_bias")) == "High Uncertainty":
+            note = (
+                "Analysis Engine flagged High Uncertainty — evidence is insufficient "
+                "for aggressive recommendations; uncertainty is elevated."
+            )
+            reasoning.uncertainty_note = (reasoning.uncertainty_note + " " + note).strip()
 
         key_drivers = key_drivers_from_evidence(evidence, narrative_bullets)
         if intel.get("derivatives_thesis"):
             key_drivers.insert(0, f"Derivatives: {intel['derivatives_thesis']}")
+        key_drivers.insert(
+            0,
+            f"MBS={decision_dict.get('market_bias_score')} · "
+            f"weights={decision_dict.get('weight_regime')}",
+        )
 
-        # 8 Trading plan — MSI can force no_trade even if direction favorable
+        # 8 Trading plan — suppress when publish=False or high RS
         plan = build_trading_plan(
             market_bias=market_bias,
             confidence=confidence,
@@ -148,6 +191,18 @@ class AIDecisionEngine:
             layer_results=layer_results,
             intelligence=intel,
         )
+        if (
+            not decision_dict.get("publish", True)
+            or rs >= 75
+            or str(analysis_dict.get("market_bias")) == "High Uncertainty"
+        ):
+            plan.preferred_direction = "no_trade"
+            plan.session_notes = (
+                (plan.session_notes or "")
+                + " Scoring/uncertainty gate: publication suppressed, Risk Score elevated, "
+                "or Analysis Engine flagged High Uncertainty — no-trade."
+            ).strip()
+            plan.position_sizing_guidance = "Flat — scoring/risk/uncertainty gate active."
 
         # 9 Daily Outlook NLG
         outlook = build_daily_outlook(
@@ -184,6 +239,7 @@ class AIDecisionEngine:
             evidence=[e.to_dict() for e in evidence],
             probability_distribution=distribution,
             market_intelligence=intel,
+            scoring=decision_dict,
             symbol=symbol,
             analysis_fingerprint=fingerprint,
         )
@@ -192,13 +248,13 @@ class AIDecisionEngine:
             self._persist(report, analysis_dict)
 
         log.info(
-            "ai decision bias={} conf={:.1f} narrative={} risk={} regime={} cycle={}",
+            "ai decision bias={} conf={:.1f} mbs={} narrative={} risk={} publish={}",
             report.market_bias,
             report.confidence,
+            decision_dict.get("market_bias_score"),
             report.primary_narrative,
             report.risk_level,
-            market_regime,
-            intel.get("market_cycle"),
+            decision_dict.get("publish"),
         )
         return report
 
@@ -287,7 +343,21 @@ def _apply_intelligence_to_scenarios(scenarios, distribution, intel: dict[str, A
     return scenarios, distribution
 
 
-def _fingerprint(analysis: dict[str, Any], intel: dict[str, Any]) -> str:
+def _risk_label_from_score(rs: float, *, fallback: str) -> str:
+    if rs >= 80:
+        return RiskCategory.EXTREME.value
+    if rs >= 65:
+        return RiskCategory.HIGH.value
+    if rs >= 45:
+        return RiskCategory.ELEVATED.value
+    if rs >= 25:
+        return RiskCategory.MODERATE.value
+    if rs > 0:
+        return RiskCategory.LOW.value
+    return fallback
+
+
+def _fingerprint(analysis: dict[str, Any], intel: dict[str, Any], decision: dict[str, Any] | None = None) -> str:
     stable = {
         "market_bias": analysis.get("market_bias"),
         "confidence": analysis.get("confidence"),
@@ -303,6 +373,13 @@ def _fingerprint(analysis: dict[str, Any], intel: dict[str, Any]) -> str:
             "market_health_index": intel.get("market_health_index"),
             "market_stress_index": intel.get("market_stress_index"),
             "transition_probability": intel.get("transition_probability"),
+        },
+        "scoring": {
+            "market_bias_score": (decision or {}).get("market_bias_score"),
+            "confidence_score": (decision or {}).get("confidence_score"),
+            "risk_score": (decision or {}).get("risk_score"),
+            "data_quality_score": (decision or {}).get("data_quality_score"),
+            "weight_regime": (decision or {}).get("weight_regime"),
         },
     }
     raw = json.dumps(stable, sort_keys=True, default=str)

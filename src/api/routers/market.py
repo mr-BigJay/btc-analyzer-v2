@@ -5,7 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Request
 
 from src.api.responses import success
-from src.services import AnalysisService, DecisionService, IntelligenceService, MarketService
+from src.services import AnalysisService, DecisionService, IntelligenceService, MarketService, ScoringService
 
 router = APIRouter(prefix="/api/v1/market", tags=["market"])
 
@@ -27,6 +27,13 @@ def market_intelligence(request: Request):
     """Market Intelligence Framework (Ch.8)."""
     request_id = getattr(request.state, "request_id", None)
     return success(IntelligenceService().run(multi_timeframe=False), request_id=request_id)
+
+
+@router.get("/scoring")
+def scoring_decision(request: Request):
+    """Scoring & Decision Model object (Ch.9 §9.16)."""
+    request_id = getattr(request.state, "request_id", None)
+    return success(ScoringService().run(multi_timeframe=False), request_id=request_id)
 
 
 @router.get("/decision")

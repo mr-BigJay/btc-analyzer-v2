@@ -27,8 +27,8 @@ def cmd_init_db() -> int:
 def cmd_status() -> int:
     print(f"BTC Analyzer {__version__}")
     print("Product: Decision Support System (DSS)")
-    print("Phase: Enterprise Design Book — Chapter 8 (Market Intelligence Framework)")
-    print("Pipeline: Analysis → Market Intelligence (regime/cycle/MHI/MSI) → AI Decision")
+    print("Phase: Enterprise Design Book — Chapter 9 (Scoring & Decision Model)")
+    print("Pipeline: Analysis → Intelligence → Scoring (MBS/CS/RS/DQS) → AI Decision")
     print("Stack: FastAPI · PostgreSQL · Redis · APScheduler · Loguru")
     print(f"Database: {settings.database_url}")
     print(f"Redis: {settings.redis_url or 'memory-fallback'}")
@@ -107,6 +107,19 @@ def cmd_intelligence() -> int:
     return 0
 
 
+def cmd_score() -> int:
+    from src.services import ScoringService
+
+    init_db()
+    out = ScoringService().run(multi_timeframe=False)
+    print(f"bias={out['market_bias']} mbs={out['market_bias_score']} decision={out['decision']}")
+    print(f"cs={out['confidence_score']} rs={out['risk_score']} dqs={out['data_quality_score']}")
+    print(f"mhi={out['market_health_index']} msi={out['market_stress_index']}")
+    print(f"alignment={out['timeframe_alignment']} weights={out['weight_regime']} publish={out['publish']}")
+    print(f"layer_scores={out.get('layer_scores')}")
+    return 0
+
+
 def cmd_migrate() -> int:
     from alembic import command
     from alembic.config import Config
@@ -136,6 +149,7 @@ def main() -> int:
     sub.add_parser("collect", help="Run one full data collection cycle")
     sub.add_parser("analyze", help="Run Chapter 6 Analysis Engine once")
     sub.add_parser("intelligence", help="Run Chapter 8 Market Intelligence Framework")
+    sub.add_parser("score", help="Run Chapter 9 Scoring & Decision Model")
     sub.add_parser("outlook", help="Run Chapter 7 AI Decision Engine / Daily Outlook")
     sub.add_parser("migrate", help="Run Alembic migrations (upgrade head)")
     sub.add_parser("retention", help="Apply Ch.4 retention policy")
@@ -149,6 +163,7 @@ def main() -> int:
         "collect": cmd_collect,
         "analyze": cmd_analyze,
         "intelligence": cmd_intelligence,
+        "score": cmd_score,
         "outlook": cmd_outlook,
         "migrate": cmd_migrate,
         "retention": cmd_retention,

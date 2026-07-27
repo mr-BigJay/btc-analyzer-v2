@@ -1,35 +1,42 @@
 # BTC Analyzer v3
 
-Professional crypto **market intelligence** and **decision support** platform.
+Professional AI-powered **crypto market intelligence** platform.
+Designed as a **Decision Support System (DSS)** — evidence-based scenarios, not guaranteed direction.
 
-> Evidence-based analysis. No single indicator, exchange, or model decides alone.
+> Enterprise Design Book is the source of truth for implementation.
 
-## Vision
+## Core Principles (Ch.1 §1.5)
 
-Collect multi-source market data → validate narratives → analyze futures & options →
-map technical structure → AI Decision Engine → **Daily Outlook** + **Intraday Trading Plan** →
-Bitunix execution validation.
+1. **Evidence-Based Analysis** — multiple independent sources
+2. **Probability Over Prediction** — no absolute claims
+3. **Modular Architecture** — replaceable components
+4. **Transparency** — every recommendation includes reasoning
+5. **Risk First** — risk over trade frequency
 
-## Architecture
+## High-Level Workflow (Ch.1 §1.7)
 
 ```
-CoinEx Narrative
-  └─► Binance Futures (Funding · OI · CVD · Order Flow · Liquidations)
-        └─► Deribit Options (PCR · Max Pain · IV · Gamma · Dealer)
-              └─► Technical Structure
-                    └─► AI Decision Engine
-                          ├─► Daily Outlook (03:30 UTC)
-                          ├─► Intraday Trading Plan
-                          └─► Bitunix Execution Validation
+Data Collection
+  → Data Validation
+    → Data Normalization
+      → Analysis Engine
+        → Probability Engine
+          → Daily Outlook (03:30)
+            → Intraday Trading Plan
+              → Trade Execution Validation (Bitunix)
 ```
 
-## Design Documents
+## Scope v1.0 (Ch.1 §1.6)
 
-Implementation follows the Software Design Document series:
+Bitcoin · Binance Futures · Deribit Options · CoinEx Daily Analysis ·
+Bitunix validation · Technical Analysis · AI Decision Engine ·
+Daily Outlook · Intraday Trading Plan
 
-| Doc | Topic | Status |
-|-----|--------|--------|
-| 01 | Project Vision & Architecture | ✅ In repo |
+## Design Book
+
+| Chapter | Topic | Status |
+|---------|--------|--------|
+| 01 | Introduction | ✅ [`docs/book/chapter-01-introduction.md`](docs/book/chapter-01-introduction.md) |
 | 02 | … | Pending |
 | 03 | … | Pending |
 | 04 | … | Pending |
@@ -38,40 +45,25 @@ Implementation follows the Software Design Document series:
 | 07 | … | Pending |
 | 08 | … | Pending |
 
-See [`docs/01-vision-architecture.md`](docs/01-vision-architecture.md).
-
 ## Package Layout
 
 ```
 src/
-├── collectors/
-│   ├── coinex/          # Narrative analysis
-│   ├── binance/         # Futures market reference
-│   └── deribit/         # Options intelligence
-├── technical/           # Structure, S/R, patterns, indicators
-├── engine/              # AI Decision Engine (probabilities)
-├── outlook/             # Daily Outlook generator
+├── collectors/          # CoinEx · Binance · Deribit
+├── pipeline/            # Validation · Normalization
+├── technical/           # Structure · S/R · patterns · indicators
+├── engine/              # AnalysisEngine · ProbabilityEngine
+├── outlook/             # Daily Outlook (03:30)
 ├── trading/             # Intraday Trading Plan
-├── execution/
-│   └── bitunix/         # Pre-trade execution validation
-├── api/                 # FastAPI surface
-├── notifier/            # Alerts (Telegram, etc.)
-├── db/                  # Persistence
-├── scheduler.py         # Jobs (Daily Outlook @ 03:30, intraday)
-├── config.py
-└── main.py              # CLI
-frontend/                # Decision-support dashboard
-docs/                    # Design documents
+├── execution/bitunix/   # Execution validation
+├── api/ · db/ · notifier/
+├── scheduler.py
+└── main.py
+docs/book/               # Enterprise Design Book chapters
+frontend/                # Decision-support UI
 ```
-
-## Core Philosophy
-
-1. **Multi-evidence only** — no isolated signal may open a trade
-2. **Daily Outlook first** — strategic map before intraday setups
-3. **Outlook ≠ signal** — outlook guides; trading plan proposes; Bitunix validates
-4. **No certainty claims** — probabilities and invalidations, not guarantees
 
 ## Status
 
-**Rewrite in progress.** Previous v2 codebase has been fully removed.
-Awaiting Design Documents 02–08 for module-level specification and implementation.
+**Rewrite in progress.** Legacy v2 code removed.
+Chapter 1 foundation applied. Awaiting Chapters 2–8.

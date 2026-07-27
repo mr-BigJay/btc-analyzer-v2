@@ -1,7 +1,6 @@
-"""Intraday Trading Plan (Doc 01 §5, §8).
+"""Intraday Trading Plan — tactical report (Ch.1 §1.8).
 
 Generated only after a Daily Outlook exists.
-Refines entry timing with lower timeframes, order flow, confirmations.
 """
 
 from __future__ import annotations
@@ -14,17 +13,18 @@ from src.outlook import DailyOutlook
 
 @dataclass
 class TradingPlan:
-    """Actionable intraday plan — still requires Bitunix validation."""
+    """Tactical plan — Ch.1 §1.8. Still requires Bitunix validation."""
 
     direction: str = "no_trade"  # long | short | no_trade
     entry_zone_low: float | None = None
     entry_zone_high: float | None = None
     stop_loss: float | None = None
     take_profits: list[float] = field(default_factory=list)
-    confidence: float = 0.0
     risk_reward: float | None = None
-    outlook_date: str = ""
+    confidence: float = 0.0
     invalidation: float | None = None
+    outlook_date: str = ""
+    rationale: str = ""  # Transparency principle
     notes: str = ""
     created_at: str = field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
@@ -32,12 +32,11 @@ class TradingPlan:
 
 
 class TradingPlanGenerator:
-    """Builds Intraday Trading Plan from an existing Daily Outlook.
-
-    Implementation details arrive in later design documents.
-    """
+    """Builds Intraday Trading Plan from an existing Daily Outlook."""
 
     def generate(self, outlook: DailyOutlook) -> TradingPlan:
         if outlook is None:
-            raise ValueError("Intraday plan requires an existing Daily Outlook (Doc 01 §8)")
-        raise NotImplementedError("Awaiting Design Doc 02+ for Intraday Trading Plan spec")
+            raise ValueError(
+                "Intraday plan requires an existing Daily Outlook (Ch.1 §1.8)"
+            )
+        raise NotImplementedError("Awaiting Design Book Chapter 2+")

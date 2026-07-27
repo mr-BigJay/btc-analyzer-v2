@@ -28,8 +28,10 @@ def cmd_init_db() -> int:
 
 def cmd_status() -> int:
     print(f"BTC Analyzer {__version__}")
-    print("Phase: rewrite foundation (Design Doc 01)")
-    print("Pipeline: CoinEx → Binance → Deribit → Technical → Engine → Outlook/Plan → Bitunix")
+    print("Product: Decision Support System (DSS)")
+    print("Phase: Enterprise Design Book — Chapter 1")
+    print("Workflow: Collect → Validate → Normalize → Analyze → Probability → Outlook → Plan → Bitunix")
+    print("Principles: Evidence · Probability · Modular · Transparency · Risk-First")
     print(f"Daily Outlook UTC: {settings.daily_outlook_hour_utc:02d}:{settings.daily_outlook_minute_utc:02d}")
     return 0
 

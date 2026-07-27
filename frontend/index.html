@@ -11,16 +11,17 @@
     <p class="eyebrow">BTC Analyzer · Rewrite v3</p>
     <h1>Market Intelligence<br/>Decision Support</h1>
     <p class="lede">
-      Multi-evidence pipeline. Daily Outlook first. No single indicator decides alone.
+      Decision Support System. Evidence-based scenarios. Probability over prediction. Risk first.
     </p>
     <ul class="pipeline">
-      <li>CoinEx Narrative</li>
-      <li>Binance Futures</li>
-      <li>Deribit Options</li>
-      <li>Technical Structure</li>
-      <li>AI Decision Engine</li>
-      <li>Daily Outlook + Intraday Plan</li>
-      <li>Bitunix Validation</li>
+      <li>Collect</li>
+      <li>Validate</li>
+      <li>Normalize</li>
+      <li>Analyze</li>
+      <li>Probability</li>
+      <li>Daily Outlook</li>
+      <li>Intraday Plan</li>
+      <li>Bitunix Validate</li>
     </ul>
     <p class="status" id="status">Loading…</p>
   </main>
@@ -29,7 +30,7 @@
       .then((r) => r.json())
       .then((d) => {
         document.getElementById("status").textContent =
-          `${d.version} · ${d.phase} · docs: ${d.docs}`;
+          `${d.version} · ${d.phase} · chapter ${d.chapter}`;
       })
       .catch(() => {
         document.getElementById("status").textContent = "API offline";

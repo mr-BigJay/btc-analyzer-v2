@@ -32,26 +32,43 @@ def health():
     return {
         "status": "ok",
         "version": __version__,
-        "architecture": "coinex→binance→deribit→technical→engine→outlook/plan→bitunix",
-        "phase": "rewrite-foundation",
-        "docs": "01-vision-architecture",
+        "product": "decision-support-system",
+        "phase": "rewrite-ch01",
+        "chapter": "01-introduction",
     }
 
 
 @app.get("/api/v1/architecture")
 def architecture():
     return {
-        "pipeline": [
-            "coinex_narrative",
+        "workflow": [
+            "data_collection",
+            "data_validation",
+            "data_normalization",
+            "analysis_engine",
+            "probability_engine",
+            "daily_outlook",
+            "intraday_trading_plan",
+            "trade_execution_validation",
+        ],
+        "principles": [
+            "evidence_based_analysis",
+            "probability_over_prediction",
+            "modular_architecture",
+            "transparency",
+            "risk_first",
+        ],
+        "scope_v1": [
+            "bitcoin",
             "binance_futures",
             "deribit_options",
-            "technical_structure",
+            "coinex_daily_analysis",
+            "bitunix_execution_validation",
+            "technical_analysis",
             "ai_decision_engine",
             "daily_outlook",
             "intraday_trading_plan",
-            "bitunix_execution_validation",
         ],
-        "philosophy": "multi-evidence-only",
         "daily_outlook_utc": f"{settings.daily_outlook_hour_utc:02d}:{settings.daily_outlook_minute_utc:02d}",
     }
 

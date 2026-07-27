@@ -67,7 +67,9 @@ Each exchange has an independent collector under `src/collectors/<exchange>/` co
 
 - **Binance:** Spot + Futures (funding, OI, L/S, premium, mark/index, basis) + WS streams
 - **Deribit:** Option chain, Greeks, derived metrics (PCR, max pain, IV rank/percentile, GEX, skew)
-- **CoinEx:** Daily narrative — publication time, summary, bull/bear args, S/R, confidence; raw + parsed stored separately
+- **CoinEx:** Daily narrative from futures **AI Research** tab
+  (`https://www.coinex.com/en/futures/btc-usdt` → API `GET /res/ai-analysis/btc`);
+  raw markdown + parsed fields stored separately
 - **Bitunix:** Price, funding, order book, spread, OI, volume — never primary analytical source
 
 ---

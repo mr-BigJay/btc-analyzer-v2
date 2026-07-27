@@ -1,4 +1,11 @@
-"""CoinEx collector — daily textual market analysis (Ch.3 §3.8)."""
+"""CoinEx collector — AI Research tab narrative (Ch.3 §3.8).
+
+UI:  https://www.coinex.com/en/futures/btc-usdt  → tab "AI Research"
+API: GET /res/ai-analysis/btc
+
+Stores raw markdown article and parsed fields separately.
+No market analysis is performed here — extraction only.
+"""
 
 from __future__ import annotations
 
@@ -7,7 +14,7 @@ import logging
 
 from src.collectors.base import BaseCollector
 from src.collectors.coinex.auth import CoinExAuth
-from src.collectors.coinex.parser import parse_narrative
+from src.collectors.coinex.parser import parse_ai_research
 from src.collectors.coinex.rest import CoinExRestClient
 from src.config import settings
 from src.core import ModuleResult, ModuleStatus, NarrativeObject
@@ -39,22 +46,11 @@ class CoinExCollector(BaseCollector[NarrativeObject]):
                 source_live=False,
             )
 
-        raw_text = ""
-        try:
-            # Prefer JSON if path looks like API; fall back to text
-            if self.rest.analysis_path.endswith(".json") or "api" in self.rest.analysis_path:
-                data = await self.rest.fetch_analysis_json()
-                raw_text = data if isinstance(data, str) else __import__("json").dumps(data, ensure_ascii=False)
-            else:
-                raw_text = await self.rest.fetch_analysis_raw()
-        except Exception as exc:  # noqa: BLE001
-            # Fall through to empty parse — resilient wrapper handles cache
-            raise RuntimeError(f"CoinEx fetch failed: {exc}") from exc
-
-        parsed = parse_narrative(raw_text, symbol=settings.binance_symbol)
+        payload = await self.rest.fetch_ai_research()
+        parsed = parse_ai_research(payload, symbol=settings.binance_symbol)
         narrative = NarrativeObject(
             bias=str(parsed.get("bias") or "neutral"),
-            scenarios=[],
+            scenarios=list(parsed.get("scenarios") or []),
             support_levels=list(parsed.get("support_levels") or []),
             resistance_levels=list(parsed.get("resistance_levels") or []),
             summary=str(parsed.get("summary") or ""),

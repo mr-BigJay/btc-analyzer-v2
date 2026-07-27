@@ -21,7 +21,7 @@ External APIs → Collectors → Validators → Normalizers → Cache → Databa
 |----------|------|----------|
 | Binance | Futures market reference | Critical |
 | Deribit | Options intelligence | Critical |
-| CoinEx | Daily narrative | High |
+| CoinEx | Daily narrative (**AI Research** tab on futures page) | High |
 | Bitunix | Execution validation only | Medium |
 
 **Scheduler:** realtime WS · 1m price/funding/OI · 5m technical cache · 1h options · daily outlook 03:30 UTC  

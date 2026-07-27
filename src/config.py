@@ -14,10 +14,14 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    # CoinEx narrative
+    # CoinEx AI Research (futures page tab)
+    # UI: https://www.coinex.com/en/futures/btc-usdt → AI Research
+    # API: GET /res/ai-analysis/{coin}
     coinex_enabled: bool = True
     coinex_base_url: str = "https://www.coinex.com"
-    coinex_analysis_path: str = "/res/market/analysis/btc.json"
+    coinex_ai_coin: str = "btc"
+    coinex_futures_page_url: str = "https://www.coinex.com/en/futures/btc-usdt"
+    coinex_analysis_path: str = "/res/ai-analysis/btc"
 
     # Binance futures reference
     binance_futures_enabled: bool = True

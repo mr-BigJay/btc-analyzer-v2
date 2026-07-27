@@ -1,35 +1,35 @@
-"""Execution layer — Bitunix validation (Doc 01 §3–§4).
+"""Bitunix — execution validation only (Ch.2 Design Rule 7).
 
+NOT the primary market reference (Binance is — Rule 8).
 Validates a Trading Plan before any position is opened.
-Does not invent signals; only gates execution.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
 
+from src.core import ModuleResult, ModuleStatus, utc_now_iso
 from src.trading import TradingPlan
 
 
 @dataclass
 class ExecutionValidation:
-    """Result of pre-trade validation on Bitunix."""
-
     approved: bool = False
     reasons: list[str] = field(default_factory=list)
     plan: TradingPlan | None = None
-    validated_at: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
-    source: str = "bitunix"
+    validated_at: str = field(default_factory=utc_now_iso)
 
 
 class BitunixValidator:
-    """Validates trading plans against Bitunix execution constraints.
+    MODULE = "Bitunix"
 
-    Implementation details arrive in later design documents.
-    """
+    def validate(self, plan: TradingPlan) -> ModuleResult[ExecutionValidation]:
+        raise NotImplementedError("Awaiting Design Book Chapter 3+")
 
-    def validate(self, plan: TradingPlan) -> ExecutionValidation:
-        raise NotImplementedError("Awaiting Design Doc 02+ for Bitunix execution spec")
+    def reject(self, plan: TradingPlan, reason: str) -> ModuleResult[ExecutionValidation]:
+        return ModuleResult(
+            module=self.MODULE,
+            status=ModuleStatus.OK,
+            confidence=1.0,
+            data=ExecutionValidation(approved=False, reasons=[reason], plan=plan),
+        )

@@ -33,42 +33,47 @@ def health():
         "status": "ok",
         "version": __version__,
         "product": "decision-support-system",
-        "phase": "rewrite-ch01",
-        "chapter": "01-introduction",
+        "phase": "rewrite-ch02",
+        "chapter": "02-system-architecture",
     }
 
 
 @app.get("/api/v1/architecture")
 def architecture():
     return {
-        "workflow": [
-            "data_collection",
-            "data_validation",
-            "data_normalization",
-            "analysis_engine",
-            "probability_engine",
+        "layers": [
+            "data_sources",
+            "collection",
+            "validation",
+            "normalization",
+            "storage",
+            "analysis",
+            "ai",
+            "presentation",
+        ],
+        "analysis_engines": [
+            "futures",
+            "options",
+            "technical",
+            "pattern",
+            "structure",
+        ],
+        "object_flow": [
+            "narrative_object",
+            "flow_object",
+            "options_object",
+            "chart_object",
+            "probability_object",
             "daily_outlook",
-            "intraday_trading_plan",
-            "trade_execution_validation",
+            "intraday_setup",
         ],
-        "principles": [
-            "evidence_based_analysis",
-            "probability_over_prediction",
-            "modular_architecture",
-            "transparency",
-            "risk_first",
-        ],
-        "scope_v1": [
-            "bitcoin",
-            "binance_futures",
-            "deribit_options",
-            "coinex_daily_analysis",
-            "bitunix_execution_validation",
-            "technical_analysis",
-            "ai_decision_engine",
-            "daily_outlook",
-            "intraday_trading_plan",
-        ],
+        "design_rules": {
+            "decision_engine_only_recommendations": True,
+            "binance_futures_reference": True,
+            "bitunix_execution_validation_only": True,
+            "utc_timestamps": True,
+            "fault_tolerance_required": True,
+        },
         "daily_outlook_utc": f"{settings.daily_outlook_hour_utc:02d}:{settings.daily_outlook_minute_utc:02d}",
     }
 

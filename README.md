@@ -1,69 +1,80 @@
 # BTC Analyzer v3
 
 Professional AI-powered **crypto market intelligence** platform.
-Designed as a **Decision Support System (DSS)** — evidence-based scenarios, not guaranteed direction.
+**Decision Support System (DSS)** — evidence-based scenarios, not guaranteed direction.
 
-> Enterprise Design Book is the source of truth for implementation.
+> Enterprise Design Book is the source of truth.
 
-## Core Principles (Ch.1 §1.5)
+## Core Principles
 
-1. **Evidence-Based Analysis** — multiple independent sources
-2. **Probability Over Prediction** — no absolute claims
-3. **Modular Architecture** — replaceable components
-4. **Transparency** — every recommendation includes reasoning
-5. **Risk First** — risk over trade frequency
+**Ch.1:** Evidence-Based · Probability Over Prediction · Modular · Transparency · Risk-First  
+**Ch.2:** Separation of Concerns · Loose Coupling · High Cohesion · Event Driven · AI Assisted
 
-## High-Level Workflow (Ch.1 §1.7)
+## 8-Layer Architecture (Ch.2)
 
 ```
-Data Collection
-  → Data Validation
-    → Data Normalization
-      → Analysis Engine
-        → Probability Engine
-          → Daily Outlook (03:30)
-            → Intraday Trading Plan
-              → Trade Execution Validation (Bitunix)
+1 Data Sources      → Binance · Deribit · CoinEx · Bitunix
+2 Collection        → Raw market data (retry, rate limits)
+3 Validation        → Dedup, timestamps, integrity
+4 Normalization     → Internal format (BTCUSDT)
+5 Storage           → Central Repository · cache · snapshots
+6 Analysis          → Futures · Options · Technical · Pattern · Structure
+7 AI                → Decision Engine · Probability Engine
+8 Presentation      → Daily Outlook · Intraday Plan · Dashboard · Alerts
 ```
 
-## Scope v1.0 (Ch.1 §1.6)
+## Object Flow (Ch.2 §2.6)
 
-Bitcoin · Binance Futures · Deribit Options · CoinEx Daily Analysis ·
-Bitunix validation · Technical Analysis · AI Decision Engine ·
-Daily Outlook · Intraday Trading Plan
+```
+CoinEx → Narrative Object
+Binance → Flow Object          (futures market reference)
+Deribit → Options Object
+Technical → Chart Object
+        ↓
+ Decision Engine → Probability Object
+        ↓
+ Daily Outlook → Intraday Setup → Bitunix Validation
+```
+
+## Design Rules (mandatory)
+
+1. No cross-module DB access — use Central Repository  
+2. Standardized `ModuleResult` envelopes only  
+3. UTC timestamps  
+4. Confidence on every analysis  
+5. Explainable recommendations  
+6. **Only Decision Engine** generates trading recommendations  
+7. Bitunix = execution validation only  
+8. Binance = futures market reference  
+9. AI-ready modules without redesign  
+10. Exchange-independent collectors  
 
 ## Design Book
 
 | Chapter | Topic | Status |
 |---------|--------|--------|
-| 01 | Introduction | ✅ [`docs/book/chapter-01-introduction.md`](docs/book/chapter-01-introduction.md) |
-| 02 | … | Pending |
-| 03 | … | Pending |
-| 04 | … | Pending |
-| 05 | … | Pending |
-| 06 | … | Pending |
-| 07 | … | Pending |
-| 08 | … | Pending |
+| 01 | Introduction | ✅ |
+| 02 | System Architecture | ✅ |
+| 03–08 | … | Pending |
+
+See [`docs/book/`](docs/book/).
 
 ## Package Layout
 
 ```
 src/
-├── collectors/          # CoinEx · Binance · Deribit
-├── pipeline/            # Validation · Normalization
-├── technical/           # Structure · S/R · patterns · indicators
-├── engine/              # AnalysisEngine · ProbabilityEngine
-├── outlook/             # Daily Outlook (03:30)
-├── trading/             # Intraday Trading Plan
-├── execution/bitunix/   # Execution validation
+├── core/                # ModuleResult + domain objects
+├── collectors/          # Layer 2: CoinEx · Binance · Deribit
+├── pipeline/            # Layers 3–4: Validation · Normalization
+├── storage/             # Layer 5: Central Repository
+├── analysis/            # Layer 6: Futures · Options · Technical · Pattern · Structure
+├── engine/              # Layer 7: Decision · Probability
+├── outlook/ · trading/  # Layer 8 presentation outputs
+├── execution/bitunix/   # Execution validation only
 ├── api/ · db/ · notifier/
-├── scheduler.py
 └── main.py
-docs/book/               # Enterprise Design Book chapters
-frontend/                # Decision-support UI
 ```
 
 ## Status
 
-**Rewrite in progress.** Legacy v2 code removed.
-Chapter 1 foundation applied. Awaiting Chapters 2–8.
+Rewrite in progress. Chapters 1–2 applied. Awaiting Chapters 3–8.

@@ -1,87 +1,85 @@
-"""AI Decision Engine — Analysis + Probability (Ch.1 §1.5–§1.7).
+"""AI Layer — Layer 7 (Ch.2 §2.4).
 
-Principles:
-  - Evidence-Based Analysis
-  - Probability Over Prediction
-  - Transparency (every result carries rationale)
-  - Risk First
+AI never replaces raw data — it interprets validated evidence (Ch.2 §2.2).
+Decision Engine is the ONLY component allowed to generate trading recommendations (Rule 6).
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
 
-from src.pipeline.normalization import NormalizedSnapshot
+from src.core import AnalysisObject, ModuleResult, ProbabilityObject, utc_now_iso
+from src.core.contracts import NarrativeObject
 
 
 @dataclass
-class LayerVerdict:
-    """Transparent per-layer contribution (Ch.1 Transparency principle)."""
+class DecisionBundle:
+    """Inputs to the Decision Engine — never mutated by engines."""
 
-    layer: str
-    bias: str  # bullish | bearish | neutral
-    weight: float
-    score: float
-    rationale: str
+    narrative: ModuleResult[NarrativeObject] | None = None
+    futures: AnalysisObject | None = None
+    options: AnalysisObject | None = None
+    technical: AnalysisObject | None = None
+    patterns: AnalysisObject | None = None
+    structure: AnalysisObject | None = None
 
 
 @dataclass
 class DecisionResult:
-    """Probabilistic decision output — not a trade order (DSS)."""
+    """AI Decision Engine output before ProbabilityObject packaging."""
 
     bias: str = "neutral"
-    bullish_probability: float = 0.5
-    bearish_probability: float = 0.5
-    confidence: float = 0.0
-    preferred_direction: str = "no_trade"  # long | short | no_trade
-    layer_verdicts: list[LayerVerdict] = field(default_factory=list)
-    confirming_layers: list[str] = field(default_factory=list)
-    conflicting_layers: list[str] = field(default_factory=list)
-    risk_flags: list[str] = field(default_factory=list)
+    layer_results: list[AnalysisObject] = field(default_factory=list)
     rationale: str = ""
-    created_at: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
+    risk_flags: list[str] = field(default_factory=list)
+    created_at: str = field(default_factory=utc_now_iso)
 
     @property
-    def is_trade_eligible(self) -> bool:
-        """Risk-first multi-evidence gate (Ch.1 §1.5)."""
+    def confirming_engines(self) -> list[str]:
+        if self.bias == "neutral":
+            return []
+        return [r.engine for r in self.layer_results if r.bias == self.bias]
+
+    @property
+    def is_recommendation_eligible(self) -> bool:
+        """Never trust one module alone (Ch.2 §2.5 Decision Engine)."""
         return (
-            self.preferred_direction in ("long", "short")
-            and len(self.confirming_layers) >= 3
-            and self.confidence >= 0.55
+            self.bias in ("bullish", "bearish")
+            and len(self.confirming_engines) >= 3
             and not any(f.startswith("BLOCK:") for f in self.risk_flags)
         )
 
 
 class AnalysisEngine:
-    """Interprets normalized evidence into per-layer verdicts.
+    """Optional orchestrator placeholder — Layer 6 engines remain independent."""
 
-    Spec details arrive in later chapters.
-    """
-
-    def analyze(self, snapshot: NormalizedSnapshot) -> list[LayerVerdict]:
-        raise NotImplementedError("Awaiting Design Book Chapter 2+")
+    def collect_verdicts(self, bundle: DecisionBundle) -> list[AnalysisObject]:
+        verdicts: list[AnalysisObject] = []
+        for item in (
+            bundle.futures,
+            bundle.options,
+            bundle.technical,
+            bundle.patterns,
+            bundle.structure,
+        ):
+            if item is not None:
+                verdicts.append(item)
+        return verdicts
 
 
 class ProbabilityEngine:
-    """Converts layer verdicts into calibrated probabilities.
+    """Converts DecisionResult into ProbabilityObject (Ch.2 §2.6)."""
 
-    Probability Over Prediction (Ch.1 §1.5) — never absolute claims.
-    """
-
-    def estimate(self, verdicts: list[LayerVerdict]) -> DecisionResult:
-        raise NotImplementedError("Awaiting Design Book Chapter 2+")
+    def estimate(self, decision: DecisionResult) -> ModuleResult[ProbabilityObject]:
+        raise NotImplementedError("Awaiting Design Book Chapter 3+")
 
 
 class DecisionEngine:
-    """Orchestrates AnalysisEngine → ProbabilityEngine."""
+    """Merges every analysis result. Never trusts one module alone."""
 
     def __init__(self) -> None:
         self.analysis = AnalysisEngine()
         self.probability = ProbabilityEngine()
 
-    def evaluate(self, snapshot: NormalizedSnapshot) -> DecisionResult:
-        verdicts = self.analysis.analyze(snapshot)
-        return self.probability.estimate(verdicts)
+    def evaluate(self, bundle: DecisionBundle) -> ModuleResult[ProbabilityObject]:
+        raise NotImplementedError("Awaiting Design Book Chapter 3+")

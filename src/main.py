@@ -29,9 +29,10 @@ def cmd_init_db() -> int:
 def cmd_status() -> int:
     print(f"BTC Analyzer {__version__}")
     print("Product: Decision Support System (DSS)")
-    print("Phase: Enterprise Design Book — Chapter 1")
-    print("Workflow: Collect → Validate → Normalize → Analyze → Probability → Outlook → Plan → Bitunix")
-    print("Principles: Evidence · Probability · Modular · Transparency · Risk-First")
+    print("Phase: Enterprise Design Book — Chapter 2 (System Architecture)")
+    print("Layers: Sources → Collect → Validate → Normalize → Storage → Analysis → AI → Presentation")
+    print("Objects: Narrative · Flow · Options · Chart → Probability → Outlook → Intraday")
+    print("Rules: DecisionEngine-only recommendations · Binance futures ref · Bitunix exec-only")
     print(f"Daily Outlook UTC: {settings.daily_outlook_hour_utc:02d}:{settings.daily_outlook_minute_utc:02d}")
     return 0
 

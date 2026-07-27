@@ -1,38 +1,48 @@
-"""Deribit collector — options intelligence.
+"""Deribit collector — Layer 2 Collection (Ch.2 §2.5).
 
-Responsibility (Doc 01 §4):
-  PCR, Max Pain, IV, Gamma, Dealer Position.
-  Never produces a trade decision alone.
+Purpose: Institutional positioning via options.
+Output: ModuleResult[OptionsObject]
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
-
-
-@dataclass
-class OptionsEvidence:
-    """Structured options intelligence from Deribit."""
-
-    currency: str = "BTC"
-    put_call_ratio: float | None = None
-    max_pain: float | None = None
-    iv_rank: float | None = None
-    gamma_regime: str = "neutral"  # long_gamma | short_gamma | neutral
-    dealer_position_bias: str = "neutral"
-    details: dict = field(default_factory=dict)
-    collected_at: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
-    source: str = "deribit"
+from src.core import ModuleResult, ModuleStatus, OptionsObject
+from src.storage.repository import CentralRepository
 
 
 class DeribitOptionsCollector:
-    """Collects Deribit options intelligence.
+    """Collects Deribit options intelligence."""
 
-    Implementation details arrive in later design documents.
-    """
+    MODULE = "Deribit"
 
-    def collect(self) -> OptionsEvidence:
-        raise NotImplementedError("Awaiting Design Doc 02+ for Deribit options spec")
+    def __init__(self, repository: CentralRepository | None = None) -> None:
+        self.repository = repository or CentralRepository()
+
+    def collect(self) -> ModuleResult[OptionsObject]:
+        raise NotImplementedError("Awaiting Design Book Chapter 3+")
+
+    def collect_resilient(self) -> ModuleResult[OptionsObject]:
+        try:
+            result = self.collect()
+            self.repository.save_snapshot(self.MODULE, result.to_dict())
+            return result
+        except Exception as exc:  # noqa: BLE001
+            cached = self.repository.load_snapshot(self.MODULE)
+            if cached:
+                raw = cached.get("data", {}) if isinstance(cached.get("data"), dict) else {}
+                return ModuleResult(
+                    module=self.MODULE,
+                    status=ModuleStatus.DEGRADED,
+                    confidence=max(0.0, float(cached.get("confidence", 0.5)) * 0.7),
+                    data=OptionsObject(**{k: v for k, v in raw.items() if k in OptionsObject.__dataclass_fields__}),
+                    warning=f"{self.MODULE} offline — using cached snapshot ({exc})",
+                    source_live=False,
+                )
+            return ModuleResult(
+                module=self.MODULE,
+                status=ModuleStatus.ERROR,
+                confidence=0.0,
+                data=OptionsObject(),
+                warning=str(exc),
+                source_live=False,
+            )

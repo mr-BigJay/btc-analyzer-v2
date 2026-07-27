@@ -1,41 +1,49 @@
-"""Binance Futures collector — market reference layer.
+"""Binance Futures collector — Layer 2 Collection (Ch.2 §2.5).
 
-Responsibility (Doc 01 §4):
-  Funding, Open Interest, CVD, Order Flow, Liquidations.
-  Reference market for price discovery and positioning.
-  Never produces a trade decision alone.
+Purpose: Market Reference (Design Rule 8 — primary futures reference).
+Output: ModuleResult[FlowObject]
+Funding analysis stays here — never in Technical (High Cohesion).
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
-
-
-@dataclass
-class FuturesEvidence:
-    """Structured futures market evidence from Binance."""
-
-    symbol: str = "BTCUSDT"
-    price: float | None = None
-    funding_rate: float | None = None
-    open_interest: float | None = None
-    open_interest_change_pct: float | None = None
-    cvd_signal: str = "neutral"
-    order_flow_bias: str = "neutral"
-    liquidation_bias: str = "neutral"
-    details: dict = field(default_factory=dict)
-    collected_at: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
-    source: str = "binance_futures"
+from src.core import FlowObject, ModuleResult, ModuleStatus
+from src.storage.repository import CentralRepository
 
 
 class BinanceFuturesCollector:
-    """Collects Binance Futures market-reference data.
+    """Collects Binance Futures market-reference data."""
 
-    Implementation details arrive in later design documents.
-    """
+    MODULE = "Binance"
 
-    def collect(self) -> FuturesEvidence:
-        raise NotImplementedError("Awaiting Design Doc 02+ for Binance futures spec")
+    def __init__(self, repository: CentralRepository | None = None) -> None:
+        self.repository = repository or CentralRepository()
+
+    def collect(self) -> ModuleResult[FlowObject]:
+        raise NotImplementedError("Awaiting Design Book Chapter 3+")
+
+    def collect_resilient(self) -> ModuleResult[FlowObject]:
+        try:
+            result = self.collect()
+            self.repository.save_snapshot(self.MODULE, result.to_dict())
+            return result
+        except Exception as exc:  # noqa: BLE001
+            cached = self.repository.load_snapshot(self.MODULE)
+            if cached:
+                raw = cached.get("data", {}) if isinstance(cached.get("data"), dict) else {}
+                return ModuleResult(
+                    module=self.MODULE,
+                    status=ModuleStatus.DEGRADED,
+                    confidence=max(0.0, float(cached.get("confidence", 0.5)) * 0.7),
+                    data=FlowObject(**{k: v for k, v in raw.items() if k in FlowObject.__dataclass_fields__}),
+                    warning=f"{self.MODULE} offline — using cached snapshot ({exc})",
+                    source_live=False,
+                )
+            return ModuleResult(
+                module=self.MODULE,
+                status=ModuleStatus.ERROR,
+                confidence=0.0,
+                data=FlowObject(),
+                warning=str(exc),
+                source_live=False,
+            )

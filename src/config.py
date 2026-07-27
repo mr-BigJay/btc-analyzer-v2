@@ -1,3 +1,5 @@
+"""BTC Analyzer v3 — configuration."""
+
 from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -12,55 +14,48 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    symbol: str = "BTCUSDT"
-    futures_symbol: str = "BTCUSDT"
-    okx_inst_id: str = "BTC-USDT"
-    okx_swap_id: str = "BTC-USDT-SWAP"
-    exchange_provider: str = "auto"  # auto | binance | okx
+    # CoinEx narrative
+    coinex_enabled: bool = True
 
-    database_url: str = f"sqlite:///{BASE_DIR / 'data' / 'btc_analyzer.db'}"
+    # Binance futures reference
+    binance_futures_enabled: bool = True
+    binance_symbol: str = "BTCUSDT"
 
-    klines_limit: int = 500
-    collection_interval_minutes: int = 15
-
-    binance_spot_base: str = "https://api.binance.com"
-    binance_futures_base: str = "https://fapi.binance.com"
-
-    timeframes: list[str] = ["4h", "1d", "1w"]
-
-    telegram_bot_token: str = ""
-    telegram_chat_id: str = ""
-    alert_threshold: int = 70
-    daily_report_hour: int = 8
-
-    api_host: str = "0.0.0.0"
-    api_port: int = 8000
-
-    # Deribit Options (phase 3)
+    # Deribit options
+    deribit_enabled: bool = True
+    deribit_currency: str = "BTC"
     deribit_client_id: str = ""
     deribit_client_secret: str = ""
     deribit_base_url: str = "https://www.deribit.com/api/v2"
-    deribit_currency: str = "BTC"
 
-    options_min_size: float = 1.0
-    options_top_legs: int = 30
+    # Bitunix execution
+    bitunix_enabled: bool = False
+    bitunix_api_key: str = ""
+    bitunix_api_secret: str = ""
 
-    macro_symbols: dict[str, str] = {
-        "spx": "^GSPC",
-        "ndx": "^IXIC",
-        "dxy": "DX-Y.NYB",
-    }
+    # Persistence
+    database_url: str = f"sqlite:///{BASE_DIR / 'data' / 'btc_analyzer.db'}"
 
-    liquidation_bin_pct: float = 0.5
-    backtest_optimize_hour: int = 3
+    # Scheduler
+    daily_outlook_hour_utc: int = 3
+    daily_outlook_minute_utc: int = 30
+    collection_interval_minutes: int = 15
 
-    @property
-    def deribit_configured(self) -> bool:
-        return bool(self.deribit_client_id and self.deribit_client_secret)
+    # Telegram
+    telegram_bot_token: str = ""
+    telegram_chat_id: str = ""
+
+    # API
+    api_host: str = "0.0.0.0"
+    api_port: int = 8000
 
     @property
     def data_dir(self) -> Path:
         return BASE_DIR / "data"
+
+    @property
+    def deribit_configured(self) -> bool:
+        return bool(self.deribit_client_id and self.deribit_client_secret)
 
 
 settings = Settings()

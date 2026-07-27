@@ -9,6 +9,10 @@ venv/
 *.db-journal
 .pytest_cache/
 .mypy_cache/
+.ruff_cache/
 dist/
 build/
 *.egg-info/
+.DS_Store
+*.log
+nohup.out

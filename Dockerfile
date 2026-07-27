@@ -16,4 +16,4 @@ RUN mkdir -p /app/data
 
 EXPOSE 8000
 
-CMD ["python", "-m", "src.main", "start"]
+CMD ["python", "-m", "src.main", "serve"]

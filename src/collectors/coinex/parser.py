@@ -210,9 +210,11 @@ def _extract_levels(text: str, keywords: tuple[str, ...]) -> list[float]:
                 break
         if not matched_kw:
             continue
-        if not label_re.search(ln) and matched_kw not in ("支撑", "阻力"):
+        label_m = label_re.search(ln)
+        if not label_m and matched_kw not in ("支撑", "阻力"):
             continue
-        # Prefer prices near the label (avoids '65130 level or … 64640 support')
+        anchor = label_m.start() if label_m else 0
+        # Only prices near/after the label (skip earlier prices on long sentences)
         for m in re.finditer(r"\b(\d{2,3}(?:,\d{3})+(?:\.\d+)?|\d{5,6}(?:\.\d+)?)\b", ln):
             try:
                 val = float(m.group(1).replace(",", ""))
@@ -220,9 +222,11 @@ def _extract_levels(text: str, keywords: tuple[str, ...]) -> list[float]:
                 continue
             if not _is_btc_price(val):
                 continue
-            # distance to nearest label match
-            label_m = label_re.search(ln)
-            if label_m and abs(m.start() - label_m.start()) > 48:
+            if m.end() < anchor - 4:
+                continue
+            if abs(m.start() - anchor) > 28 and m.start() < anchor:
+                continue
+            if m.start() > anchor + 40:
                 continue
             levels.append(val)
     return levels

@@ -7,35 +7,28 @@ Professional AI-powered **crypto market intelligence** platform.
 
 ## Core Principles
 
-**Ch.1:** Evidence-Based · Probability Over Prediction · Modular · Transparency · Risk-First  
-**Ch.2:** Separation of Concerns · Loose Coupling · High Cohesion · Event Driven · AI Assisted  
-**Ch.3:** Collect ≠ Analyze · Validate everything · Append-only history · Never halt on API failure  
-**Ch.4:** Database is SSOT · PostgreSQL + Redis · FK integrity · Retention · Alembic migrations
+**Ch.1–2:** DSS · Modular architecture · Standardized `ModuleResult`  
+**Ch.3:** Collect ≠ Analyze · Retry/cache fallback · Isolated collectors  
+**Ch.4:** Database is SSOT · PostgreSQL + Redis · FK integrity · Alembic  
+**Ch.5:** FastAPI services · Loguru · Nginx · WebSocket · Versioned `/api/v1` envelopes
 
-## Database (Ch.4)
+## Backend (Ch.5)
 
 ```
-Collectors → Normalized Data → PostgreSQL
-                                ├─ Historical tables
-                                └─ Redis / cached views
-                                     ↓
-                              Analysis → Decision → Dashboard
+Nginx → FastAPI (REST + WebSocket)
+          ├─ Collection Service
+          ├─ Analysis Service
+          ├─ Market Service
+          └─ Scheduler (separate process)
+PostgreSQL · Redis
 ```
 
-**Domains:** Market Data · Technical · Options · AI · System · Configuration  
+**Scheduler:** realtime WS · 1m funding/OI · 5m technical · **15m patterns** · 1h options · daily 03:30 UTC  
 
-**Stack:** PostgreSQL (SQLite local) · Redis · SQLAlchemy · Alembic  
-
-**Retention:** trades 90d · order book 30d · candles/funding/options/outlook permanent
-
-## Data Collection Engine (Ch.3)
-
-| Provider | Role | Priority |
-|----------|------|----------|
-| Binance | Futures market reference | Critical |
-| Deribit | Options intelligence | Critical |
-| CoinEx | Daily narrative (**AI Research** tab) | High |
-| Bitunix | Execution validation only | Medium |
+**API envelope:**
+```json
+{ "status": "success", "timestamp": "…Z", "request_id": "…", "data": {} }
+```
 
 ## Design Book
 
@@ -44,29 +37,27 @@ Collectors → Normalized Data → PostgreSQL
 | 01 | Introduction | ✅ |
 | 02 | System Architecture | ✅ |
 | 03 | Data Collection Engine | ✅ |
-| 04 | Database Design & Data Model | ✅ |
-| 05–08 | … | Pending |
-
-See [`docs/book/`](docs/book/).
+| 04 | Database Design | ✅ |
+| 05 | Backend Architecture | ✅ |
+| 06–08 | … | Pending |
 
 ## Quick Start
 
 ```bash
-python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
 python -m src.main init-db
-# optional: python -m src.main migrate
-python -m src.main collect
-python -m src.main serve
+python -m src.main serve     # API :8000  ·  /api/docs  ·  /ws
+python -m src.main run       # scheduler
 ```
 
-### Docker (Postgres + Redis)
+### Docker (Nginx + API + Scheduler + Postgres + Redis)
 
 ```bash
 docker compose up -d
+# http://localhost/api/v1/health
 ```
 
 ## Status
 
-Rewrite in progress. Chapters 1–4 applied. Awaiting Chapters 5–8.
+Rewrite in progress. Chapters 1–5 applied. Awaiting Chapters 6–8.

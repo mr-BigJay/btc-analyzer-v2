@@ -19,22 +19,52 @@ services:
     ports:
       - "6379:6379"
 
-  btc-analyzer:
+  api:
     build: .
-    container_name: btc-analyzer-v3
+    container_name: btc-analyzer-api
     restart: unless-stopped
     env_file: .env
     environment:
       DATABASE_URL: postgresql+psycopg://btc:btc@postgres:5432/btc_analyzer
       REDIS_URL: redis://redis:6379/0
-    ports:
-      - "8000:8000"
+      TIMEZONE: UTC
+      LOG_LEVEL: INFO
     volumes:
       - ./data:/app/data
     depends_on:
       - postgres
       - redis
     command: python -m src.main serve
+    expose:
+      - "8000"
+
+  scheduler:
+    build: .
+    container_name: btc-analyzer-scheduler
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://btc:btc@postgres:5432/btc_analyzer
+      REDIS_URL: redis://redis:6379/0
+      TIMEZONE: UTC
+      LOG_LEVEL: INFO
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      - postgres
+      - redis
+    command: python -m src.main run
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: btc-analyzer-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./deploy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - api
 
 volumes:
   pgdata:

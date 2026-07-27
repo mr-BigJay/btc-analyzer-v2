@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from src.config import settings
+from src.db.access import assert_can_write
 from src.db.models import (
     ApiCallLog,
     CoinExAnalysis,
@@ -31,6 +32,7 @@ from src.db.models import (
     Trade,
     TradingPlan,
 )
+from src.db.repositories.intelligence_repo import IntelligenceRepository
 from src.db.seed import resolve_exchange_id, resolve_symbol_id
 from src.db.session import get_session, init_db
 from src.storage.cache import global_cache
@@ -142,11 +144,15 @@ class CentralRepository:
     # --- Append-only writers mapped to Ch.4 tables ---
 
     def append_futures(self, record: dict[str, Any]) -> None:
-        """Split futures snapshot into funding_rates + open_interest (+ optional extras)."""
+        """Split futures snapshot into funding_rates + open_interest + futures_data (Ch.11)."""
         session = get_session()
         try:
-            exchange_id = resolve_exchange_id(session, str(record.get("exchange", "binance")))
-            symbol_id = resolve_symbol_id(session, str(record.get("symbol", "BTCUSDT")))
+            assert_can_write("collector", "funding_rates")
+            assert_can_write("collector", "futures_data")
+            exchange = str(record.get("exchange", "binance"))
+            symbol = str(record.get("symbol", "BTCUSDT"))
+            exchange_id = resolve_exchange_id(session, exchange)
+            symbol_id = resolve_symbol_id(session, symbol)
             ts = _parse_ts(record.get("timestamp"))
 
             if record.get("funding_rate") is not None:
@@ -166,9 +172,23 @@ class CentralRepository:
                         symbol_id=symbol_id,
                         timestamp=ts,
                         oi=float(record["open_interest"]),
-                        oi_value=_f(record.get("open_interest_value")),
+                        oi_value=_f(record.get("open_interest_value") or record.get("oi_value")),
                     )
                 )
+            IntelligenceRepository(session).append_futures(
+                module="collector",
+                symbol=symbol,
+                exchange=exchange,
+                timestamp=ts,
+                open_interest=_f(record.get("open_interest")),
+                oi_value=_f(record.get("open_interest_value") or record.get("oi_value")),
+                funding_rate=_f(record.get("funding_rate")),
+                long_ratio=_f(record.get("long_ratio")),
+                short_ratio=_f(record.get("short_ratio")),
+                liquidation_long=_f(record.get("liquidation_long")),
+                liquidation_short=_f(record.get("liquidation_short")),
+                payload={k: record.get(k) for k in ("mark_price", "predicted_rate") if k in record},
+            )
             session.commit()
         except Exception:
             session.rollback()
@@ -179,8 +199,12 @@ class CentralRepository:
     def append_options(self, record: dict[str, Any]) -> None:
         session = get_session()
         try:
-            exchange_id = resolve_exchange_id(session, str(record.get("exchange", "deribit")))
-            symbol_id = resolve_symbol_id(session, str(record.get("symbol", "BTCUSDT")))
+            assert_can_write("collector", "options_analytics")
+            assert_can_write("collector", "options_data")
+            exchange = str(record.get("exchange", "deribit"))
+            symbol = str(record.get("symbol", "BTCUSDT"))
+            exchange_id = resolve_exchange_id(session, exchange)
+            symbol_id = resolve_symbol_id(session, symbol)
             ts = _parse_ts(record.get("timestamp"))
 
             session.add(
@@ -201,6 +225,20 @@ class CentralRepository:
                         default=str,
                     ),
                 )
+            )
+            IntelligenceRepository(session).append_options(
+                module="collector",
+                symbol=symbol,
+                exchange=exchange,
+                timestamp=ts,
+                call_oi=_f(record.get("call_oi")),
+                put_oi=_f(record.get("put_oi")),
+                pcr=_f(record.get("put_call_ratio") or record.get("pcr")),
+                iv=_f(record.get("iv") or record.get("iv_rank")),
+                skew=_f(record.get("volatility_skew") or record.get("skew")),
+                max_pain=_f(record.get("max_pain")),
+                gamma_exposure=_f(record.get("gamma_exposure")),
+                payload={k: record.get(k) for k in ("iv_percentile", "dealer_gamma") if k in record},
             )
 
             chain = record.get("option_chain") or []
@@ -241,14 +279,18 @@ class CentralRepository:
             session.close()
 
     def append_spot(self, record: dict[str, Any]) -> None:
-        """Spot tick stored as a 1-tick candle proxy when OHLCV unavailable."""
+        """Spot tick → tick candle proxy + spot_data row (Ch.11 §11.8)."""
         price = _f(record.get("price"))
         if price is None:
             return
         session = get_session()
         try:
-            exchange_id = resolve_exchange_id(session, str(record.get("exchange", "binance")))
-            symbol_id = resolve_symbol_id(session, str(record.get("symbol", "BTCUSDT")))
+            assert_can_write("collector", "market_candles")
+            assert_can_write("collector", "spot_data")
+            exchange = str(record.get("exchange", "binance"))
+            symbol = str(record.get("symbol", "BTCUSDT"))
+            exchange_id = resolve_exchange_id(session, exchange)
+            symbol_id = resolve_symbol_id(session, symbol)
             ts = _parse_ts(record.get("timestamp"))
             session.add(
                 MarketCandle(
@@ -262,6 +304,18 @@ class CentralRepository:
                     close=price,
                     volume=_f(record.get("volume")) or 0.0,
                 )
+            )
+            IntelligenceRepository(session).append_spot(
+                module="collector",
+                symbol=symbol,
+                exchange=exchange,
+                timestamp=ts,
+                price=price,
+                volume=_f(record.get("volume")),
+                vwap=_f(record.get("vwap")),
+                bid_volume=_f(record.get("bid_volume")),
+                ask_volume=_f(record.get("ask_volume")),
+                cvd=_f(record.get("cvd")),
             )
             session.commit()
         except Exception:
@@ -537,5 +591,158 @@ class CentralRepository:
             session.commit()
         except Exception:
             session.rollback()
+        finally:
+            session.close()
+
+    # --- Ch.11 intelligence / decision / reporting writers ---
+
+    def append_market_score(self, decision: dict[str, Any]) -> None:
+        """Persist scoring DecisionObject (Ch.11 §11.15)."""
+        session = get_session()
+        try:
+            IntelligenceRepository(session).append_market_score(
+                module="scoring",
+                symbol=str(decision.get("symbol") or "BTCUSDT"),
+                bias_score=float(decision.get("market_bias_score") or decision.get("bias_score") or 0),
+                confidence_score=float(decision.get("confidence_score") or 0),
+                risk_score=float(decision.get("risk_score") or 0),
+                mhi=_f(decision.get("market_health_index") or decision.get("mhi")),
+                msi=_f(decision.get("market_stress_index") or decision.get("msi")),
+                data_quality=_f(decision.get("data_quality_score") or decision.get("data_quality")),
+                market_bias=decision.get("market_bias") or decision.get("decision"),
+                weight_regime=decision.get("weight_regime"),
+                payload=decision,
+                engine_version=str(decision.get("engine_version") or "9.0"),
+                calculation_version=str(decision.get("calculation_version") or "9.0"),
+                timestamp=decision.get("scored_at") or decision.get("timestamp") or decision.get("generated_at"),
+            )
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
+    def append_ai_decision(self, report: dict[str, Any]) -> None:
+        """Persist AI Decision history (Ch.11 §11.16)."""
+        session = get_session()
+        try:
+            IntelligenceRepository(session).append_ai_decision(
+                module="ai",
+                symbol=str(report.get("symbol") or "BTCUSDT"),
+                market_bias=report.get("market_bias"),
+                narrative=report.get("primary_narrative") or report.get("narrative"),
+                confidence=_f(report.get("confidence")),
+                scenarios=report.get("scenarios") or report.get("alternative_scenarios"),
+                reasoning=report.get("reasoning"),
+                risk_level=report.get("risk_level"),
+                analysis_fingerprint=report.get("analysis_fingerprint"),
+                payload=report,
+                engine_version=str(report.get("engine_version") or "7.0"),
+                ai_version=str(report.get("ai_version") or "7.0"),
+                timestamp=report.get("timestamp") or report.get("generated_at"),
+            )
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
+    def append_report(self, report: dict[str, Any]) -> None:
+        """Archive published report (Ch.11 §11.17)."""
+        meta = report.get("metadata") if isinstance(report.get("metadata"), dict) else {}
+        report_id = str(meta.get("report_id") or report.get("report_id") or "")
+        if not report_id:
+            from uuid import uuid4
+
+            report_id = str(uuid4())
+        session = get_session()
+        try:
+            IntelligenceRepository(session).append_report(
+                module="reporting",
+                report_id=report_id,
+                report_type=str(report.get("report_type") or meta.get("report_type") or "Daily Outlook"),
+                content=report,
+                symbol=str(meta.get("symbol") or report.get("symbol") or "BTCUSDT"),
+                engine_version=meta.get("engine_version") or report.get("engine_version"),
+                ai_version=meta.get("ai_version") or report.get("ai_version"),
+                schema_version=meta.get("schema_version") or report.get("schema_version"),
+                published=bool(report.get("published", meta.get("published", True))),
+                generated_at=report.get("generated_at") or meta.get("generation_time"),
+            )
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
+    def append_alert(self, alert: dict[str, Any]) -> None:
+        """Persist alert notification (Ch.11 §11.18)."""
+        session = get_session()
+        try:
+            IntelligenceRepository(session).append_alert(
+                module="reporting",
+                alert_type=str(alert.get("type") or alert.get("alert_type") or "system"),
+                severity=str(alert.get("severity") or "info"),
+                message=str(alert.get("message") or alert.get("title") or ""),
+                symbol=alert.get("symbol"),
+                delivered=bool(alert.get("delivered", False)),
+                payload=alert,
+                timestamp=alert.get("timestamp") or alert.get("generated_at"),
+            )
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
+    def append_volatility_data(self, record: dict[str, Any]) -> None:
+        session = get_session()
+        try:
+            IntelligenceRepository(session).append_volatility(
+                module="analysis",
+                symbol=record.get("symbol"),
+                historical_volatility=_f(record.get("historical_volatility")),
+                implied_volatility=_f(record.get("implied_volatility")),
+                atr=_f(record.get("atr")),
+                bollinger_width=_f(record.get("bollinger_width")),
+                volatility_state=record.get("volatility_state") or record.get("volatility"),
+                timestamp=record.get("timestamp"),
+                payload=record,
+            )
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
+    def append_structure_snapshot(self, record: dict[str, Any]) -> None:
+        session = get_session()
+        try:
+            IntelligenceRepository(session).append_structure(
+                module="analysis",
+                symbol=str(record.get("symbol") or "BTCUSDT"),
+                timeframe=str(record.get("timeframe") or "1h"),
+                trend=record.get("trend"),
+                higher_high=record.get("higher_high"),
+                higher_low=record.get("higher_low"),
+                lower_high=record.get("lower_high"),
+                lower_low=record.get("lower_low"),
+                bos=record.get("bos"),
+                choch=record.get("choch"),
+                hh=_f(record.get("hh")),
+                hl=_f(record.get("hl")),
+                lh=_f(record.get("lh")),
+                ll=_f(record.get("ll")),
+                timestamp=record.get("timestamp"),
+            )
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
         finally:
             session.close()

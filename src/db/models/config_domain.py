@@ -1,10 +1,14 @@
-"""Configuration + market reference tables (Ch.4 §4.4 / §4.5)."""
+"""Configuration + market reference tables (Ch.4 / Ch.11 §11.6–§11.7).
+
+Ch.11 `assets` ≡ `symbols`. Ch.11 exchange metadata includes api_status/last_sync.
+"""
 
 from __future__ import annotations
 
 from datetime import datetime
+from uuid import uuid4
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import DateTime, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.db.base import Base, utcnow
@@ -18,6 +22,8 @@ class Exchange(Base):
     type: Mapped[str] = mapped_column(String(32), nullable=False, default="futures")  # spot|futures|options
     priority: Mapped[str] = mapped_column(String(16), nullable=False, default="medium")  # critical|high|medium
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="active")
+    api_status: Mapped[str] = mapped_column(String(32), nullable=False, default="unknown")
+    last_sync: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
 
     candles = relationship("MarketCandle", back_populates="exchange")
@@ -30,13 +36,16 @@ class Exchange(Base):
 
 
 class Symbol(Base):
+    """Asset registry (Ch.11 §11.6 assets)."""
+
     __tablename__ = "symbols"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    public_id: Mapped[str] = mapped_column(String(36), nullable=False, default=lambda: str(uuid4()), unique=True, index=True)
     symbol: Mapped[str] = mapped_column(String(32), nullable=False, unique=True, index=True)
     base_asset: Mapped[str] = mapped_column(String(16), nullable=False)
     quote_asset: Mapped[str] = mapped_column(String(16), nullable=False)
-    status: Mapped[str] = mapped_column(String(16), nullable=False, default="active")
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="active")  # active/inactive
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
 
     candles = relationship("MarketCandle", back_populates="symbol_ref")
@@ -62,3 +71,7 @@ class SystemSetting(Base):
     value: Mapped[str] = mapped_column(Text, nullable=False, default="")
     domain: Mapped[str] = mapped_column(String(32), nullable=False, default="general")
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+
+
+# Ch.11 naming alias
+Asset = Symbol

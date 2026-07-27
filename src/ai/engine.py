@@ -268,6 +268,10 @@ class AIDecisionEngine:
         except Exception as exc:  # noqa: BLE001
             log.warning("DB outlook persist failed: {}", exc)
         try:
+            self.repository.append_ai_decision(payload)
+        except Exception as exc:  # noqa: BLE001
+            log.warning("ai_decisions DB persist failed: {}", exc)
+        try:
             record_forecast(payload, analysis_input=analysis_input)
         except Exception as exc:  # noqa: BLE001
             log.warning("forecast record failed: {}", exc)

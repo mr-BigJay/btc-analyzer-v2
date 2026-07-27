@@ -26,6 +26,12 @@ DEFAULT_SETTINGS = [
     {"key": "timezone", "value": "UTC", "domain": "system"},
     {"key": "retention_trades_days", "value": "90", "domain": "retention"},
     {"key": "retention_orderbook_days", "value": "30", "domain": "retention"},
+    {"key": "retention_tick_candles_days", "value": "14", "domain": "retention"},
+    {"key": "retention_api_call_logs_days", "value": "30", "domain": "retention"},
+    {"key": "retention_error_logs_days", "value": "90", "domain": "retention"},
+    {"key": "retention_scheduler_logs_days", "value": "60", "domain": "retention"},
+    {"key": "retention_analysis_permanent", "value": "true", "domain": "retention"},
+    {"key": "retention_reports_permanent", "value": "true", "domain": "retention"},
 ]
 
 

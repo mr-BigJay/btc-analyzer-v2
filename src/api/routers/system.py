@@ -39,6 +39,7 @@ def architecture(request: Request):
                 "cache": "redis",
                 "orm": "sqlalchemy",
                 "migrations": "alembic",
+                "chapter": 11,
                 "domains": [
                     "market_data",
                     "technical_analysis",
@@ -46,7 +47,12 @@ def architecture(request: Request):
                     "ai_analysis",
                     "system",
                     "configuration",
+                    "scores",
+                    "ai_decisions",
+                    "reports",
+                    "alerts",
                 ],
+                "data_package": "/api/v1/db/package",
             },
             "analysis_engine": {
                 "layers": [
@@ -157,10 +163,27 @@ def db_status(request: Request):
     session = get_session()
     try:
         exchanges = [
-            {"id": e.id, "name": e.name, "priority": e.priority, "status": e.status}
+            {
+                "id": e.id,
+                "name": e.name,
+                "priority": e.priority,
+                "status": e.status,
+                "api_status": getattr(e, "api_status", None),
+                "last_sync": e.last_sync.isoformat() if getattr(e, "last_sync", None) else None,
+            }
             for e in session.query(Exchange).all()
         ]
-        symbols = [{"id": s.id, "symbol": s.symbol, "status": s.status} for s in session.query(Symbol).all()]
+        symbols = [
+            {
+                "id": s.id,
+                "public_id": getattr(s, "public_id", None),
+                "symbol": s.symbol,
+                "base_asset": s.base_asset,
+                "quote_asset": s.quote_asset,
+                "status": s.status,
+            }
+            for s in session.query(Symbol).all()
+        ]
     finally:
         session.close()
     return success(
@@ -169,6 +192,23 @@ def db_status(request: Request):
             "exchanges": exchanges,
             "symbols": symbols,
             "cache": redis_cache.snapshot(),
+            "data_model_chapter": 11,
+            "retention": {
+                "trades_days": 90,
+                "orderbook_days": 30,
+                "tick_candles_days": 14,
+                "analysis_permanent": True,
+                "reports_permanent": True,
+            },
         },
         request_id=request_id,
     )
+
+
+@router.get("/db/package")
+def db_package(request: Request, symbol: str = "BTCUSDT"):
+    """Standardized data package (Ch.11 §11.26)."""
+    from src.db.packages import build_data_package
+
+    request_id = getattr(request.state, "request_id", None)
+    return success(build_data_package(symbol=symbol), request_id=request_id)

@@ -30,7 +30,11 @@ class TechnicalIndicator(Base):
     vwap: Mapped[float | None] = mapped_column(Float, nullable=True)
     atr: Mapped[float | None] = mapped_column(Float, nullable=True)
     adx: Mapped[float | None] = mapped_column(Float, nullable=True)
+    signal: Mapped[str | None] = mapped_column(String(32), nullable=True)  # Ch.11 §11.12
+    ema_values: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON
     payload: Mapped[str | None] = mapped_column(Text, nullable=True)
+    engine_version: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    calculation_version: Mapped[str | None] = mapped_column(String(32), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
 
     symbol_ref = relationship("Symbol", back_populates="indicators")
@@ -66,6 +70,10 @@ class MarketStructure(Base):
     hl: Mapped[float | None] = mapped_column(Float, nullable=True)
     lh: Mapped[float | None] = mapped_column(Float, nullable=True)
     ll: Mapped[float | None] = mapped_column(Float, nullable=True)
+    higher_high: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    higher_low: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    lower_high: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    lower_low: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     bos: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     choch: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)

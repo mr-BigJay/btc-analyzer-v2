@@ -179,6 +179,10 @@ class ScoringEngine:
                 record_decision(decision.to_dict(), analysis_input=analysis_dict)
             except Exception as exc:  # noqa: BLE001
                 log.warning("scoring validation record failed: {}", exc)
+            try:
+                self.repository.append_market_score(decision.to_dict())
+            except Exception as exc:  # noqa: BLE001
+                log.warning("market_scores DB persist failed: {}", exc)
 
         log.info(
             "scoring bias={} mbs={} cs={} rs={} dqs={} publish={} regime_weights={}",

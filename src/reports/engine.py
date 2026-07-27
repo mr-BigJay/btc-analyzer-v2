@@ -118,6 +118,15 @@ class ReportGenerator:
                 # Best-effort websocket alert fan-out
                 for alert in alerts:
                     redis_cache.set("latest_alert", alert, ttl_sec=3600)
+                try:
+                    self.repository.append_report(payload)
+                except Exception as exc:  # noqa: BLE001
+                    log.warning("reports DB persist failed: {}", exc)
+                for alert in alerts:
+                    try:
+                        self.repository.append_alert(alert)
+                    except Exception as exc:  # noqa: BLE001
+                        log.warning("alerts DB persist failed: {}", exc)
 
         log.info(
             "report type={} bias={} conf={} publish={} alerts={}",

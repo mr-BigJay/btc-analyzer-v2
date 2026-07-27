@@ -1,7 +1,18 @@
-"""ORM models — six domains (Ch.4 §4.4)."""
+"""ORM models — Ch.4 domains + Ch.11 intelligence store."""
 
 from src.db.models.ai import CoinExAnalysis, DailyOutlook, TradingPlan
-from src.db.models.config_domain import Exchange, Symbol, SystemSetting
+from src.db.models.config_domain import Asset, Exchange, Symbol, SystemSetting
+from src.db.models.intelligence_store import (
+    AIDecisionRecord,
+    AlertRecord,
+    FuturesData,
+    LiquidityZone,
+    MarketScore,
+    OptionsData,
+    ReportRecord,
+    SpotData,
+    VolatilityData,
+)
 from src.db.models.market import (
     FundingRate,
     Liquidation,
@@ -25,6 +36,7 @@ LiquidationEventRecord = Liquidation
 __all__ = [
     "Exchange",
     "Symbol",
+    "Asset",
     "SystemSetting",
     "MarketCandle",
     "FundingRate",
@@ -37,6 +49,15 @@ __all__ = [
     "TechnicalIndicator",
     "ChartPattern",
     "MarketStructure",
+    "SpotData",
+    "FuturesData",
+    "OptionsData",
+    "VolatilityData",
+    "LiquidityZone",
+    "MarketScore",
+    "AIDecisionRecord",
+    "ReportRecord",
+    "AlertRecord",
     "CoinExAnalysis",
     "DailyOutlook",
     "TradingPlan",

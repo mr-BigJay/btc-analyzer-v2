@@ -29,10 +29,11 @@ def cmd_init_db() -> int:
 def cmd_status() -> int:
     print(f"BTC Analyzer {__version__}")
     print("Product: Decision Support System (DSS)")
-    print("Phase: Enterprise Design Book — Chapter 2 (System Architecture)")
-    print("Layers: Sources → Collect → Validate → Normalize → Storage → Analysis → AI → Presentation")
-    print("Objects: Narrative · Flow · Options · Chart → Probability → Outlook → Intraday")
-    print("Rules: DecisionEngine-only recommendations · Binance futures ref · Bitunix exec-only")
+    print("Phase: Enterprise Design Book — Chapter 3 (Data Collection Engine)")
+    print("Pipeline: Collect → Validate → Normalize → Cache → DB (append-only)")
+    print("Collectors: Binance · Deribit · CoinEx · Bitunix (isolated)")
+    print("Schedule: 1m market · 5m technical · 1h options · daily outlook 03:30 UTC")
+    print("Retry: 5s → 15s → 30s → cache fallback")
     print(f"Daily Outlook UTC: {settings.daily_outlook_hour_utc:02d}:{settings.daily_outlook_minute_utc:02d}")
     return 0
 
@@ -51,13 +52,25 @@ def cmd_run() -> int:
     return 0
 
 
+def cmd_collect() -> int:
+    from src.collectors.engine import DataCollectionEngine
+
+    init_db()
+    result = DataCollectionEngine().run_full_cycle_sync()
+    print(f"ok={result.ok} warnings={result.warnings}")
+    if result.snapshot:
+        print(f"symbol={result.snapshot.symbol} price={result.snapshot.price}")
+    return 0 if result.ok else 1
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=f"BTC Analyzer {__version__}")
     sub = parser.add_subparsers(dest="command")
     sub.add_parser("status", help="Show rewrite status")
     sub.add_parser("init-db", help="Initialize database")
     sub.add_parser("serve", help="Start API + dashboard")
-    sub.add_parser("run", help="Start scheduler (stubs until Doc 02+)")
+    sub.add_parser("run", help="Start scheduler (Ch.3 intervals)")
+    sub.add_parser("collect", help="Run one full data collection cycle")
 
     args = parser.parse_args()
     commands = {
@@ -65,6 +78,7 @@ def main() -> int:
         "init-db": cmd_init_db,
         "serve": cmd_serve,
         "run": cmd_run,
+        "collect": cmd_collect,
     }
     if args.command in commands:
         return commands[args.command]()

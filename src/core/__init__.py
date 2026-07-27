@@ -1,4 +1,4 @@
-"""Core contracts and shared primitives (Ch.2)."""
+"""Core package — shared contracts for all layers."""
 
 from src.core.contracts import (
     AnalysisObject,

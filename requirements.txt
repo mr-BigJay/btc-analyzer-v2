@@ -29,3 +29,6 @@ python-telegram-bot>=21.0
 
 # Scientific / options pricing helpers
 scipy>=1.14.0
+
+# Tests
+pytest>=8.0.0

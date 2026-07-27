@@ -1,4 +1,4 @@
-"""BTC Analyzer v3 — configuration."""
+"""Application configuration — secrets via environment only (Ch.3 §3.18)."""
 
 from pathlib import Path
 
@@ -16,10 +16,14 @@ class Settings(BaseSettings):
 
     # CoinEx narrative
     coinex_enabled: bool = True
+    coinex_base_url: str = "https://www.coinex.com"
+    coinex_analysis_path: str = "/res/market/analysis/btc.json"
 
     # Binance futures reference
     binance_futures_enabled: bool = True
     binance_symbol: str = "BTCUSDT"
+    binance_api_key: str = ""
+    binance_api_secret: str = ""
 
     # Deribit options
     deribit_enabled: bool = True
@@ -28,18 +32,20 @@ class Settings(BaseSettings):
     deribit_client_secret: str = ""
     deribit_base_url: str = "https://www.deribit.com/api/v2"
 
-    # Bitunix execution
+    # Bitunix execution validation
     bitunix_enabled: bool = False
     bitunix_api_key: str = ""
     bitunix_api_secret: str = ""
+    bitunix_base_url: str = "https://fapi.bitunix.com"
 
     # Persistence
     database_url: str = f"sqlite:///{BASE_DIR / 'data' / 'btc_analyzer.db'}"
 
-    # Scheduler
+    # Scheduler (Ch.3 §3.14)
     daily_outlook_hour_utc: int = 3
     daily_outlook_minute_utc: int = 30
-    collection_interval_minutes: int = 15
+    # Legacy alias — minute cycle is now 1 minute per Ch.3
+    collection_interval_minutes: int = 1
 
     # Telegram
     telegram_bot_token: str = ""

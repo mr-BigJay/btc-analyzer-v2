@@ -33,8 +33,8 @@ def health():
         "status": "ok",
         "version": __version__,
         "product": "decision-support-system",
-        "phase": "rewrite-ch02",
-        "chapter": "02-system-architecture",
+        "phase": "rewrite-ch03",
+        "chapter": "03-data-collection-engine",
     }
 
 
@@ -51,6 +51,29 @@ def architecture():
             "ai",
             "presentation",
         ],
+        "data_collection": {
+            "providers": {
+                "binance": "futures_market_reference",
+                "deribit": "options_market_intelligence",
+                "coinex": "daily_narrative",
+                "bitunix": "execution_validation",
+            },
+            "pipeline": [
+                "collectors",
+                "validators",
+                "normalizers",
+                "cache",
+                "database",
+            ],
+            "scheduler": {
+                "realtime": "trades_orderbook_liquidations",
+                "1m": "price_funding_open_interest",
+                "5m": "technical_cache",
+                "1h": "option_chain",
+                "daily_utc": f"{settings.daily_outlook_hour_utc:02d}:{settings.daily_outlook_minute_utc:02d}",
+            },
+            "retry_sec": [5, 15, 30],
+        },
         "analysis_engines": [
             "futures",
             "options",
@@ -58,24 +81,51 @@ def architecture():
             "pattern",
             "structure",
         ],
-        "object_flow": [
-            "narrative_object",
-            "flow_object",
-            "options_object",
-            "chart_object",
-            "probability_object",
-            "daily_outlook",
-            "intraday_setup",
-        ],
         "design_rules": {
             "decision_engine_only_recommendations": True,
             "binance_futures_reference": True,
             "bitunix_execution_validation_only": True,
+            "collectors_isolated": True,
+            "append_only_history": True,
             "utc_timestamps": True,
             "fault_tolerance_required": True,
+            "secrets_via_env_only": True,
         },
         "daily_outlook_utc": f"{settings.daily_outlook_hour_utc:02d}:{settings.daily_outlook_minute_utc:02d}",
     }
+
+
+@app.get("/api/v1/collection/status")
+def collection_status():
+    from src.storage.cache import global_cache
+    from src.storage.repository import CentralRepository
+
+    repo = CentralRepository()
+    return {
+        "enabled": {
+            "binance": settings.binance_futures_enabled,
+            "deribit": settings.deribit_enabled,
+            "coinex": settings.coinex_enabled,
+            "bitunix": settings.bitunix_enabled,
+        },
+        "hot_cache_keys": list(global_cache.snapshot().keys()),
+        "snapshots_present": {
+            "Binance": repo.load_snapshot("Binance") is not None,
+            "Deribit": repo.load_snapshot("Deribit") is not None,
+            "CoinEx": repo.load_snapshot("CoinEx") is not None,
+            "Bitunix": repo.load_snapshot("Bitunix") is not None,
+        },
+    }
+
+
+@app.post("/api/v1/collection/run")
+def collection_run():
+    """Trigger one full collection cycle (manual)."""
+    from src.collectors.engine import DataCollectionEngine
+
+    engine = DataCollectionEngine()
+    result = engine.run_full_cycle_sync()
+    return result.to_dict()
 
 
 frontend_dir = BASE_DIR / "frontend"

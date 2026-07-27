@@ -1,11 +1,4 @@
-"""Standardized cross-module contracts (Ch.2 §2.7, §2.10).
-
-Rules:
-  - All communication through standardized interfaces
-  - No module modifies another module's output
-  - Every result includes UTC timestamp + confidence
-  - Decision Engine alone may generate trading recommendations
-"""
+"""Shared contracts for all modules (Design Book Ch.2 §2.7)."""
 
 from __future__ import annotations
 
@@ -17,88 +10,109 @@ from typing import Any, Generic, TypeVar
 
 class ModuleStatus(str, Enum):
     OK = "OK"
-    DEGRADED = "DEGRADED"  # used cached / partial data
+    DEGRADED = "DEGRADED"
     ERROR = "ERROR"
     SKIPPED = "SKIPPED"
 
 
+def utc_now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
 def utc_now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return utc_now().isoformat()
 
 
 T = TypeVar("T")
 
 
-@dataclass(frozen=True)
+@dataclass
 class ModuleResult(Generic[T]):
-    """Standard envelope returned by every module (Ch.2 §2.7)."""
+    """Standard response envelope for every collector/analyzer."""
 
     module: str
     status: ModuleStatus
     confidence: float
-    data: T
+    data: T | None = None
     timestamp: str = field(default_factory=utc_now_iso)
     warning: str | None = None
-    source_live: bool = True  # False when served from cache (Ch.2 §2.9)
+    source_live: bool = True
+    error_code: str | None = None
+    retry_count: int = 0
+    response_time_ms: float | None = None
 
     def to_dict(self) -> dict[str, Any]:
-        data = asdict(self.data) if hasattr(self.data, "__dataclass_fields__") else self.data
+        data: Any = self.data
+        if data is not None and hasattr(data, "__dataclass_fields__"):
+            data = asdict(data)
         return {
             "module": self.module,
-            "status": self.status.value if isinstance(self.status, ModuleStatus) else self.status,
+            "status": self.status.value if isinstance(self.status, ModuleStatus) else str(self.status),
             "timestamp": self.timestamp,
             "confidence": self.confidence,
             "data": data,
             "warning": self.warning,
             "source_live": self.source_live,
+            "error_code": self.error_code,
+            "retry_count": self.retry_count,
+            "response_time_ms": self.response_time_ms,
         }
 
 
 @dataclass
 class NarrativeObject:
-    """CoinEx output — daily market narrative."""
+    """CoinEx daily narrative analysis (Ch.2 §2.5 / §2.6)."""
 
     bias: str = "neutral"
     scenarios: list[str] = field(default_factory=list)
     support_levels: list[float] = field(default_factory=list)
     resistance_levels: list[float] = field(default_factory=list)
     summary: str = ""
-    raw_ref: str | None = None
+    bullish_arguments: list[str] = field(default_factory=list)
+    bearish_arguments: list[str] = field(default_factory=list)
+    raw_article: str | None = None
 
 
 @dataclass
 class FlowObject:
-    """Binance output — market reference / flow (Rule 8: primary futures reference)."""
+    """Binance futures market-reference flow (Ch.2 §2.5 / §2.6)."""
 
     symbol: str = "BTCUSDT"
     mark_price: float | None = None
+    index_price: float | None = None
     funding_rate: float | None = None
+    funding_history: list[dict] = field(default_factory=list)
     open_interest: float | None = None
+    open_interest_value: float | None = None
     long_short_ratio: float | None = None
-    premium: float | None = None
+    premium_index: float | None = None
+    basis: float | None = None
     liquidations: dict = field(default_factory=dict)
     order_book: dict = field(default_factory=dict)
-    trades_summary: dict = field(default_factory=dict)
-    depth_summary: dict = field(default_factory=dict)
+    volume: float | None = None
 
 
 @dataclass
 class OptionsObject:
-    """Deribit output — institutional positioning."""
+    """Deribit options intelligence (Ch.2 §2.5 / §2.6)."""
 
     currency: str = "BTC"
     put_call_ratio: float | None = None
-    implied_volatility: float | None = None
-    gamma_exposure: float | None = None
-    dealer_position: str = "neutral"
     max_pain: float | None = None
-    greeks_summary: dict = field(default_factory=dict)
-    option_chain_meta: dict = field(default_factory=dict)
+    iv_rank: float | None = None
+    iv_percentile: float | None = None
+    gamma_exposure: float | None = None
+    dealer_gamma: float | None = None
+    dealer_delta: float | None = None
+    volatility_skew: float | None = None
+    option_chain: list[dict] = field(default_factory=list)
+    volume: float | None = None
+    open_interest: float | None = None
 
 
 @dataclass
 class ChartObject:
-    """Technical module output — chart intelligence."""
+    """Technical / chart intelligence object (Ch.2 §2.5 / §2.6)."""
 
     symbol: str = "BTCUSDT"
     timeframe: str = "1d"
@@ -108,29 +122,32 @@ class ChartObject:
     indicators: dict = field(default_factory=dict)
     patterns: list[str] = field(default_factory=list)
     structure: dict = field(default_factory=dict)
+    ohlcv: list[dict] = field(default_factory=list)
 
 
 @dataclass
 class AnalysisObject:
-    """Single analysis-engine verdict (Layer 6). Always explainable + confident."""
+    """Per-engine analysis verdict (Layer 6)."""
 
-    engine: str  # futures | options | technical | pattern | structure
+    engine: str
     bias: str = "neutral"
     confidence: float = 0.0
     signals: list[str] = field(default_factory=list)
     levels: dict = field(default_factory=dict)
+    details: dict = field(default_factory=dict)
     rationale: str = ""
 
 
 @dataclass
 class ProbabilityObject:
-    """Probability Engine output (Ch.2 §2.6)."""
+    """Merged probability assessment from the AI layer."""
 
     bullish_probability: float = 0.5
     bearish_probability: float = 0.5
     confidence: float = 0.0
     preferred_direction: str = "no_trade"
-    confirming_engines: list[str] = field(default_factory=list)
-    conflicting_engines: list[str] = field(default_factory=list)
+    confirming_layers: list[str] = field(default_factory=list)
+    conflicting_layers: list[str] = field(default_factory=list)
     risk_flags: list[str] = field(default_factory=list)
     rationale: str = ""
+    scenarios: list[dict] = field(default_factory=list)

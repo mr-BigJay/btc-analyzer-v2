@@ -195,28 +195,36 @@ def _is_btc_price(value: float) -> bool:
 def _extract_levels(text: str, keywords: tuple[str, ...]) -> list[float]:
     """Extract prices only from lines with explicit S/R labels (not 'supported')."""
     levels: list[float] = []
-    # Require word-boundary / explicit level phrasing to avoid "supported by…"
     label_re = re.compile(
         r"(?i)(?:\b(?:support|resistance)\s*(?:level|zone)?\b|\b(?:支撑|阻力)\b)"
     )
     for ln in text.splitlines():
         low = ln.lower()
-        # Keep keyword filter for chinese + english; reject 'supported'
         if "supported" in low and "support level" not in low and "support zone" not in low:
-            # still allow if explicit support level also present
             if not label_re.search(ln):
                 continue
-        if not any(re.search(rf"(?i)\b{re.escape(k)}\b", ln) for k in keywords):
+        matched_kw = None
+        for k in keywords:
+            if re.search(rf"(?i)\b{re.escape(k)}\b", ln) or k in ln:
+                matched_kw = k
+                break
+        if not matched_kw:
             continue
-        if not label_re.search(ln) and not any(k in ln for k in ("支撑", "阻力")):
+        if not label_re.search(ln) and matched_kw not in ("支撑", "阻力"):
             continue
-        for match in re.findall(r"\b(\d{2,3}(?:,\d{3})+(?:\.\d+)?|\d{5,6}(?:\.\d+)?)\b", ln):
+        # Prefer prices near the label (avoids '65130 level or … 64640 support')
+        for m in re.finditer(r"\b(\d{2,3}(?:,\d{3})+(?:\.\d+)?|\d{5,6}(?:\.\d+)?)\b", ln):
             try:
-                val = float(match.replace(",", ""))
+                val = float(m.group(1).replace(",", ""))
             except ValueError:
                 continue
-            if _is_btc_price(val):
-                levels.append(val)
+            if not _is_btc_price(val):
+                continue
+            # distance to nearest label match
+            label_m = label_re.search(ln)
+            if label_m and abs(m.start() - label_m.start()) > 48:
+                continue
+            levels.append(val)
     return levels
 
 

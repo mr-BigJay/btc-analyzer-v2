@@ -193,10 +193,22 @@ def _is_btc_price(value: float) -> bool:
 
 
 def _extract_levels(text: str, keywords: tuple[str, ...]) -> list[float]:
+    """Extract prices only from lines with explicit S/R labels (not 'supported')."""
     levels: list[float] = []
+    # Require word-boundary / explicit level phrasing to avoid "supported by…"
+    label_re = re.compile(
+        r"(?i)(?:\b(?:support|resistance)\s*(?:level|zone)?\b|\b(?:支撑|阻力)\b)"
+    )
     for ln in text.splitlines():
         low = ln.lower()
-        if not any(k.lower() in low for k in keywords):
+        # Keep keyword filter for chinese + english; reject 'supported'
+        if "supported" in low and "support level" not in low and "support zone" not in low:
+            # still allow if explicit support level also present
+            if not label_re.search(ln):
+                continue
+        if not any(re.search(rf"(?i)\b{re.escape(k)}\b", ln) for k in keywords):
+            continue
+        if not label_re.search(ln) and not any(k in ln for k in ("支撑", "阻力")):
             continue
         for match in re.findall(r"\b(\d{2,3}(?:,\d{3})+(?:\.\d+)?|\d{5,6}(?:\.\d+)?)\b", ln):
             try:

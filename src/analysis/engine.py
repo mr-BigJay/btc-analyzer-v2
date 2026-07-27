@@ -13,7 +13,6 @@ from src.analysis.contracts import LayerResult, MarketAnalysisOutput, SignalBias
 from src.analysis.layers import ALL_LAYERS
 from src.analysis.scenarios import generate_scenarios
 from src.analysis.weights import compute_weights
-from src.cache.keys import CacheKeys
 from src.config import settings
 from src.logging_setup import get_logger
 from src.storage.redis_cache import redis_cache
@@ -78,8 +77,7 @@ class AnalysisEngine:
             symbol=symbol,
         )
 
-        # Cache for dashboard / AI
-        redis_cache.set(CacheKeys.LATEST_DAILY_OUTLOOK, output.to_dict(), ttl_sec=settings.redis_hot_ttl_sec)
+        # Cache for AI Decision Engine (Ch.7) — not the Daily Outlook itself
         redis_cache.set("latest_market_analysis", output.to_dict(), ttl_sec=settings.redis_hot_ttl_sec)
         log.info(
             "analysis bias={} conf={:.1f} regime={} primary={}",

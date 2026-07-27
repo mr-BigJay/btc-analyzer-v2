@@ -18,7 +18,7 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 
 from src.config import settings
 from src.logging_setup import get_logger, setup_logging
-from src.services import AnalysisService, CollectionService
+from src.services import AnalysisService, CollectionService, DecisionService
 
 setup_logging()
 log = get_logger("scheduler")
@@ -29,6 +29,7 @@ class AppScheduler:
         self.scheduler = BlockingScheduler(timezone=settings.timezone or "UTC")
         self._collection: CollectionService | None = None
         self._analysis: AnalysisService | None = None
+        self._decision: DecisionService | None = None
         self._ws_started = False
 
     @property
@@ -42,6 +43,12 @@ class AppScheduler:
         if self._analysis is None:
             self._analysis = AnalysisService()
         return self._analysis
+
+    @property
+    def decision(self) -> DecisionService:
+        if self._decision is None:
+            self._decision = DecisionService()
+        return self._decision
 
     @property
     def engine(self):
@@ -84,12 +91,12 @@ class AppScheduler:
         self._run_isolated("technical_5m", _job)
 
     def job_pattern_detection(self) -> None:
-        """15-minute pattern detection + full analysis refresh (Ch.5/Ch.6)."""
+        """15-minute pattern detection + AI decision refresh (Ch.5/Ch.7)."""
 
         def _job():
             patterns = self.analysis.detect_patterns()
-            full = self.analysis.run_full(timeframe="1h", multi_timeframe=True)
-            return {"patterns": patterns, "analysis": full}
+            decision = self.decision.run(timeframe="1h", multi_timeframe=True)
+            return {"patterns": patterns, "decision": decision.get("primary_narrative")}
 
         self._run_isolated("patterns_15m", _job)
 
@@ -106,20 +113,27 @@ class AppScheduler:
             except Exception as exc:  # noqa: BLE001
                 log.warning("retention failed: {}", exc)
             narr = self.collection.run_narrative()
-            # Run Analysis Engine; AI Decision / Daily Outlook narrative awaits Ch.7–8
-            full = self.analysis.run_full(timeframe="1d", multi_timeframe=True)
+            # Ch.7 AI Decision Engine → Daily Outlook + Trading Plan
+            report = self.decision.run(timeframe="1d", multi_timeframe=True)
             log.info(
-                "Daily analysis @ {:02d}:{:02d} UTC bias={} — Outlook narrative awaits Ch.7+",
+                "Daily Outlook @ {:02d}:{:02d} UTC bias={} narrative={} conf={}",
                 settings.daily_outlook_hour_utc,
                 settings.daily_outlook_minute_utc,
-                full.get("market_bias"),
+                report.get("market_bias"),
+                report.get("primary_narrative"),
+                report.get("confidence"),
             )
-            return {"narrative": narr, "analysis": full}
+            return {"narrative": narr, "decision": report}
 
         self._run_isolated("daily_outlook", _job)
 
     def job_intraday_plan(self) -> None:
-        log.info("Intraday Trading Plan job stub — awaiting Design Book Ch.7–8")
+        def _job():
+            plan = self.decision.trading_plan(timeframe="15m", multi_timeframe=False)
+            log.info("Intraday plan direction={}", plan.get("preferred_direction"))
+            return plan
+
+        self._run_isolated("intraday_plan", _job)
 
     def _start_realtime_streams(self) -> None:
         if self._ws_started or not settings.binance_futures_enabled:

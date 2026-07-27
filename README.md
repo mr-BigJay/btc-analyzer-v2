@@ -10,25 +10,30 @@ Professional AI-powered **crypto market intelligence** platform.
 **Ch.1–2:** DSS · Modular architecture · Standardized `ModuleResult`  
 **Ch.3:** Collect ≠ Analyze · Retry/cache fallback · Isolated collectors  
 **Ch.4:** Database is SSOT · PostgreSQL + Redis · FK integrity · Alembic  
-**Ch.6:** 8 evidence layers · weighted scoring · conflict resolution · scenarios (no trade execution)
+**Ch.6:** 8 evidence layers · weighted scoring · conflict resolution · scenarios  
+**Ch.7:** AI Decision Engine · narratives · calibrated confidence · Daily Outlook / Trading Plan
 
-## Analysis Engine (Ch.6)
+## Analysis → AI Pipeline
 
 ```
-Spot · Futures · Options · Technical · Structure · Pattern · Volatility · Liquidity
+Analysis Engine (8 layers)
         ↓
- Scoring → Conflict Resolution → Scenarios → MarketAnalysisOutput → (AI later)
+ AI Decision Engine (evidence → narrative → probabilities → risk → NLG)
+        ↓
+ Daily Outlook + Intraday Trading Plan
 ```
 
-API: `GET /api/v1/market/analysis` · CLI: `python -m src.main analyze`
+API:  
+`GET /api/v1/market/analysis` · `/decision` · `/outlook` · `/trading-plan`  
+CLI: `python -m src.main analyze` · `python -m src.main outlook`
 
 ## Design Book
 
 | Chapter | Topic | Status |
 |---------|--------|--------|
-| 01–05 | Intro → Backend | ✅ |
-| 06 | Analysis Engine | ✅ |
-| 07–08 | … | Pending |
+| 01–06 | Intro → Analysis Engine | ✅ |
+| 07 | AI Decision Engine | ✅ |
+| 08 | Presentation / UX | Pending |
 
 ## Quick Start
 
@@ -38,6 +43,7 @@ cp .env.example .env
 python -m src.main init-db
 python -m src.main serve     # API :8000  ·  /api/docs  ·  /ws
 python -m src.main run       # scheduler
+python -m src.main outlook   # AI Daily Outlook once
 ```
 
 ### Docker (Nginx + API + Scheduler + Postgres + Redis)
@@ -49,4 +55,4 @@ docker compose up -d
 
 ## Status
 
-Rewrite in progress. Chapters 1–6 applied. Awaiting Chapters 7–8 (AI Decision / Outlook).
+Rewrite in progress. Chapters 1–7 applied. Awaiting Chapter 8 (Presentation).

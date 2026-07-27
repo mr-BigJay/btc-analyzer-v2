@@ -17,6 +17,7 @@ from src.config import settings
 from src.db.models import (
     ApiCallLog,
     CoinExAnalysis,
+    DailyOutlook,
     ErrorLog,
     FundingRate,
     Liquidation,
@@ -28,6 +29,7 @@ from src.db.models import (
     SchedulerLog,
     TechnicalIndicator,
     Trade,
+    TradingPlan,
 )
 from src.db.seed import resolve_exchange_id, resolve_symbol_id
 from src.db.session import get_session, init_db
@@ -417,6 +419,69 @@ class CentralRepository:
                     quantity=float(record["quantity"]),
                     side=record.get("side"),
                     aggressor=record.get("aggressor"),
+                )
+            )
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
+    def save_daily_outlook(self, decision_payload: dict[str, Any]) -> None:
+        """Persist AI Daily Outlook + Trading Plan (Ch.7 §7.13 / §7.17)."""
+        outlook = decision_payload.get("daily_outlook") or {}
+        plan = decision_payload.get("trading_plan") or {}
+        date = str(outlook.get("date") or datetime.now(timezone.utc).strftime("%Y-%m-%d"))
+        scenarios = decision_payload.get("scenarios") or []
+        primary = scenarios[0] if scenarios else {}
+        alt = scenarios[1] if len(scenarios) > 1 else {}
+        dist = decision_payload.get("probability_distribution") or {}
+        bull = float(dist.get("trend_continuation") or primary.get("probability") or 50) / 100.0
+        bear = float(dist.get("trend_reversal") or (alt.get("probability") if alt else 50) or 50) / 100.0
+        # Normalize bull/bear share of directional mass for legacy columns
+        directional = bull + bear
+        if directional > 0:
+            bull_p, bear_p = bull / directional, bear / directional
+        else:
+            bull_p = bear_p = 0.5
+
+        session = get_session()
+        try:
+            row = session.query(DailyOutlook).filter_by(date=date).one_or_none()
+            if row is None:
+                row = DailyOutlook(date=date)
+                session.add(row)
+            row.bull_probability = bull_p
+            row.bear_probability = bear_p
+            row.risk_level = decision_payload.get("risk_level")
+            row.main_scenario = json.dumps(primary, default=str)
+            row.alternative_scenario = json.dumps(alt, default=str)
+            row.confidence = float(decision_payload.get("confidence") or 0)
+            row.payload = json.dumps(decision_payload, ensure_ascii=False, default=str)
+            session.flush()
+
+            session.add(
+                TradingPlan(
+                    daily_outlook_id=row.id,
+                    direction=str(plan.get("preferred_direction") or "no_trade"),
+                    entry_low=(plan.get("entry_zone") or [None, None])[0]
+                    if plan.get("entry_zone")
+                    else None,
+                    entry_high=(plan.get("entry_zone") or [None, None])[1]
+                    if plan.get("entry_zone") and len(plan.get("entry_zone") or []) > 1
+                    else None,
+                    stop_loss=plan.get("stop_loss_zone"),
+                    tp1=(plan.get("target_levels") or [None])[0] if plan.get("target_levels") else None,
+                    tp2=(plan.get("target_levels") or [None, None])[1]
+                    if plan.get("target_levels") and len(plan.get("target_levels") or []) > 1
+                    else None,
+                    tp3=(plan.get("target_levels") or [None, None, None])[2]
+                    if plan.get("target_levels") and len(plan.get("target_levels") or []) > 2
+                    else None,
+                    rr=plan.get("risk_reward"),
+                    confidence=float(plan.get("confidence") or 0),
+                    payload=json.dumps(plan, ensure_ascii=False, default=str),
                 )
             )
             session.commit()

@@ -27,9 +27,9 @@ def cmd_init_db() -> int:
 def cmd_status() -> int:
     print(f"BTC Analyzer {__version__}")
     print("Product: Decision Support System (DSS)")
-    print("Phase: Enterprise Design Book — Chapter 6 (Analysis Engine)")
+    print("Phase: Enterprise Design Book — Chapter 7 (AI Decision Engine)")
     print("Layers: Spot · Futures · Options · Technical · Structure · Pattern · Volatility · Liquidity")
-    print("Pipeline: Layers → Scoring → Conflict Resolution → Scenarios → MarketAnalysisOutput")
+    print("AI: Evidence → Narrative → Probabilities → Risk → Daily Outlook / Trading Plan")
     print("Stack: FastAPI · PostgreSQL · Redis · APScheduler · Loguru")
     print(f"Database: {settings.database_url}")
     print(f"Redis: {settings.redis_url or 'memory-fallback'}")
@@ -73,6 +73,21 @@ def cmd_analyze() -> int:
     return 0
 
 
+def cmd_outlook() -> int:
+    from src.services import DecisionService
+
+    init_db()
+    out = DecisionService().run(multi_timeframe=False)
+    print(f"bias={out['market_bias']} conf={out['confidence']} band={out['confidence_band']}")
+    print(f"narrative={out['primary_narrative']} risk={out['risk_level']}")
+    print(f"primary={out['primary_scenario']}")
+    print(f"scenarios={[s['name']+':'+str(s['probability']) for s in out.get('scenarios', [])]}")
+    print(f"plan={out['trading_plan'].get('preferred_direction')}")
+    summary = (out.get("daily_outlook") or {}).get("executive_summary") or ""
+    print(f"summary={summary[:240]}")
+    return 0
+
+
 def cmd_migrate() -> int:
     from alembic import command
     from alembic.config import Config
@@ -101,6 +116,7 @@ def main() -> int:
     sub.add_parser("run", help="Start scheduler (Ch.5 intervals)")
     sub.add_parser("collect", help="Run one full data collection cycle")
     sub.add_parser("analyze", help="Run Chapter 6 Analysis Engine once")
+    sub.add_parser("outlook", help="Run Chapter 7 AI Decision Engine / Daily Outlook")
     sub.add_parser("migrate", help="Run Alembic migrations (upgrade head)")
     sub.add_parser("retention", help="Apply Ch.4 retention policy")
 
@@ -112,6 +128,7 @@ def main() -> int:
         "run": cmd_run,
         "collect": cmd_collect,
         "analyze": cmd_analyze,
+        "outlook": cmd_outlook,
         "migrate": cmd_migrate,
         "retention": cmd_retention,
     }

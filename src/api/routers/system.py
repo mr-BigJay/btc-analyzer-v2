@@ -68,6 +68,23 @@ def architecture(request: Request):
                 "endpoint": "/api/v1/market/analysis",
                 "ai_inference_in_layers": False,
             },
+            "ai_decision_engine": {
+                "consumes": "MarketAnalysisOutput",
+                "raw_exchange_access": False,
+                "pipeline": [
+                    "evidence_aggregation",
+                    "signal_prioritization",
+                    "narrative_detection",
+                    "probability_estimation",
+                    "risk_assessment",
+                    "nlg",
+                ],
+                "endpoints": [
+                    "/api/v1/market/decision",
+                    "/api/v1/market/outlook",
+                    "/api/v1/market/trading-plan",
+                ],
+            },
             "scheduler": {
                 "realtime": "websocket_streams",
                 "1m": "funding_oi_trades",

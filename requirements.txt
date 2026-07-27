@@ -11,6 +11,9 @@ pandas-ta>=0.3.14b
 
 # Persistence
 sqlalchemy>=2.0.0
+alembic>=1.14.0
+psycopg[binary]>=3.2.0
+redis>=5.0.0
 
 # API / dashboard
 fastapi>=0.115.0

@@ -6,6 +6,8 @@ import argparse
 import logging
 import sys
 
+from pathlib import Path
+
 import uvicorn
 
 from src import __version__
@@ -29,11 +31,12 @@ def cmd_init_db() -> int:
 def cmd_status() -> int:
     print(f"BTC Analyzer {__version__}")
     print("Product: Decision Support System (DSS)")
-    print("Phase: Enterprise Design Book — Chapter 3 (Data Collection Engine)")
-    print("Pipeline: Collect → Validate → Normalize → Cache → DB (append-only)")
-    print("Collectors: Binance · Deribit · CoinEx · Bitunix (isolated)")
-    print("Schedule: 1m market · 5m technical · 1h options · daily outlook 03:30 UTC")
-    print("Retry: 5s → 15s → 30s → cache fallback")
+    print("Phase: Enterprise Design Book — Chapter 4 (Database Design & Data Model)")
+    print("SSOT: PostgreSQL (+ SQLite local) · Redis cache · SQLAlchemy · Alembic")
+    print("Domains: Market · Technical · Options · AI · System · Configuration")
+    print("Pipeline: Collect → Validate → Normalize → Cache → DB → Analysis")
+    print(f"Database: {settings.database_url}")
+    print(f"Redis: {settings.redis_url or 'memory-fallback'}")
     print(f"Daily Outlook UTC: {settings.daily_outlook_hour_utc:02d}:{settings.daily_outlook_minute_utc:02d}")
     return 0
 
@@ -63,14 +66,35 @@ def cmd_collect() -> int:
     return 0 if result.ok else 1
 
 
+def cmd_migrate() -> int:
+    from alembic import command
+    from alembic.config import Config
+
+    cfg = Config(str(Path(__file__).resolve().parent.parent / "alembic.ini"))
+    command.upgrade(cfg, "head")
+    logger.info("Alembic upgrade head complete")
+    return 0
+
+
+def cmd_retention() -> int:
+    from src.db.retention import apply_retention
+
+    init_db()
+    deleted = apply_retention()
+    print(f"retention deleted={deleted}")
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=f"BTC Analyzer {__version__}")
     sub = parser.add_subparsers(dest="command")
     sub.add_parser("status", help="Show rewrite status")
-    sub.add_parser("init-db", help="Initialize database")
+    sub.add_parser("init-db", help="Initialize database schema + seed reference data")
     sub.add_parser("serve", help="Start API + dashboard")
     sub.add_parser("run", help="Start scheduler (Ch.3 intervals)")
     sub.add_parser("collect", help="Run one full data collection cycle")
+    sub.add_parser("migrate", help="Run Alembic migrations (upgrade head)")
+    sub.add_parser("retention", help="Apply Ch.4 retention policy")
 
     args = parser.parse_args()
     commands = {
@@ -79,6 +103,8 @@ def main() -> int:
         "serve": cmd_serve,
         "run": cmd_run,
         "collect": cmd_collect,
+        "migrate": cmd_migrate,
+        "retention": cmd_retention,
     }
     if args.command in commands:
         return commands[args.command]()

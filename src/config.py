@@ -1,4 +1,4 @@
-"""Application configuration — secrets via environment only (Ch.3 §3.18)."""
+"""Application configuration — secrets via environment only (Ch.3 §3.18 / Ch.4)."""
 
 from pathlib import Path
 
@@ -15,8 +15,6 @@ class Settings(BaseSettings):
     )
 
     # CoinEx AI Research (futures page tab)
-    # UI: https://www.coinex.com/en/futures/btc-usdt → AI Research
-    # API: GET /res/ai-analysis/{coin}
     coinex_enabled: bool = True
     coinex_base_url: str = "https://www.coinex.com"
     coinex_ai_coin: str = "btc"
@@ -42,13 +40,18 @@ class Settings(BaseSettings):
     bitunix_api_secret: str = ""
     bitunix_base_url: str = "https://fapi.bitunix.com"
 
-    # Persistence
+    # Persistence (Ch.4) — PostgreSQL recommended; SQLite for local/dev
     database_url: str = f"sqlite:///{BASE_DIR / 'data' / 'btc_analyzer.db'}"
+    db_pool_size: int = 5
+    db_max_overflow: int = 10
+
+    # Redis cache (optional — memory fallback if unset/unreachable)
+    redis_url: str = ""
+    redis_hot_ttl_sec: int = 300
 
     # Scheduler (Ch.3 §3.14)
     daily_outlook_hour_utc: int = 3
     daily_outlook_minute_utc: int = 30
-    # Legacy alias — minute cycle is now 1 minute per Ch.3
     collection_interval_minutes: int = 1
 
     # Telegram
@@ -66,6 +69,10 @@ class Settings(BaseSettings):
     @property
     def deribit_configured(self) -> bool:
         return bool(self.deribit_client_id and self.deribit_client_secret)
+
+    @property
+    def is_postgres(self) -> bool:
+        return self.database_url.startswith("postgresql")
 
 
 settings = Settings()

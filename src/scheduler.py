@@ -36,14 +36,19 @@ class AppScheduler:
 
     def job_minute_collect(self) -> None:
         """1-minute: price, funding, open interest."""
+        import time
+
+        started = time.monotonic()
         try:
             result = self.engine.run_minute_cycle_sync()
-            logger.info(
-                "minute_collect ok=%s warnings=%s",
-                result.ok,
-                len(result.warnings),
+            ms = (time.monotonic() - started) * 1000
+            self.engine.repository.log_scheduler(
+                "collect_1m", "OK" if result.ok else "DEGRADED", message=str(result.warnings[:3]), duration_ms=ms
             )
+            logger.info("minute_collect ok=%s warnings=%s", result.ok, len(result.warnings))
         except Exception as exc:  # noqa: BLE001
+            self.engine.repository.log_scheduler("collect_1m", "ERROR", message=str(exc))
+            self.engine.repository.log_error("scheduler", str(exc), error_code="minute_collect")
             logger.warning("minute_collect failed (continuing): %s", exc)
 
     def job_technical_cache(self) -> None:
@@ -63,7 +68,15 @@ class AppScheduler:
             logger.warning("options_chain failed (continuing): %s", exc)
 
     def job_daily_outlook(self) -> None:
-        """Daily 03:30 UTC — also refreshes CoinEx narrative first."""
+        """Daily 03:30 UTC — narrative refresh + retention + outlook stub."""
+        try:
+            from src.db.retention import apply_retention
+
+            deleted = apply_retention()
+            self.engine.repository.log_scheduler("retention", "OK", message=str(deleted))
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("retention failed: %s", exc)
+
         try:
             narr = self.engine.run_narrative_cycle_sync()
             logger.info("daily narrative ok=%s", narr.ok)

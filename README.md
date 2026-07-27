@@ -9,31 +9,33 @@ Professional AI-powered **crypto market intelligence** platform.
 
 **Ch.1:** Evidence-Based · Probability Over Prediction · Modular · Transparency · Risk-First  
 **Ch.2:** Separation of Concerns · Loose Coupling · High Cohesion · Event Driven · AI Assisted  
-**Ch.3:** Collect ≠ Analyze · Validate everything · Append-only history · Never halt on API failure
+**Ch.3:** Collect ≠ Analyze · Validate everything · Append-only history · Never halt on API failure  
+**Ch.4:** Database is SSOT · PostgreSQL + Redis · FK integrity · Retention · Alembic migrations
+
+## Database (Ch.4)
+
+```
+Collectors → Normalized Data → PostgreSQL
+                                ├─ Historical tables
+                                └─ Redis / cached views
+                                     ↓
+                              Analysis → Decision → Dashboard
+```
+
+**Domains:** Market Data · Technical · Options · AI · System · Configuration  
+
+**Stack:** PostgreSQL (SQLite local) · Redis · SQLAlchemy · Alembic  
+
+**Retention:** trades 90d · order book 30d · candles/funding/options/outlook permanent
 
 ## Data Collection Engine (Ch.3)
-
-```
-External APIs → Collectors → Validators → Normalizers → Cache → Database → Analysis
-```
 
 | Provider | Role | Priority |
 |----------|------|----------|
 | Binance | Futures market reference | Critical |
 | Deribit | Options intelligence | Critical |
-| CoinEx | Daily narrative (**AI Research** tab on futures page) | High |
+| CoinEx | Daily narrative (**AI Research** tab) | High |
 | Bitunix | Execution validation only | Medium |
-
-**Scheduler:** realtime WS · 1m price/funding/OI · 5m technical cache · 1h options · daily outlook 03:30 UTC  
-**Retry:** 5s → 15s → 30s → cached snapshot → continue  
-**Secrets:** environment variables only (never in source)
-
-## 8-Layer Architecture (Ch.2)
-
-```
-1 Data Sources → 2 Collection → 3 Validation → 4 Normalization
-→ 5 Storage → 6 Analysis → 7 AI → 8 Presentation
-```
 
 ## Design Book
 
@@ -42,23 +44,10 @@ External APIs → Collectors → Validators → Normalizers → Cache → Databa
 | 01 | Introduction | ✅ |
 | 02 | System Architecture | ✅ |
 | 03 | Data Collection Engine | ✅ |
-| 04–08 | … | Pending |
+| 04 | Database Design & Data Model | ✅ |
+| 05–08 | … | Pending |
 
 See [`docs/book/`](docs/book/).
-
-## Package Layout
-
-```
-src/
-├── collectors/
-│   ├── binance/ deribit/ coinex/ bitunix/   # isolated collectors
-│   ├── engine.py                            # Collect→Validate→Normalize→Store
-│   ├── http.py · websocket.py · common.py
-├── pipeline/          # validation · normalization · quality
-├── storage/           # Central Repository · memory cache
-├── analysis/ · engine/ · outlook/ · trading/
-└── main.py
-```
 
 ## Quick Start
 
@@ -67,11 +56,17 @@ python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
 python -m src.main init-db
-python -m src.main collect    # one collection cycle
-python -m src.main run        # scheduler
-python -m src.main serve      # API + dashboard
+# optional: python -m src.main migrate
+python -m src.main collect
+python -m src.main serve
+```
+
+### Docker (Postgres + Redis)
+
+```bash
+docker compose up -d
 ```
 
 ## Status
 
-Rewrite in progress. Chapters 1–3 applied. Awaiting Chapters 4–8.
+Rewrite in progress. Chapters 1–4 applied. Awaiting Chapters 5–8.

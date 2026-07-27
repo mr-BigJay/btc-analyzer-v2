@@ -33,8 +33,10 @@ def health():
         "status": "ok",
         "version": __version__,
         "product": "decision-support-system",
-        "phase": "rewrite-ch03",
-        "chapter": "03-data-collection-engine",
+        "phase": "rewrite-ch04",
+        "chapter": "04-database-design",
+        "database": "postgresql" if settings.is_postgres else "sqlite",
+        "redis_configured": bool(settings.redis_url),
     }
 
 
@@ -51,20 +53,29 @@ def architecture():
             "ai",
             "presentation",
         ],
+        "database": {
+            "ssot": True,
+            "primary": "postgresql",
+            "cache": "redis",
+            "orm": "sqlalchemy",
+            "migrations": "alembic",
+            "domains": [
+                "market_data",
+                "technical_analysis",
+                "options_analytics",
+                "ai_analysis",
+                "system",
+                "configuration",
+            ],
+            "retention": {"trades_days": 90, "orderbook_days": 30},
+        },
         "data_collection": {
             "providers": {
                 "binance": "futures_market_reference",
                 "deribit": "options_market_intelligence",
-                "coinex": "daily_narrative",
+                "coinex": "ai_research_narrative",
                 "bitunix": "execution_validation",
             },
-            "pipeline": [
-                "collectors",
-                "validators",
-                "normalizers",
-                "cache",
-                "database",
-            ],
             "scheduler": {
                 "realtime": "trades_orderbook_liquidations",
                 "1m": "price_funding_open_interest",
@@ -72,26 +83,38 @@ def architecture():
                 "1h": "option_chain",
                 "daily_utc": f"{settings.daily_outlook_hour_utc:02d}:{settings.daily_outlook_minute_utc:02d}",
             },
-            "retry_sec": [5, 15, 30],
         },
-        "analysis_engines": [
-            "futures",
-            "options",
-            "technical",
-            "pattern",
-            "structure",
-        ],
         "design_rules": {
             "decision_engine_only_recommendations": True,
             "binance_futures_reference": True,
             "bitunix_execution_validation_only": True,
             "collectors_isolated": True,
             "append_only_history": True,
+            "fk_integrity_required": True,
             "utc_timestamps": True,
-            "fault_tolerance_required": True,
             "secrets_via_env_only": True,
         },
         "daily_outlook_utc": f"{settings.daily_outlook_hour_utc:02d}:{settings.daily_outlook_minute_utc:02d}",
+    }
+
+
+@app.get("/api/v1/db/status")
+def db_status():
+    from src.db.models import Exchange, Symbol
+    from src.db.session import get_session
+    from src.storage.redis_cache import redis_cache
+
+    session = get_session()
+    try:
+        exchanges = [{"id": e.id, "name": e.name, "priority": e.priority, "status": e.status} for e in session.query(Exchange).all()]
+        symbols = [{"id": s.id, "symbol": s.symbol, "status": s.status} for s in session.query(Symbol).all()]
+    finally:
+        session.close()
+    return {
+        "database_url_dialect": "postgresql" if settings.is_postgres else "sqlite",
+        "exchanges": exchanges,
+        "symbols": symbols,
+        "cache": redis_cache.snapshot(),
     }
 
 
@@ -120,7 +143,6 @@ def collection_status():
 
 @app.post("/api/v1/collection/run")
 def collection_run():
-    """Trigger one full collection cycle (manual)."""
     from src.collectors.engine import DataCollectionEngine
 
     engine = DataCollectionEngine()

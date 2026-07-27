@@ -27,13 +27,12 @@ def cmd_init_db() -> int:
 def cmd_status() -> int:
     print(f"BTC Analyzer {__version__}")
     print("Product: Decision Support System (DSS)")
-    print("Phase: Enterprise Design Book — Chapter 5 (Backend Architecture)")
-    print("Stack: FastAPI · Uvicorn · PostgreSQL · Redis · APScheduler · Loguru · Nginx")
-    print("Services: Collection · Analysis · Market · WebSocket · Scheduler")
-    print("API: /api/v1 · envelope {status,timestamp,request_id,data} · /ws")
+    print("Phase: Enterprise Design Book — Chapter 6 (Analysis Engine)")
+    print("Layers: Spot · Futures · Options · Technical · Structure · Pattern · Volatility · Liquidity")
+    print("Pipeline: Layers → Scoring → Conflict Resolution → Scenarios → MarketAnalysisOutput")
+    print("Stack: FastAPI · PostgreSQL · Redis · APScheduler · Loguru")
     print(f"Database: {settings.database_url}")
     print(f"Redis: {settings.redis_url or 'memory-fallback'}")
-    print(f"Timezone: {settings.timezone} · Log: {settings.log_level}")
     print(f"Daily Outlook UTC: {settings.daily_outlook_hour_utc:02d}:{settings.daily_outlook_minute_utc:02d}")
     return 0
 
@@ -63,6 +62,17 @@ def cmd_collect() -> int:
     return 0 if result.ok else 1
 
 
+def cmd_analyze() -> int:
+    from src.services import AnalysisService
+
+    init_db()
+    out = AnalysisService().run_full()
+    print(f"bias={out['market_bias']} conf={out['confidence']} regime={out['market_regime']}")
+    print(f"primary={out['primary_scenario']} risk={out['risk_level']}")
+    print(f"scenarios={[s['name']+':'+str(s['probability']) for s in out.get('scenarios', [])]}")
+    return 0
+
+
 def cmd_migrate() -> int:
     from alembic import command
     from alembic.config import Config
@@ -90,6 +100,7 @@ def main() -> int:
     sub.add_parser("serve", help="Start API + WebSocket + dashboard")
     sub.add_parser("run", help="Start scheduler (Ch.5 intervals)")
     sub.add_parser("collect", help="Run one full data collection cycle")
+    sub.add_parser("analyze", help="Run Chapter 6 Analysis Engine once")
     sub.add_parser("migrate", help="Run Alembic migrations (upgrade head)")
     sub.add_parser("retention", help="Apply Ch.4 retention policy")
 
@@ -100,6 +111,7 @@ def main() -> int:
         "serve": cmd_serve,
         "run": cmd_run,
         "collect": cmd_collect,
+        "analyze": cmd_analyze,
         "migrate": cmd_migrate,
         "retention": cmd_retention,
     }

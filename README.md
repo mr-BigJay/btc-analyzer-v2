@@ -10,36 +10,25 @@ Professional AI-powered **crypto market intelligence** platform.
 **Ch.1–2:** DSS · Modular architecture · Standardized `ModuleResult`  
 **Ch.3:** Collect ≠ Analyze · Retry/cache fallback · Isolated collectors  
 **Ch.4:** Database is SSOT · PostgreSQL + Redis · FK integrity · Alembic  
-**Ch.5:** FastAPI services · Loguru · Nginx · WebSocket · Versioned `/api/v1` envelopes
+**Ch.6:** 8 evidence layers · weighted scoring · conflict resolution · scenarios (no trade execution)
 
-## Backend (Ch.5)
+## Analysis Engine (Ch.6)
 
 ```
-Nginx → FastAPI (REST + WebSocket)
-          ├─ Collection Service
-          ├─ Analysis Service
-          ├─ Market Service
-          └─ Scheduler (separate process)
-PostgreSQL · Redis
+Spot · Futures · Options · Technical · Structure · Pattern · Volatility · Liquidity
+        ↓
+ Scoring → Conflict Resolution → Scenarios → MarketAnalysisOutput → (AI later)
 ```
 
-**Scheduler:** realtime WS · 1m funding/OI · 5m technical · **15m patterns** · 1h options · daily 03:30 UTC  
-
-**API envelope:**
-```json
-{ "status": "success", "timestamp": "…Z", "request_id": "…", "data": {} }
-```
+API: `GET /api/v1/market/analysis` · CLI: `python -m src.main analyze`
 
 ## Design Book
 
 | Chapter | Topic | Status |
 |---------|--------|--------|
-| 01 | Introduction | ✅ |
-| 02 | System Architecture | ✅ |
-| 03 | Data Collection Engine | ✅ |
-| 04 | Database Design | ✅ |
-| 05 | Backend Architecture | ✅ |
-| 06–08 | … | Pending |
+| 01–05 | Intro → Backend | ✅ |
+| 06 | Analysis Engine | ✅ |
+| 07–08 | … | Pending |
 
 ## Quick Start
 
@@ -60,4 +49,4 @@ docker compose up -d
 
 ## Status
 
-Rewrite in progress. Chapters 1–5 applied. Awaiting Chapters 6–8.
+Rewrite in progress. Chapters 1–6 applied. Awaiting Chapters 7–8 (AI Decision / Outlook).

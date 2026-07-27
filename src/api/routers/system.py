@@ -48,6 +48,26 @@ def architecture(request: Request):
                     "configuration",
                 ],
             },
+            "analysis_engine": {
+                "layers": [
+                    "Spot",
+                    "Futures",
+                    "Options",
+                    "Technical",
+                    "Market Structure",
+                    "Pattern Detection",
+                    "Volatility",
+                    "Liquidity",
+                ],
+                "pipeline": [
+                    "layer_analysis",
+                    "scoring",
+                    "conflict_resolution",
+                    "scenarios",
+                ],
+                "endpoint": "/api/v1/market/analysis",
+                "ai_inference_in_layers": False,
+            },
             "scheduler": {
                 "realtime": "websocket_streams",
                 "1m": "funding_oi_trades",

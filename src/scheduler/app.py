@@ -77,13 +77,21 @@ class AppScheduler:
         def _job():
             collected = self.collection.run_technical()
             analysis = self.analysis.refresh_technical()
-            return {"ok": collected.ok, "warnings": collected.warnings, "analysis": analysis}
+            # Full multi-layer pass on 5m cadence (uses cached OHLCV)
+            full = self.analysis.run_full(timeframe="1h", multi_timeframe=False)
+            return {"ok": collected.ok, "warnings": collected.warnings, "analysis": analysis, "full": full.get("market_bias")}
 
         self._run_isolated("technical_5m", _job)
 
     def job_pattern_detection(self) -> None:
-        """15-minute pattern detection (Ch.5 §5.8)."""
-        self._run_isolated("patterns_15m", self.analysis.detect_patterns)
+        """15-minute pattern detection + full analysis refresh (Ch.5/Ch.6)."""
+
+        def _job():
+            patterns = self.analysis.detect_patterns()
+            full = self.analysis.run_full(timeframe="1h", multi_timeframe=True)
+            return {"patterns": patterns, "analysis": full}
+
+        self._run_isolated("patterns_15m", _job)
 
     def job_options_chain(self) -> None:
         self._run_isolated("options_1h", self.collection.run_options)
@@ -98,13 +106,20 @@ class AppScheduler:
             except Exception as exc:  # noqa: BLE001
                 log.warning("retention failed: {}", exc)
             narr = self.collection.run_narrative()
-            log.info("Daily Outlook stub @ {:02d}:{:02d} UTC — awaiting Ch.6+", settings.daily_outlook_hour_utc, settings.daily_outlook_minute_utc)
-            return narr
+            # Run Analysis Engine; AI Decision / Daily Outlook narrative awaits Ch.7–8
+            full = self.analysis.run_full(timeframe="1d", multi_timeframe=True)
+            log.info(
+                "Daily analysis @ {:02d}:{:02d} UTC bias={} — Outlook narrative awaits Ch.7+",
+                settings.daily_outlook_hour_utc,
+                settings.daily_outlook_minute_utc,
+                full.get("market_bias"),
+            )
+            return {"narrative": narr, "analysis": full}
 
         self._run_isolated("daily_outlook", _job)
 
     def job_intraday_plan(self) -> None:
-        log.info("Intraday Trading Plan job stub — awaiting Design Book Ch.6+")
+        log.info("Intraday Trading Plan job stub — awaiting Design Book Ch.7–8")
 
     def _start_realtime_streams(self) -> None:
         if self._ws_started or not settings.binance_futures_enabled:

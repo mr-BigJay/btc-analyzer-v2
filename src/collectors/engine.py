@@ -150,6 +150,9 @@ class DataCollectionEngine:
             if report.ok or all(i.severity == "warning" for i in report.issues):
                 self.repository.append_technical_cache(record)
                 self.repository.memory.set("technical_cache_1h", record)
+                from src.storage.redis_cache import redis_cache
+
+                redis_cache.set("technical_cache_1h", record, ttl_sec=600)
             else:
                 warnings.append("technical_cache validation failed — not stored")
             snap = self.normalizer.normalize({"spot": spot})

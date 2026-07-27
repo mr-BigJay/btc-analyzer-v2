@@ -16,6 +16,12 @@ def market_snapshot(request: Request):
     return success(MarketService().snapshot(), request_id=request_id)
 
 
+@router.get("/analysis")
+def full_analysis(request: Request):
+    request_id = getattr(request.state, "request_id", None)
+    return success(AnalysisService().run_full(), request_id=request_id)
+
+
 @router.get("/patterns")
 def patterns(request: Request):
     request_id = getattr(request.state, "request_id", None)

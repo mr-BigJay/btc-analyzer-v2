@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>داشبورد — BTC Analyzer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Vazirmatn:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/fa.css" />
+  <link rel="stylesheet" href="/css/dashboard.css" />
+</head>
+<body data-density="comfortable" data-state="Loading">
+  <a class="skip-link" href="#main">پرش به محتوا</a>
+
+  <header class="site-header" role="banner">
+    <a class="brand" href="/">
+      <span class="brand-mark" aria-hidden="true">BA</span>
+      <span>
+        <span class="brand-name">BTC Analyzer</span>
+        <span class="brand-sub">داشبورد عملیاتی</span>
+      </span>
+    </a>
+    <button type="button" class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="site-nav">منو</button>
+    <nav class="site-nav" id="site-nav" aria-label="منوی اصلی">
+      <a data-nav href="/">خانه</a>
+      <a data-nav href="/dashboard.html">داشبورد</a>
+      <a data-nav href="/guide.html">نحوه استفاده</a>
+      <a data-nav href="/setup.html">راه‌اندازی سرور</a>
+      <a data-nav href="/ssl.html">دامنه و SSL</a>
+      <a data-nav href="/status.html">وضعیت سیستم</a>
+      <a class="nav-cta" href="/api/docs" target="_blank" rel="noopener">مستندات API</a>
+    </nav>
+  </header>
+
+  <div class="dash-toolbar" id="header-meta">
+    <label class="sr-only" for="asset-search">جستجوی دارایی</label>
+    <input id="asset-search" class="asset-search" type="search" placeholder="جستجوی دارایی…" list="asset-list" autocomplete="off" />
+    <datalist id="asset-list"><option value="BTCUSDT"></option></datalist>
+    <span class="pill" id="hdr-asset">—</span>
+    <span class="pill" id="hdr-tf">1h</span>
+    <span class="pill" id="hdr-regime">—</span>
+    <span class="pill tone-blue" id="hdr-dqs" title="امتیاز کیفیت داده">کیفیت —</span>
+    <span class="status-dot" id="hdr-conn" data-tone="blue" title="اتصال">در حال بارگذاری</span>
+    <button type="button" class="alert-chip" id="hdr-alerts" aria-label="هشدارهای فعال">0</button>
+  </div>
+
+  <main id="main" class="workspace">
+    <section id="overview" class="level-1" aria-labelledby="exec-title">
+      <div class="section-head">
+        <h1 id="exec-title">وضعیت بازار</h1>
+        <p class="muted" id="last-update">در انتظار داده زنده…</p>
+      </div>
+      <div class="exec-strip" id="executive" role="group" aria-label="هوش اجرایی"></div>
+      <div id="alert-banner" class="alert-banner hidden" role="status"></div>
+    </section>
+
+    <section id="intelligence" class="level-2" aria-labelledby="intel-title">
+      <div class="section-head">
+        <h2 id="intel-title">هوش بازار</h2>
+        <p class="muted">نمای دامنه‌ای — نه فید خام</p>
+      </div>
+      <div class="domain-grid" id="domain-cards"></div>
+    </section>
+
+    <section id="narrative" class="level-2 narrative-grid" aria-labelledby="narr-title">
+      <article class="panel" aria-labelledby="narr-title">
+        <div class="section-head">
+          <h2 id="narr-title">روایت تحلیلی</h2>
+          <button type="button" class="text-btn" id="toggle-reasoning" aria-expanded="false">نمایش استدلال</button>
+        </div>
+        <p class="lede" id="exec-summary"></p>
+        <p class="narrative-line" id="market-narrative"></p>
+        <div class="scenario-row" id="scenarios"></div>
+        <div class="plan-box" id="trading-plan"></div>
+        <p class="risk-note" id="risk-commentary"></p>
+        <div id="reasoning-detail" class="reasoning hidden"></div>
+      </article>
+      <aside class="panel explain" aria-labelledby="why-title">
+        <h2 id="why-title" class="explain-q"></h2>
+        <ul class="evidence-list" id="explain-list"></ul>
+      </aside>
+    </section>
+
+    <section id="alerts" class="level-3" aria-labelledby="alerts-title">
+      <div class="section-head row">
+        <div>
+          <h2 id="alerts-title">مرکز هشدار</h2>
+          <p class="muted">شدت · دارایی · دسته</p>
+        </div>
+        <div class="filters" role="group" aria-label="فیلتر هشدار">
+          <select id="filter-severity" aria-label="شدت">
+            <option value="">همه شدت‌ها</option>
+            <option>Critical</option><option>High</option><option>Medium</option><option>Low</option><option>Informational</option>
+          </select>
+          <select id="filter-category" aria-label="دسته">
+            <option value="">همه دسته‌ها</option>
+            <option>Price</option><option>Trend</option><option>Futures</option><option>Options</option>
+            <option>Liquidity</option><option>Risk</option><option>System</option><option>Macro</option>
+          </select>
+        </div>
+      </div>
+      <div class="alert-timeline" id="alert-list"></div>
+    </section>
+
+    <section id="history" class="level-4" aria-labelledby="hist-title">
+      <div class="section-head">
+        <h2 id="hist-title">زمینه تاریخی</h2>
+        <p class="muted">تحول سوگیری · اطمینان · رژیم · نتیجه</p>
+      </div>
+      <div class="hist-grid" id="historical"></div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>نمایش مستقل از منطق تحلیلی · DSS · معامله اجرا نمی‌شود</p>
+    <p id="footer-state" class="mono"></p>
+  </footer>
+
+  <script src="/js/nav.js" defer></script>
+  <script src="/js/dashboard.js" defer></script>
+</body>
+</html>

@@ -182,11 +182,19 @@ def test_frontend_shell_exists():
 
     root = Path(__file__).resolve().parents[1] / "frontend"
     assert (root / "index.html").exists()
-    html = (root / "index.html").read_text(encoding="utf-8")
-    assert "Market Status" in html
-    assert "Alert Center" in html
-    assert "IBM+Plex" in html or "IBM Plex" in html
+    assert (root / "dashboard.html").exists()
+    index = (root / "index.html").read_text(encoding="utf-8")
+    assert 'lang="fa"' in index
+    assert "BTC Analyzer" in index
+    assert "داشبورد" in index
+    dash = (root / "dashboard.html").read_text(encoding="utf-8")
+    assert "وضعیت بازار" in dash
+    assert "مرکز هشدار" in dash
+    assert (root / "css" / "fa.css").exists()
     assert (root / "css" / "style.css").exists()
     assert (root / "js" / "dashboard.js").exists()
+    assert (root / "js" / "nav.js").exists()
     css = (root / "css" / "style.css").read_text(encoding="utf-8")
     assert "--green" in css and "--red" in css and "--amber" in css
+    for page in ("guide.html", "setup.html", "ssl.html", "status.html"):
+        assert (root / page).exists(), page

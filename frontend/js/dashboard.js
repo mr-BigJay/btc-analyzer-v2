@@ -30,7 +30,7 @@
     setText("hdr-asset", h.asset || "—");
     setText("hdr-tf", h.timeframe || "1h");
     setText("hdr-regime", h.market_regime || "—");
-    setText("hdr-dqs", h.data_quality_score != null ? `DQS ${fmt(h.data_quality_score)}` : "DQS —");
+    setText("hdr-dqs", h.data_quality_score != null ? `کیفیت ${fmt(h.data_quality_score)}` : "کیفیت —");
     const conn = $("hdr-conn");
     if (conn) {
       conn.textContent = h.connection_status || "—";
@@ -38,19 +38,19 @@
     }
     const alerts = $("hdr-alerts");
     if (alerts) alerts.textContent = String(h.active_alerts_count ?? 0);
-    setText("last-update", h.last_update ? `Updated ${h.last_update}` : "");
+    setText("last-update", h.last_update ? `به‌روزرسانی ${h.last_update}` : "");
   }
 
   function renderExecutive(ex) {
     const root = $("executive");
     if (!root) return;
     const items = [
-      ["Market Bias", ex.market_bias, ex.market_bias_tone],
-      ["Confidence", ex.confidence_score != null ? `${fmt(ex.confidence_score)}` : "—", "blue"],
-      ["Health (MHI)", ex.market_health_index, "blue"],
-      ["Stress (MSI)", ex.market_stress_index, ex.market_stress_tone],
-      ["Risk (CRS)", ex.composite_risk_score != null ? `${fmt(ex.composite_risk_score)} · ${ex.risk_level || ""}` : ex.risk_level || "—", ex.risk_tone],
-      ["Primary Scenario", ex.primary_scenario, "blue"],
+      ["سوگیری بازار", ex.market_bias, ex.market_bias_tone],
+      ["اطمینان", ex.confidence_score != null ? `${fmt(ex.confidence_score)}` : "—", "blue"],
+      ["سلامت (MHI)", ex.market_health_index, "blue"],
+      ["استرس (MSI)", ex.market_stress_index, ex.market_stress_tone],
+      ["ریسک (CRS)", ex.composite_risk_score != null ? `${fmt(ex.composite_risk_score)} · ${ex.risk_level || ""}` : ex.risk_level || "—", ex.risk_tone],
+      ["سناریوی اصلی", ex.primary_scenario, "blue"],
     ];
     root.innerHTML = items
       .map(
@@ -66,7 +66,7 @@
     if (banner) {
       if (ex.no_trade_zone) {
         banner.classList.remove("hidden");
-        banner.textContent = "No Trade Zone active — capital preservation overrides new exposure.";
+        banner.textContent = "ناحیه عدم معامله فعال است — حفظ سرمایه بر موقعیت جدید اولویت دارد.";
       } else {
         banner.classList.add("hidden");
       }
@@ -77,7 +77,7 @@
     const root = $("domain-cards");
     if (!root) return;
     if (!cards || !cards.length) {
-      root.innerHTML = `<p class="empty">No domain intelligence yet — run analysis to populate.</p>`;
+      root.innerHTML = `<p class="empty">هنوز داده دامنه آماده نیست — ابتدا تحلیل را اجرا کنید.</p>`;
       return;
     }
     root.innerHTML = cards
@@ -100,7 +100,7 @@
   function renderNarrative(view) {
     const n = view.narrative || {};
     const plan = view.trading_plan || {};
-    setText("exec-summary", n.executive_summary || "No executive summary available.");
+    setText("exec-summary", n.executive_summary || "خلاصه اجرایی در دسترس نیست.");
     setText("market-narrative", n.market_narrative || "");
     setText("risk-commentary", n.risk_commentary || "");
 
@@ -109,13 +109,13 @@
       const primary = n.primary_scenario || {};
       const alts = n.alternative_scenarios || [];
       const chips = [
-        { name: primary.name || primary.primary_scenario || "Primary", probability: primary.probability, primary: true },
-        ...alts.slice(0, 2).map((a) => ({ name: a.name || "Alt", probability: a.probability })),
+        { name: primary.name || primary.primary_scenario || "اصلی", probability: primary.probability, primary: true },
+        ...alts.slice(0, 2).map((a) => ({ name: a.name || "جایگزین", probability: a.probability })),
       ];
       scen.innerHTML = chips
         .map(
           (s) =>
-            `<div class="scenario-chip"><strong>${s.primary ? "Primary" : "Alternative"}</strong>${s.name}${
+            `<div class="scenario-chip"><strong>${s.primary ? "سناریوی اصلی" : "جایگزین"}</strong>${s.name}${
               s.probability != null ? ` · ${fmt(s.probability)}%` : ""
             }</div>`
         )
@@ -126,7 +126,7 @@
     if (planEl) {
       const dir = plan.preferred_direction || "no_trade";
       planEl.innerHTML = `<div><span class="dir ${dir === "long" ? "tone-green" : dir === "short" ? "tone-red" : ""}">${dir}</span>
-        <span class="muted"> · ${plan.position_sizing_guidance || "Sizing guidance pending"}</span></div>
+        <span class="muted"> · ${plan.position_sizing_guidance || "راهنمای اندازه موقعیت در انتظار است"}</span></div>
         <p class="muted" style="margin-top:0.35rem">${plan.session_notes || ""}</p>`;
     }
 
@@ -134,14 +134,14 @@
     if (detail) {
       detail.textContent = (view.explainability && view.explainability.question ? "" : "") +
         (n.executive_summary || "") +
-        (n.risk_commentary ? `\n\nRisk: ${n.risk_commentary}` : "");
+        (n.risk_commentary ? `\n\nریسک: ${n.risk_commentary}` : "");
     }
   }
 
   function renderExplain(ex) {
     const q = $("why-title");
     const list = $("explain-list");
-    if (q) q.textContent = (ex && ex.question) || "Why this bias?";
+    if (q) q.textContent = (ex && ex.question) || "چرا این سوگیری؟";
     if (!list) return;
     const bullets = (ex && ex.bullets) || [];
     list.innerHTML = bullets
@@ -156,7 +156,7 @@
     const root = $("alert-list");
     if (!root) return;
     if (!items.length) {
-      root.innerHTML = `<p class="empty">No active alerts in the current filter.</p>`;
+      root.innerHTML = `<p class="empty">هشدار فعالی در فیلتر فعلی نیست.</p>`;
       return;
     }
     root.innerHTML = items
@@ -164,7 +164,7 @@
         (a) => `<article class="alert-row">
           <span class="sev ${toneClass(a.severity_tone)}">${a.severity || "—"}</span>
           <div>
-            <div><strong>${a.type || "Event"}</strong> — ${a.summary || ""}</div>
+            <div><strong>${a.type || "رویداد"}</strong> — ${a.summary || ""}</div>
             <div class="meta">${a.category || ""} · ${a.asset || ""} · ${a.state || ""} · ${a.timestamp || ""}</div>
           </div>
           <span class="pill">${a.state || ""}</span>
@@ -198,15 +198,15 @@
       .join("");
 
     root.innerHTML = `
-      <div class="hist-panel"><h3>Confidence trend</h3><div class="spark" aria-label="Confidence sparkline">${spark || '<p class="empty">No history yet</p>'}</div></div>
-      <div class="hist-panel"><h3>Bias evolution</h3><ul class="hist-list">${
-        bias.slice(0, 8).map((b) => `<li><span>${b.t || ""}</span><span>${b.bias || "—"}</span></li>`).join("") || "<li class='empty'>No history</li>"
+      <div class="hist-panel"><h3>روند اطمینان</h3><div class="spark" aria-label="نمودار اطمینان">${spark || '<p class="empty">هنوز تاریخچه‌ای نیست</p>'}</div></div>
+      <div class="hist-panel"><h3>تحول سوگیری</h3><ul class="hist-list">${
+        bias.slice(0, 8).map((b) => `<li><span>${b.t || ""}</span><span>${b.bias || "—"}</span></li>`).join("") || "<li class='empty'>بدون تاریخچه</li>"
       }</ul></div>
-      <div class="hist-panel"><h3>Regime history</h3><ul class="hist-list">${
-        regimes.slice(0, 8).map((r) => `<li><span>${r.t || ""}</span><span>${r.regime || "—"}</span></li>`).join("") || "<li class='empty'>No history</li>"
+      <div class="hist-panel"><h3>تاریخچه رژیم</h3><ul class="hist-list">${
+        regimes.slice(0, 8).map((r) => `<li><span>${r.t || ""}</span><span>${r.regime || "—"}</span></li>`).join("") || "<li class='empty'>بدون تاریخچه</li>"
       }</ul></div>
-      <div class="hist-panel"><h3>Recent predictions</h3><ul class="hist-list">${
-        outcomes.slice(0, 8).map((o) => `<li><span>${o.market_bias || "—"}</span><span>${fmt(o.confidence)}</span></li>`).join("") || "<li class='empty'>No archive</li>"
+      <div class="hist-panel"><h3>پیش‌بینی‌های اخیر</h3><ul class="hist-list">${
+        outcomes.slice(0, 8).map((o) => `<li><span>${o.market_bias || "—"}</span><span>${fmt(o.confidence)}</span></li>`).join("") || "<li class='empty'>آرشیو خالی</li>"
       }</ul></div>`;
   }
 
@@ -248,8 +248,8 @@
       render(data);
     } catch (err) {
       document.body.dataset.state = "Offline";
-      setText("footer-state", "Offline — cannot reach dashboard API");
-      setText("hdr-conn", "Offline");
+      setText("footer-state", "آفلاین — ارتباط با API داشبورد برقرار نشد");
+      setText("hdr-conn", "آفلاین");
       const conn = $("hdr-conn");
       if (conn) conn.dataset.tone = "red";
     }
@@ -265,7 +265,7 @@
       if (!detail || !btn) return;
       const open = detail.classList.toggle("hidden") === false;
       btn.setAttribute("aria-expanded", open ? "true" : "false");
-      btn.textContent = open ? "Collapse reasoning" : "Expand reasoning";
+      btn.textContent = open ? "جمع‌کردن استدلال" : "نمایش استدلال";
     });
     $("filter-severity")?.addEventListener("change", applyAlertFilters);
     $("filter-category")?.addEventListener("change", applyAlertFilters);

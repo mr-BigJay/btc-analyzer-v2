@@ -23,3 +23,6 @@ build/
 *.log
 nohup.out
 deploy/backups/
+
+deploy/certbot/www/*
+!deploy/certbot/www/.gitkeep

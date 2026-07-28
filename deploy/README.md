@@ -57,6 +57,27 @@ docker compose pull api && docker compose up -d api
 - `make backup` → `deploy/scripts/backup.sh`
 - Periodic restore drills required before production cutover
 
-## Production gate
+## Persian UI + Domain / TLS
 
-`GET /api/v1/deploy/checklist` must show `can_deploy_production=true` with core items passing.
+Static RTL portal is served by Nginx from `frontend/`:
+
+| Path | Page |
+|------|------|
+| `/` | خانه |
+| `/dashboard.html` | داشبورد |
+| `/guide.html` | نحوه استفاده |
+| `/setup.html` | راه‌اندازی Ubuntu |
+| `/ssl.html` | دامنه و SSL |
+| `/status.html` | وضعیت سیستم |
+
+```bash
+# HTTP first
+docker compose up -d --build
+
+# Then TLS (Ubuntu host)
+export DOMAIN=example.com
+export CERTBOT_EMAIL=admin@example.com
+sudo -E bash deploy/scripts/setup-ssl.sh
+```
+
+TLS terminates at Nginx. Certificates live in `/etc/letsencrypt` on the host and are mounted read-only into the nginx container.

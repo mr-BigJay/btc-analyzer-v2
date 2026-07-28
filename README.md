@@ -44,3 +44,15 @@ python -m src.main report     # executive markdown
 ## Status
 
 **Enterprise Design Book complete (Chapters 1–23)** on the rewrite branch.
+
+## رابط فارسی
+
+پس از `docker compose up` صفحات زیر در دسترس‌اند:
+
+- `/` خانه · `/dashboard.html` داشبورد · `/guide.html` راهنما
+- `/setup.html` راه‌اندازی Ubuntu · `/ssl.html` دامنه/SSL · `/status.html` وضعیت
+
+```bash
+export DOMAIN=example.com CERTBOT_EMAIL=admin@example.com
+sudo -E bash deploy/scripts/setup-ssl.sh
+```

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>دامنه و SSL — BTC Analyzer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Vazirmatn:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/fa.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main">پرش به محتوا</a>
+  <header class="site-header" role="banner">
+    <a class="brand" href="/"><span class="brand-mark">BA</span><span><span class="brand-name">BTC Analyzer</span><span class="brand-sub">SSL</span></span></a>
+    <button type="button" class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="site-nav">منو</button>
+    <nav class="site-nav" id="site-nav" aria-label="منوی اصلی">
+      <a data-nav href="/">خانه</a>
+      <a data-nav href="/dashboard.html">داشبورد</a>
+      <a data-nav href="/guide.html">نحوه استفاده</a>
+      <a data-nav href="/setup.html">راه‌اندازی سرور</a>
+      <a data-nav href="/ssl.html">دامنه و SSL</a>
+      <a data-nav href="/status.html">وضعیت سیستم</a>
+      <a class="nav-cta" href="/status.html">وضعیت</a>
+    </nav>
+  </header>
+
+  <header class="page-hero">
+    <h1>اتصال دامنه و گواهی SSL</h1>
+    <p>TLS روی لبه (Nginx) قطع می‌شود. سرویس‌های داخلی فقط در شبکه Docker صحبت می‌کنند.</p>
+  </header>
+
+  <article class="prose" id="main">
+    <h2>۱) DNS</h2>
+    <p>در پنل دامنه یک رکورد <strong>A</strong> بسازید:</p>
+<pre><code>example.com     A     IP_SERVER
+www.example.com A     IP_SERVER</code></pre>
+    <p>تا انتشار DNS صبر کنید (<code>dig example.com +short</code> باید IP سرور را نشان دهد).</p>
+
+    <h2>۲) تنظیم دامنه در پروژه</h2>
+<pre><code>cd /opt/btc-analyzer-v2
+export DOMAIN=example.com
+export EMAIL=admin@example.com
+# یا داخل .env:
+# DOMAIN=example.com
+# CERTBOT_EMAIL=admin@example.com</code></pre>
+
+    <h2>۳) اجرای اسکریپت SSL</h2>
+    <p>اسکریپت آماده در مخزن، Certbot را نصب می‌کند، گواهی Let’s Encrypt می‌گیرد و پیکربندی Nginx را فعال می‌کند:</p>
+<pre><code>sudo bash deploy/scripts/setup-ssl.sh
+docker compose up -d nginx
+curl -I https://example.com</code></pre>
+
+    <h2>۴) فعال‌سازی دستی (اختیاری)</h2>
+<pre><code>sudo apt install -y certbot
+sudo certbot certonly --standalone -d example.com -d www.example.com --email admin@example.com --agree-tos --non-interactive
+
+# کپی قالب SSL
+DOMAIN=example.com
+sed "s/__DOMAIN__/${DOMAIN}/g" deploy/nginx-ssl.conf.template > deploy/nginx.conf
+docker compose up -d nginx</code></pre>
+
+    <div class="callout">
+      <p>قبل از گرفتن گواهی با حالت <code>standalone</code>، سرویس‌هایی که پورت ۸۰ را اشغال کرده‌اند موقتاً متوقف شوند یا از روش <code>webroot</code> استفاده کنید. اسکریپت پروژه این ترتیب را مدیریت می‌کند.</p>
+    </div>
+
+    <h2>۵) تمدید خودکار</h2>
+<pre><code>sudo crontab -e
+# هر روز ساعت ۰۳:۱۵
+15 3 * * * certbot renew --quiet && cd /opt/btc-analyzer-v2 && docker compose exec -T nginx nginx -s reload</code></pre>
+
+    <h2>۶) بررسی نهایی</h2>
+    <ul>
+      <li><code>https://دامنه/</code> — صفحه فارسی</li>
+      <li><code>https://دامنه/dashboard.html</code> — داشبورد</li>
+      <li><code>https://دامنه/ready</code> — آمادگی سرویس</li>
+      <li>قفل HTTPS در مرورگر و ریدایرکت HTTP→HTTPS</li>
+    </ul>
+
+    <p><a class="btn btn-primary" href="/setup.html">بازگشت به راه‌اندازی</a>
+       <a class="btn btn-ghost" href="/">خانه</a></p>
+  </article>
+
+  <footer class="site-footer"><p><strong>BTC Analyzer</strong> · دامنه و گواهی SSL</p></footer>
+  <script src="/js/nav.js" defer></script>
+</body>
+</html>

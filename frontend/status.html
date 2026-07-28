@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>وضعیت سیستم — BTC Analyzer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Vazirmatn:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/fa.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main">پرش به محتوا</a>
+  <header class="site-header" role="banner">
+    <a class="brand" href="/"><span class="brand-mark">BA</span><span><span class="brand-name">BTC Analyzer</span><span class="brand-sub">وضعیت</span></span></a>
+    <button type="button" class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="site-nav">منو</button>
+    <nav class="site-nav" id="site-nav" aria-label="منوی اصلی">
+      <a data-nav href="/">خانه</a>
+      <a data-nav href="/dashboard.html">داشبورد</a>
+      <a data-nav href="/guide.html">نحوه استفاده</a>
+      <a data-nav href="/setup.html">راه‌اندازی سرور</a>
+      <a data-nav href="/ssl.html">دامنه و SSL</a>
+      <a data-nav href="/status.html">وضعیت سیستم</a>
+      <a class="nav-cta" href="/dashboard.html">داشبورد</a>
+    </nav>
+  </header>
+
+  <header class="page-hero">
+    <h1>وضعیت سیستم</h1>
+    <p>پروب‌های سلامت و نسخه استقرار فعلی را از همین صفحه بررسی کنید.</p>
+  </header>
+
+  <section class="section" id="main">
+    <div class="status-grid" id="status-grid">
+      <div class="status-item"><div class="label">زنده بودن</div><div class="value" id="st-live">…</div></div>
+      <div class="status-item"><div class="label">آمادگی</div><div class="value" id="st-ready">…</div></div>
+      <div class="status-item"><div class="label">سلامت</div><div class="value" id="st-health">…</div></div>
+      <div class="status-item"><div class="label">محیط</div><div class="value" id="st-env">…</div></div>
+      <div class="status-item"><div class="label">فصل</div><div class="value" id="st-chapter">…</div></div>
+      <div class="status-item"><div class="label">نسخه</div><div class="value" id="st-version">…</div></div>
+    </div>
+    <p class="lead" id="st-detail" style="margin-top:1.5rem"></p>
+    <p style="margin-top:1.25rem">
+      <a class="btn btn-primary" href="/dashboard.html">داشبورد</a>
+      <a class="btn btn-ghost" href="/api/docs" target="_blank" rel="noopener">API Docs</a>
+    </p>
+  </section>
+
+  <footer class="site-footer"><p><strong>BTC Analyzer</strong> · پایش سلامت</p></footer>
+  <script src="/js/nav.js" defer></script>
+  <script src="/js/status.js" defer></script>
+</body>
+</html>

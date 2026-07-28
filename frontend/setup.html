@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>راه‌اندازی سرور — BTC Analyzer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Vazirmatn:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/fa.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main">پرش به محتوا</a>
+  <header class="site-header" role="banner">
+    <a class="brand" href="/"><span class="brand-mark">BA</span><span><span class="brand-name">BTC Analyzer</span><span class="brand-sub">راه‌اندازی</span></span></a>
+    <button type="button" class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="site-nav">منو</button>
+    <nav class="site-nav" id="site-nav" aria-label="منوی اصلی">
+      <a data-nav href="/">خانه</a>
+      <a data-nav href="/dashboard.html">داشبورد</a>
+      <a data-nav href="/guide.html">نحوه استفاده</a>
+      <a data-nav href="/setup.html">راه‌اندازی سرور</a>
+      <a data-nav href="/ssl.html">دامنه و SSL</a>
+      <a data-nav href="/status.html">وضعیت سیستم</a>
+      <a class="nav-cta" href="/ssl.html">مرحله بعد: SSL</a>
+    </nav>
+  </header>
+
+  <header class="page-hero">
+    <h1>راه‌اندازی روی Ubuntu ۲۴</h1>
+    <p>استقرار پیشنهادی با Docker Compose: Nginx + API + Scheduler + Collectors + PostgreSQL + Redis.</p>
+  </header>
+
+  <article class="prose" id="main">
+    <h2>پیش‌نیاز</h2>
+    <ul>
+      <li>سرور Ubuntu ۲۴.۰۴ با دسترسی SSH</li>
+      <li>حداقل ۲ vCPU، ۴GB RAM، ۴۰GB دیسک</li>
+      <li>پورت‌های ۲۲، ۸۰ و ۴۴۳ (برای دامنه/SSL)</li>
+    </ul>
+
+    <h2>۱) نصب Docker</h2>
+<pre><code>sudo apt update
+sudo apt install -y ca-certificates curl git ufw
+curl -fsSL https://get.docker.com | sudo sh
+sudo usermod -aG docker $USER
+# یک‌بار خارج و دوباره وارد شوید
+docker compose version</code></pre>
+
+    <h2>۲) فایروال</h2>
+<pre><code>sudo ufw allow OpenSSH
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw enable</code></pre>
+
+    <h2>۳) دریافت پروژه</h2>
+<pre><code>cd /opt
+sudo git clone https://github.com/mr-BigJay/btc-analyzer-v2.git
+sudo chown -R $USER:$USER btc-analyzer-v2
+cd btc-analyzer-v2
+git checkout cursor/persian-ui-ssl-390e</code></pre>
+
+    <h2>۴) تنظیم متغیرهای محیطی</h2>
+<pre><code>cp .env.example .env
+nano .env</code></pre>
+    <p>حداقل این مقادیر را برای پروداکشن تنظیم کنید:</p>
+<pre><code>APP_ENV=production
+API_JWT_SECRET='یک-رمز-بلند-تصادفی'
+API_AUTH_ENABLED=true
+API_KEYS='your-key:Administrator'
+DOMAIN=example.com
+LOG_LEVEL=INFO
+DEBUG=0</code></pre>
+
+    <h2>۵) اجرای سرویس‌ها</h2>
+<pre><code>docker compose up -d --build
+docker compose ps
+curl -s http://127.0.0.1/live
+curl -s http://127.0.0.1/ready</code></pre>
+
+    <div class="callout">
+      <p>پس از بالا آمدن، رابط فارسی روی <code>http://IP-SERVER</code> و داشبورد روی <code>/dashboard.html</code> در دسترس است. برای دامنه و HTTPS به صفحه <a href="/ssl.html">دامنه و SSL</a> بروید.</p>
+    </div>
+
+    <h2>۶) به‌روزرسانی بعدی</h2>
+<pre><code>cd /opt/btc-analyzer-v2
+git pull
+docker compose up -d --build
+make backup</code></pre>
+
+    <p><a class="btn btn-primary" href="/ssl.html">ادامه: دامنه و SSL</a>
+       <a class="btn btn-ghost" href="/status.html">بررسی وضعیت</a></p>
+  </article>
+
+  <footer class="site-footer"><p><strong>BTC Analyzer</strong> · راهنمای استقرار Ubuntu ۲۴</p></footer>
+  <script src="/js/nav.js" defer></script>
+</body>
+</html>

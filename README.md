@@ -49,10 +49,19 @@ python -m src.main report     # executive markdown
 
 پس از `docker compose up` صفحات زیر در دسترس‌اند:
 
-- `/` خانه · `/dashboard.html` داشبورد · `/guide.html` راهنما
-- `/setup.html` راه‌اندازی Ubuntu · `/ssl.html` دامنه/SSL · `/status.html` وضعیت
+- `/` خانه · `/admin.html` **پنل مدیریت** · `/dashboard.html` داشبورد
+- `/guide.html` راهنما · `/setup.html` نصب سرور · `/ssl.html` دامنه/SSL · `/status.html` وضعیت
+
+### بعد از نصب چه کار کنید؟
+
+1. `docker compose up -d --build`
+2. باز کردن `http://IP-SERVER/admin.html`
+3. تعیین رمز مدیر + JWT و ذخیره تنظیمات از UI
+4. از تب «عملیات»: جمع‌آوری / تحلیل / Outlook
+5. در صورت نیاز دامنه: `/ssl.html` یا اسکریپت Certbot
 
 ```bash
-export DOMAIN=example.com CERTBOT_EMAIL=admin@example.com
-sudo -E bash deploy/scripts/setup-ssl.sh
+touch .env
+docker compose up -d --build
+# سپس پنل: http://SERVER/admin.html
 ```

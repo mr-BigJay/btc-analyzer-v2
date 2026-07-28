@@ -8,6 +8,7 @@ from src.services.intelligence import IntelligenceService
 from src.services.market import MarketService
 from src.services.reports import ReportService
 from src.services.scoring import ScoringService
+from src.services.validation import ValidationService
 
 __all__ = [
     "CollectionService",
@@ -18,4 +19,5 @@ __all__ = [
     "DecisionService",
     "ReportService",
     "MarketService",
+    "ValidationService",
 ]

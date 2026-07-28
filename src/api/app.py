@@ -10,7 +10,7 @@ from fastapi.staticfiles import StaticFiles
 
 from src import __version__
 from src.api.middleware import RateLimitMiddleware, RequestContextMiddleware
-from src.api.routers import collection, features, health, market, system
+from src.api.routers import collection, features, health, market, system, validation
 from src.config import BASE_DIR, settings
 from src.db.models import init_db
 from src.logging_setup import get_logger, setup_logging
@@ -23,7 +23,7 @@ log = get_logger("api")
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     init_db()
-    log.info("API started chapter=13 timezone={}", settings.timezone)
+    log.info("API started chapter=14 timezone={}", settings.timezone)
     yield
 
 
@@ -50,6 +50,7 @@ app.include_router(health.router)
 app.include_router(system.router)
 app.include_router(collection.router)
 app.include_router(features.router)
+app.include_router(validation.router)
 app.include_router(market.router)
 
 

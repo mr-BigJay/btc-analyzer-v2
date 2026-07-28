@@ -1,5 +1,5 @@
 """API routers (Ch.5)."""
 
-from src.api.routers import collection, features, health, market, system
+from src.api.routers import collection, features, health, market, system, validation
 
-__all__ = ["health", "system", "collection", "features", "market"]
+__all__ = ["health", "system", "collection", "features", "validation", "market"]

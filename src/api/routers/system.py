@@ -61,6 +61,25 @@ def architecture(request: Request):
                     "/api/v1/features/quarantine",
                 ],
             },
+            "validation": {
+                "chapter": 14,
+                "methods": [
+                    "historical_backtest",
+                    "walk_forward",
+                    "paper_trading",
+                    "shadow_mode",
+                    "continuous_validation",
+                ],
+                "horizons": ["1h", "4h", "24h", "7d"],
+                "endpoints": [
+                    "/api/v1/validation/status",
+                    "/api/v1/validation/dashboard",
+                    "/api/v1/validation/backtest",
+                    "/api/v1/validation/walk-forward",
+                    "/api/v1/validation/evaluate",
+                    "/api/v1/validation/approve",
+                ],
+            },
             "backend": {
                 "framework": "fastapi",
                 "asgi": "uvicorn",

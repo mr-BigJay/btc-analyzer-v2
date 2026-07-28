@@ -275,6 +275,14 @@ class AIDecisionEngine:
             record_forecast(payload, analysis_input=analysis_input)
         except Exception as exc:  # noqa: BLE001
             log.warning("forecast record failed: {}", exc)
+        try:
+            from src.validation.archive import archive_from_ai_report
+            from src.validation.paper import paper_ledger
+
+            rec = archive_from_ai_report(payload, source="continuous")
+            paper_ledger.open_from_prediction(rec)
+        except Exception as exc:  # noqa: BLE001
+            log.warning("validation archive failed: {}", exc)
 
 
 def _enrich_narrative_bullets(bullets: list[str], intel: dict[str, Any]) -> list[str]:

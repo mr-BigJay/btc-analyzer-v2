@@ -82,9 +82,7 @@ def test_outlier_flags_not_removed():
 
 
 def test_feature_validation_quarantines_non_finite():
-    from src.features.contracts import FeatureRecord as FR
-
-    rec = FR(
+    rec = FeatureRecord(
         name="bad",
         value=float("inf"),
         category=FeatureCategory.PRICE.value,

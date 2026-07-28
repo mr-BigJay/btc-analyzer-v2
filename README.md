@@ -28,7 +28,8 @@ python -m src.main report     # executive markdown
 | 11 | Data Model & Database Architecture | ✅ |
 | 12 | Data Collection & Exchange Integration | ✅ |
 | 13 | Feature Engineering | ✅ |
+| 14 | Backtesting & Continuous Validation | ✅ |
 
 ## Status
 
-Chapters 1–13 applied on the rewrite branch.
+Chapters 1–14 applied on the rewrite branch.

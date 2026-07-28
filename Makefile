@@ -1,9 +1,9 @@
-# BTC Analyzer — Chapter 20 DevOps helpers
+# BTC Analyzer — Chapter 20/22 DevOps & QA helpers
 
-.PHONY: help fmt lint test ci docker-build compose-up compose-down backup readiness
+.PHONY: help fmt lint test test-unit test-int ci docker-build compose-up compose-down backup readiness qa-gates qa-report
 
 help:
-	@echo "Targets: fmt lint test ci docker-build compose-up compose-down backup readiness"
+	@echo "Targets: fmt lint test test-unit test-int ci docker-build compose-up compose-down backup readiness qa-gates qa-report"
 
 fmt:
 	python3 -m ruff format src tests || true
@@ -15,7 +15,13 @@ lint:
 test:
 	python3 -m pytest -q
 
-ci: lint test
+test-unit:
+	python3 -m pytest -q -m unit
+
+test-int:
+	python3 -m pytest -q -m "integration or e2e"
+
+ci: lint test qa-gates
 
 docker-build:
 	docker build -t btc-analyzer:local .
@@ -31,3 +37,9 @@ backup:
 
 readiness:
 	python3 -c "from src.services.deploy import DeployService; import json; print(json.dumps(DeployService().checklist(), indent=2))"
+
+qa-gates:
+	python3 -c "from src.services.qa import QAService; import json; s=QAService().suite(); print(json.dumps(s['gates'], indent=2)); assert s['gates']['can_release']"
+
+qa-report:
+	python3 -c "from src.services.qa import QAService; import json; print(json.dumps(QAService().suite()['test_report'], indent=2))"

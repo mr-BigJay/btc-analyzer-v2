@@ -116,13 +116,13 @@ def test_deploy_and_probe_api():
         assert resp.status_code == 200, path
 
     health = client.get("/api/v1/health").json()["data"]
-    assert health["chapter"] == "21-observability"
-    assert health["phase"] == "rewrite-ch21"
+    assert health["chapter"] == "22-testing-qa"
+    assert health["phase"] == "rewrite-ch22"
 
     arch = client.get("/api/v1/architecture").json()["data"]
     assert arch["deployment_devops"]["chapter"] == 20
     assert arch["deployment_devops"]["rollback_enabled"] is True
 
     sys_h = client.get("/api/v1/system/health").json()["data"]
-    assert sys_h["chapter"] == "21-observability"
-    assert sys_h["phase"] == "rewrite-ch21"
+    assert sys_h["chapter"] == "22-testing-qa"
+    assert sys_h["phase"] == "rewrite-ch22"

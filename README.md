@@ -38,7 +38,8 @@ python -m src.main report     # executive markdown
 | 19 | Security, Authentication & Operational Hardening | ✅ |
 | 20 | Deployment, DevOps & Infrastructure | ✅ |
 | 21 | Monitoring, Logging & Observability | ✅ |
+| 22 | Testing Strategy & Quality Assurance | ✅ |
 
 ## Status
 
-Chapters 1–21 applied on the rewrite branch.
+Chapters 1–22 applied on the rewrite branch.

@@ -24,12 +24,12 @@ jobs:
           pip install -r requirements.txt
           pip install pytest ruff
 
-      - name: Static analysis (compile + ruff)
+      - name: Static analysis
         run: |
           python -m compileall -q src
           ruff check src tests || true
 
-      - name: Unit tests
+      - name: Full test suite
         env:
           APP_ENV: testing
           DATABASE_URL: sqlite:////tmp/btc_analyzer_ci.db
@@ -37,9 +37,26 @@ jobs:
           API_RATE_LIMIT_PER_MINUTE: "5000"
         run: python -m pytest -q
 
+      - name: Quality gates (Ch.22)
+        env:
+          APP_ENV: testing
+          DATABASE_URL: sqlite:////tmp/btc_analyzer_ci_qa.db
+          REDIS_URL: ""
+        run: |
+          python - <<'PY'
+          from src.db.session import init_db, reset_engine
+          from src.services.qa import QAService
+          reset_engine(); init_db(seed=True)
+          suite = QAService().suite(include_stress=True)
+          report = suite["test_report"]
+          gates = suite["gates"]
+          print(report)
+          assert gates["can_release"], gates
+          assert report["overall_status"] == "Approved", report
+          PY
+
       - name: Container build verification
         run: docker build -t btc-analyzer:ci .
 
-      # Security / dependency scanning hooks (advisory — non-blocking scaffold)
       - name: Dependency inventory
         run: pip freeze > /tmp/requirements.freeze.txt && wc -l /tmp/requirements.freeze.txt

@@ -3,38 +3,117 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BTC Analyzer v3</title>
+  <title>BTC Analyzer — Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:wght@500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/style.css" />
 </head>
-<body>
-  <main class="shell">
-    <p class="eyebrow">BTC Analyzer · Rewrite v3</p>
-    <h1>Market Intelligence<br/>Decision Support</h1>
-    <p class="lede">
-      Decision Support System. Evidence-based scenarios. Probability over prediction. Risk first.
-    </p>
-    <ul class="pipeline">
-      <li>Sources</li>
-      <li>Collect</li>
-      <li>Validate</li>
-      <li>Normalize</li>
-      <li>Storage</li>
-      <li>Analysis</li>
-      <li>AI Decision</li>
-      <li>Presentation</li>
-    </ul>
-    <p class="status" id="status">Loading…</p>
+<body data-density="comfortable" data-state="Loading">
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="app-header" id="header" role="banner">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">◈</span>
+      <div>
+        <p class="brand-name">BTC Analyzer</p>
+        <p class="brand-sub">Decision Support</p>
+      </div>
+    </div>
+    <nav class="nav" aria-label="Primary" id="nav">
+      <a href="#overview">Overview</a>
+      <a href="#intelligence">Intelligence</a>
+      <a href="#narrative">Narrative</a>
+      <a href="#alerts">Alerts</a>
+      <a href="#history">History</a>
+    </nav>
+    <div class="header-meta" id="header-meta">
+      <label class="sr-only" for="asset-search">Asset search</label>
+      <input id="asset-search" class="asset-search" type="search" placeholder="Search asset…" list="asset-list" autocomplete="off" />
+      <datalist id="asset-list"><option value="BTCUSDT"></option></datalist>
+      <span class="pill" id="hdr-asset">—</span>
+      <span class="pill" id="hdr-tf">1h</span>
+      <span class="pill" id="hdr-regime">—</span>
+      <span class="pill tone-blue" id="hdr-dqs" title="Data Quality Score">DQS —</span>
+      <span class="status-dot" id="hdr-conn" data-tone="blue" title="Connection">Loading</span>
+      <button type="button" class="alert-chip" id="hdr-alerts" aria-label="Active alerts">0</button>
+    </div>
+  </header>
+
+  <main id="main" class="workspace">
+    <section id="overview" class="level-1" aria-labelledby="exec-title">
+      <div class="section-head">
+        <h1 id="exec-title">Market Status</h1>
+        <p class="muted" id="last-update">Awaiting live intelligence…</p>
+      </div>
+      <div class="exec-strip" id="executive" role="group" aria-label="Executive intelligence">
+        <!-- filled by JS -->
+      </div>
+      <div id="alert-banner" class="alert-banner hidden" role="status"></div>
+    </section>
+
+    <section id="intelligence" class="level-2" aria-labelledby="intel-title">
+      <div class="section-head">
+        <h2 id="intel-title">Market Intelligence</h2>
+        <p class="muted">Domain view — intelligence, not raw feeds</p>
+      </div>
+      <div class="domain-grid" id="domain-cards"></div>
+    </section>
+
+    <section id="narrative" class="level-2 narrative-grid" aria-labelledby="narr-title">
+      <article class="panel" aria-labelledby="narr-title">
+        <div class="section-head">
+          <h2 id="narr-title">AI Narrative</h2>
+          <button type="button" class="text-btn" id="toggle-reasoning" aria-expanded="false">Expand reasoning</button>
+        </div>
+        <p class="lede" id="exec-summary"></p>
+        <p class="narrative-line" id="market-narrative"></p>
+        <div class="scenario-row" id="scenarios"></div>
+        <div class="plan-box" id="trading-plan"></div>
+        <p class="risk-note" id="risk-commentary"></p>
+        <div id="reasoning-detail" class="reasoning hidden"></div>
+      </article>
+      <aside class="panel explain" aria-labelledby="why-title">
+        <h2 id="why-title" class="explain-q"></h2>
+        <ul class="evidence-list" id="explain-list"></ul>
+      </aside>
+    </section>
+
+    <section id="alerts" class="level-3" aria-labelledby="alerts-title">
+      <div class="section-head row">
+        <div>
+          <h2 id="alerts-title">Alert Center</h2>
+          <p class="muted">Severity · asset · category filters</p>
+        </div>
+        <div class="filters" role="group" aria-label="Alert filters">
+          <select id="filter-severity" aria-label="Severity">
+            <option value="">All severities</option>
+            <option>Critical</option><option>High</option><option>Medium</option><option>Low</option><option>Informational</option>
+          </select>
+          <select id="filter-category" aria-label="Category">
+            <option value="">All categories</option>
+            <option>Price</option><option>Trend</option><option>Futures</option><option>Options</option>
+            <option>Liquidity</option><option>Risk</option><option>System</option><option>Macro</option>
+          </select>
+        </div>
+      </div>
+      <div class="alert-timeline" id="alert-list"></div>
+    </section>
+
+    <section id="history" class="level-4" aria-labelledby="hist-title">
+      <div class="section-head">
+        <h2 id="hist-title">Historical Context</h2>
+        <p class="muted">Bias evolution · confidence · regimes · outcomes</p>
+      </div>
+      <div class="hist-grid" id="historical"></div>
+    </section>
   </main>
-  <script>
-    fetch("/api/health")
-      .then((r) => r.json())
-      .then((d) => {
-        document.getElementById("status").textContent =
-          `${d.version} · ${d.phase} · chapter ${d.chapter}`;
-      })
-      .catch(() => {
-        document.getElementById("status").textContent = "API offline";
-      });
-  </script>
+
+  <footer class="app-footer">
+    <p>Presentation independent from analytical logic · Ch.17 Dashboard UX</p>
+    <p id="footer-state" class="mono"></p>
+  </footer>
+
+  <script src="/js/dashboard.js" defer></script>
 </body>
 </html>

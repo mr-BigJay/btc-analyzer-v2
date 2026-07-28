@@ -33,7 +33,8 @@ python -m src.main report     # executive markdown
 | 14 | Backtesting & Continuous Validation | ✅ |
 | 15 | Risk Management & Capital Preservation | ✅ |
 | 16 | Alerting, Notification & Event Processing | ✅ |
+| 17 | Dashboard, Visualization & User Experience | ✅ |
 
 ## Status
 
-Chapters 1–16 applied on the rewrite branch.
+Chapters 1–17 applied on the rewrite branch.

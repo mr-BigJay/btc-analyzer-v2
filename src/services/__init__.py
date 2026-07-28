@@ -2,6 +2,7 @@
 
 from src.services.analysis import AnalysisService
 from src.services.collection import CollectionService
+from src.services.dashboard import DashboardService
 from src.services.decision import DecisionService
 from src.services.events import EventService
 from src.services.features import FeatureService
@@ -24,4 +25,5 @@ __all__ = [
     "ValidationService",
     "RiskService",
     "EventService",
+    "DashboardService",
 ]

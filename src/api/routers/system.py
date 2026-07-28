@@ -132,6 +132,17 @@ def architecture(request: Request):
                     "/api/v1/events/analytics",
                 ],
             },
+            "dashboard_ux": {
+                "chapter": 17,
+                "philosophy": ["Observe", "Understand", "Decide"],
+                "information_levels": 4,
+                "states": ["Loading", "Live", "Stale", "Degraded", "Offline", "Maintenance"],
+                "endpoints": [
+                    "/api/v1/dashboard/status",
+                    "/api/v1/dashboard/view",
+                    "/api/v1/dashboard/preferences",
+                ],
+            },
             "backend": {
                 "framework": "fastapi",
                 "asgi": "uvicorn",

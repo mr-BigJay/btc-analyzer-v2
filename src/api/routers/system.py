@@ -110,6 +110,28 @@ def architecture(request: Request):
                     "/api/v1/risk/apply-plan",
                 ],
             },
+            "alerting_events": {
+                "chapter": 16,
+                "lifecycle": [
+                    "detection",
+                    "validation",
+                    "classification",
+                    "correlation",
+                    "deduplication",
+                    "priority",
+                    "notification",
+                    "archive",
+                ],
+                "channels": ["API", "Dashboard", "Telegram", "WebSocket"],
+                "endpoints": [
+                    "/api/v1/events/status",
+                    "/api/v1/events/list",
+                    "/api/v1/events/dashboard",
+                    "/api/v1/events/process",
+                    "/api/v1/events/system",
+                    "/api/v1/events/analytics",
+                ],
+            },
             "backend": {
                 "framework": "fastapi",
                 "asgi": "uvicorn",

@@ -319,6 +319,12 @@ class AIDecisionEngine:
             paper_ledger.open_from_prediction(rec)
         except Exception as exc:  # noqa: BLE001
             log.warning("validation archive failed: {}", exc)
+        try:
+            from src.events.engine import EventEngine
+
+            EventEngine().process_ai_report(payload, persist=True, notify=True, skip_external=True)
+        except Exception as exc:  # noqa: BLE001
+            log.warning("event engine failed: {}", exc)
 
 
 def _enrich_narrative_bullets(bullets: list[str], intel: dict[str, Any]) -> list[str]:

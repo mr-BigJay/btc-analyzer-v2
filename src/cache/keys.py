@@ -10,6 +10,7 @@ class CacheKeys:
     LATEST_MARKET_INTELLIGENCE = "latest_market_intelligence"
     LATEST_DECISION_OBJECT = "latest_decision_object"
     LATEST_RISK_OBJECT = "latest_risk_object"
+    LATEST_EVENT = "latest_event"
     LATEST_REPORT = "latest_report"
     CURRENT_ORDER_BOOK = "current_order_book"
     LATEST_OPTION_CHAIN_SUMMARY = "latest_option_chain_summary"

@@ -1,5 +1,6 @@
 """Service layer facades (Ch.5 §5.6) — modules communicate via interfaces only."""
 
+from src.services.admin import AdminService
 from src.services.analysis import AnalysisService
 from src.services.collection import CollectionService
 from src.services.dashboard import DashboardService
@@ -38,4 +39,5 @@ __all__ = [
     "ObservabilityService",
     "QAService",
     "GovernanceService",
+    "AdminService",
 ]

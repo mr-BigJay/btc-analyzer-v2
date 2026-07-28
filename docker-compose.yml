@@ -53,12 +53,14 @@ services:
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       TIMEZONE: ${TIMEZONE:-UTC}
       CORS_ORIGINS: ${CORS_ORIGINS:-*}
+    volumes:
+      - ./data:/app/data
+      - ./.env:/app/.env
     depends_on:
       postgres:
         condition: service_healthy
       redis:
-        condition: service_healthy
-    healthcheck:
+        condition: service_healthy    healthcheck:
       test:
         [
           "CMD",

@@ -1,6 +1,7 @@
-"""API routers (Ch.5 / Ch.18–23)."""
+"""API routers (Ch.5 / Ch.18–23 + Admin GUI)."""
 
 from src.api.routers import (
+    admin,
     alerts,
     assets,
     collection,
@@ -39,5 +40,6 @@ __all__ = [
     "observability",
     "qa",
     "governance",
+    "admin",
     "market",
 ]

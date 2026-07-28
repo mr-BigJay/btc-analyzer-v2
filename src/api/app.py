@@ -12,6 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from src import __version__
 from src.api.middleware import RateLimitMiddleware, RequestContextMiddleware
 from src.api.routers import (
+    admin,
     alerts,
     assets,
     collection,
@@ -87,6 +88,7 @@ app.include_router(deploy.router)
 app.include_router(observability.router)
 app.include_router(qa.router)
 app.include_router(governance.router)
+app.include_router(admin.router)
 app.include_router(market.router)
 
 

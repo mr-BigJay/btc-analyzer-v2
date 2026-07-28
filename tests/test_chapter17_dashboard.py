@@ -196,5 +196,6 @@ def test_frontend_shell_exists():
     assert (root / "js" / "nav.js").exists()
     css = (root / "css" / "style.css").read_text(encoding="utf-8")
     assert "--green" in css and "--red" in css and "--amber" in css
-    for page in ("guide.html", "setup.html", "ssl.html", "status.html"):
+    for page in ("guide.html", "setup.html", "ssl.html", "status.html", "admin.html"):
         assert (root / page).exists(), page
+    assert "پنل مدیریت" in (root / "index.html").read_text(encoding="utf-8")

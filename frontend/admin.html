@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>پنل مدیریت — BTC Analyzer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Vazirmatn:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/fa.css" />
+  <link rel="stylesheet" href="/css/admin.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main">پرش به محتوا</a>
+  <header class="site-header" role="banner">
+    <a class="brand" href="/"><span class="brand-mark">BA</span><span><span class="brand-name">BTC Analyzer</span><span class="brand-sub">پنل مدیریت</span></span></a>
+    <button type="button" class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="site-nav">منو</button>
+    <nav class="site-nav" id="site-nav" aria-label="منوی اصلی">
+      <a data-nav href="/">خانه</a>
+      <a data-nav href="/dashboard.html">داشبورد</a>
+      <a data-nav href="/admin.html">پنل مدیریت</a>
+      <a data-nav href="/guide.html">نحوه استفاده</a>
+      <a data-nav href="/setup.html">راه‌اندازی سرور</a>
+      <a data-nav href="/ssl.html">دامنه و SSL</a>
+      <a data-nav href="/status.html">وضعیت سیستم</a>
+      <a class="nav-cta" href="/dashboard.html">داشبورد</a>
+    </nav>
+  </header>
+
+  <main id="main">
+    <div id="auth-gate">
+      <div class="auth-box" id="bootstrap-box">
+        <h1>راه‌اندازی اولیه</h1>
+        <p>بعد از نصب، همین‌جا رمز مدیر و تنظیمات پایه را انجام دهید. دیگر نیازی به ویرایش دستی فایل‌ها نیست.</p>
+        <label class="field"><span style="display:block;margin-bottom:0.3rem;color:var(--mist)">رمز مدیر (حداقل ۸ کاراکتر)</span>
+          <input id="boot-pass" type="password" autocomplete="new-password" /></label>
+        <label class="field" style="display:block;margin-top:0.75rem"><span style="display:block;margin-bottom:0.3rem;color:var(--mist)">رمز JWT (پیشنهادی)</span>
+          <input id="boot-jwt" type="text" placeholder="یک رشته تصادفی بلند" /></label>
+        <label class="field" style="display:block;margin-top:0.75rem"><span style="display:block;margin-bottom:0.3rem;color:var(--mist)">دامنه (اختیاری)</span>
+          <input id="boot-domain" type="text" placeholder="example.com" /></label>
+        <label class="check-row" style="margin-top:0.85rem"><input id="boot-auth" type="checkbox" /><span>فعال‌سازی احراز هویت API</span></label>
+        <button type="button" class="btn btn-primary" id="btn-bootstrap">شروع و ورود به پنل</button>
+      </div>
+      <div class="auth-box hidden" id="login-box">
+        <h1>ورود مدیر</h1>
+        <p>برای تغییر تنظیمات و اجرای عملیات وارد شوید.</p>
+        <input id="login-pass" type="password" autocomplete="current-password" placeholder="رمز مدیر" />
+        <button type="button" class="btn btn-primary" id="btn-login">ورود</button>
+      </div>
+    </div>
+
+    <div id="admin-app" class="admin-shell hidden">
+      <header class="page-hero" style="width:auto;margin:0;padding:0.5rem 0 1rem">
+        <h1>کنسول مدیریت گرافیکی</h1>
+        <p>تنظیمات، عملیات تحلیل و وضعیت سامانه — همه از همین صفحه.</p>
+      </header>
+      <div class="admin-grid">
+        <aside class="admin-side" aria-label="بخش‌ها">
+          <button type="button" class="active" data-tab="panel-setup">راه‌اندازی</button>
+          <button type="button" data-tab="panel-config">تنظیمات</button>
+          <button type="button" data-tab="panel-ops">عملیات</button>
+          <button type="button" data-tab="panel-status">وضعیت</button>
+          <button type="button" id="btn-logout">خروج</button>
+        </aside>
+        <div>
+          <section class="admin-panel active" id="panel-setup">
+            <h2>پیشرفت راه‌اندازی</h2>
+            <p class="hint" id="progress-summary">—</p>
+            <div class="progress-list" id="progress-list"></div>
+            <p class="hint" style="margin-top:1rem">مراحل اختیاری را می‌توانید رد کنید و بعداً از تنظیمات کامل کنید.</p>
+          </section>
+
+          <section class="admin-panel" id="panel-config">
+            <h2>تنظیمات سامانه</h2>
+            <p class="hint">مقادیر ذخیره می‌شوند و بلافاصله روی API اعمال می‌گردند. فیلدهای محرمانه خالی یعنی بدون تغییر.</p>
+            <div id="config-groups"></div>
+            <button type="button" class="btn btn-primary" id="btn-save-config">ذخیره تنظیمات</button>
+          </section>
+
+          <section class="admin-panel" id="panel-ops">
+            <h2>عملیات</h2>
+            <p class="hint">اجرای دستی جریان کاری بدون خط فرمان.</p>
+            <div class="ops-row">
+              <button type="button" class="btn btn-primary" data-op="collect">جمع‌آوری داده</button>
+              <button type="button" class="btn btn-primary" data-op="analyze">اجرای تحلیل</button>
+              <button type="button" class="btn btn-primary" data-op="outlook">گزارش Daily Outlook</button>
+              <button type="button" class="btn btn-ghost" data-op="health">بررسی سلامت</button>
+              <a class="btn btn-ghost" href="/dashboard.html">باز کردن داشبورد</a>
+              <a class="btn btn-ghost" href="/ssl.html">راهنمای دامنه/SSL</a>
+            </div>
+          </section>
+
+          <section class="admin-panel" id="panel-status">
+            <h2>وضعیت لحظه‌ای</h2>
+            <div class="status-grid">
+              <div class="status-item"><div class="label">نسخه</div><div class="value" id="st-version">—</div></div>
+              <div class="status-item"><div class="label">سلامت</div><div class="value" id="st-health">—</div></div>
+            </div>
+            <p class="hint" style="margin-top:1rem">جزئیات بیشتر در صفحه <a href="/status.html">وضعیت سیستم</a> و API Docs.</p>
+          </section>
+
+          <div class="toast" id="toast" role="status"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer"><p><strong>BTC Analyzer</strong> · پنل مدیریت پس از نصب</p></footer>
+  <script src="/js/nav.js" defer></script>
+  <script src="/js/admin.js" defer></script>
+</body>
+</html>

@@ -37,7 +37,8 @@ python -m src.main report     # executive markdown
 | 18 | API Specification & Integration Guide | ✅ |
 | 19 | Security, Authentication & Operational Hardening | ✅ |
 | 20 | Deployment, DevOps & Infrastructure | ✅ |
+| 21 | Monitoring, Logging & Observability | ✅ |
 
 ## Status
 
-Chapters 1–20 applied on the rewrite branch.
+Chapters 1–21 applied on the rewrite branch.

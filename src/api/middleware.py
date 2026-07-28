@@ -1,4 +1,4 @@
-"""API middleware — request IDs, secure headers, rate limiting (Ch.5 / Ch.18 / Ch.19)."""
+"""API middleware — request IDs, tracing, secure headers, rate limiting (Ch.5 / Ch.18–21)."""
 
 from __future__ import annotations
 
@@ -15,6 +15,7 @@ from src.api_spec.auth import authenticate_headers, effective_rate_limit
 from src.api_spec.observability import api_metrics
 from src.config import settings
 from src.logging_setup import correlation_id_var, get_logger
+from src.observability.tracing import end_span, start_span
 from src.security.contracts import AuditAction
 from src.security.hardening import apply_security_headers
 
@@ -31,33 +32,59 @@ def _is_https(request: Request) -> bool:
 
 
 class RequestContextMiddleware(BaseHTTPMiddleware):
-    """Attach request_id / correlation_id and secure headers (Ch.19 §19.23)."""
+    """Attach request_id / correlation_id, root span, and secure headers (Ch.19 / Ch.21)."""
 
     async def dispatch(self, request: Request, call_next) -> Response:
         request_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
         token = correlation_id_var.set(request_id)
         request.state.request_id = request_id
         request.state.principal = authenticate_headers(request.headers)
+        span, span_started, t_token, s_token = start_span(
+            "http.request",
+            service="api",
+            attributes={"method": request.method, "path": request.url.path},
+        )
+        request.state.trace_id = span.trace_id
+        request.state.span_id = span.span_id
         started = time.monotonic()
         status_code = 500
+        response: Response | None = None
         try:
             response = await call_next(request)
             status_code = response.status_code
         except Exception as exc:  # noqa: BLE001
             log.exception("Unhandled API error: {}", exc)
+            end_span(
+                span,
+                span_started,
+                t_token,
+                s_token,
+                status="error",
+                attributes={"status_code": 500},
+            )
+            correlation_id_var.reset(token)
             return failure(
                 "Internal server error",
                 code="INTERNAL_ERROR",
                 request_id=request_id,
                 status_code=500,
             )
-        finally:
-            correlation_id_var.reset(token)
 
         duration_ms = (time.monotonic() - started) * 1000
         if not _is_streaming_path(request.url.path):
             api_metrics.record_request(path=request.url.path, latency_ms=duration_ms, status_code=status_code)
+        end_span(
+            span,
+            span_started,
+            t_token,
+            s_token,
+            status="ok" if status_code < 500 else "error",
+            attributes={"status_code": status_code, "duration_ms": round(duration_ms, 3)},
+        )
+        correlation_id_var.reset(token)
+        assert response is not None
         response.headers["X-Request-ID"] = request_id
+        response.headers["X-Trace-ID"] = span.trace_id
         response.headers["X-Response-Time-Ms"] = f"{duration_ms:.1f}"
         response.headers["X-API-Version"] = "v1"
         apply_security_headers(response.headers, https=_is_https(request))

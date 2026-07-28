@@ -1,4 +1,4 @@
-"""FastAPI application — modular backend (Ch.5 / Ch.18–20)."""
+"""FastAPI application — modular backend (Ch.5 / Ch.18–21)."""
 
 from __future__ import annotations
 
@@ -22,6 +22,7 @@ from src.api.routers import (
     health,
     integration,
     market,
+    observability,
     reports,
     risk,
     security,
@@ -40,7 +41,7 @@ log = get_logger("api")
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     init_db()
-    log.info("API started chapter=20 timezone={}", settings.timezone)
+    log.info("API started chapter=21 timezone={}", settings.timezone)
     yield
 
 
@@ -49,7 +50,7 @@ app = FastAPI(
     version=__version__,
     description=(
         "BTC Analyzer Decision Support System — versioned REST, WebSocket, and webhook integrations. "
-        "Security by default (Ch.19); deployment probes and DevOps contracts (Ch.20). "
+        "Security (Ch.19), deployment probes (Ch.20), observability pillars (Ch.21). "
         "All external clients must use published `/api/v1/` contracts."
     ),
     docs_url="/api/docs",
@@ -81,6 +82,7 @@ app.include_router(alerts.router)
 app.include_router(integration.router)
 app.include_router(security.router)
 app.include_router(deploy.router)
+app.include_router(observability.router)
 app.include_router(market.router)
 
 

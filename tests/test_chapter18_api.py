@@ -157,7 +157,7 @@ def test_integration_api_endpoints():
 
     r6 = client.get("/api/v1/system/health")
     assert r6.status_code == 200
-    assert r6.json()["data"]["chapter"] == "20-deployment-devops"
+    assert r6.json()["data"]["chapter"] == "21-observability"
 
     r7 = client.post("/api/v1/integration/auth/token", json={"subject": "ci", "role": "Analyst"})
     assert r7.status_code == 201

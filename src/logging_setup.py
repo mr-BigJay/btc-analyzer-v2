@@ -1,8 +1,9 @@
-"""Loguru-based logging (Ch.5 §5.2 / §5.10)."""
+"""Loguru-based logging (Ch.5 §5.2 / §5.10 / Ch.21 structured schema)."""
 
 from __future__ import annotations
 
 import logging
+import os
 import sys
 from contextvars import ContextVar
 
@@ -41,30 +42,43 @@ def _patcher(record: dict) -> None:
 
 
 def setup_logging() -> None:
-    """Configure Loguru + intercept stdlib loggers."""
+    """Configure Loguru + intercept stdlib loggers (Ch.21 retention-aware)."""
     logger.remove()
     logger.configure(patcher=_patcher)
     level = settings.log_level.upper()
-    logger.add(
-        sys.stderr,
-        level=level,
-        format=(
+    # Production minimizes DEBUG (Ch.21 §21.10)
+    json_logs = os.getenv("LOG_FORMAT", "").lower() == "json"
+    if json_logs:
+        stderr_format = (
+            '{{"timestamp":"{time:YYYY-MM-DDTHH:mm:ss.SSSZ}","level":"{level}",'
+            '"service":"api","module":"{extra[module_name]}",'
+            '"request_id":"{extra[correlation_id]}","message":"{message}"}}'
+        )
+        file_format = stderr_format
+    else:
+        stderr_format = (
             "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | "
             "<level>{level: <8}</level> | "
             "cid={extra[correlation_id]} | "
             "<cyan>{extra[module_name]}</cyan> | "
             "{message}"
-        ),
+        )
+        file_format = "{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | cid={extra[correlation_id]} | {message}"
+    logger.add(
+        sys.stderr,
+        level=level,
+        format=stderr_format,
         enqueue=False,
     )
     logs_dir = settings.data_dir / "logs"
     logs_dir.mkdir(parents=True, exist_ok=True)
+    # Design retention target 90 days for logs; rotation keeps operational footprint bounded
     logger.add(
         logs_dir / "btc_analyzer.log",
         rotation="10 MB",
-        retention="14 days",
+        retention=os.getenv("LOG_RETENTION", "90 days"),
         level=level,
-        format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | cid={extra[correlation_id]} | {message}",
+        format=file_format,
     )
 
     logging.basicConfig(handlers=[_InterceptHandler()], level=0, force=True)

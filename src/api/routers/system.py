@@ -143,6 +143,22 @@ def architecture(request: Request):
                     "/api/v1/dashboard/preferences",
                 ],
             },
+            "api_integration": {
+                "chapter": 18,
+                "base_path": "/api/v1/",
+                "auth": ["API Key", "JWT"],
+                "roles": ["Viewer", "Analyst", "Operator", "Administrator"],
+                "channels": ["REST", "WebSocket", "Webhooks"],
+                "endpoints": [
+                    "/api/v1/assets",
+                    "/api/v1/market/{symbol}",
+                    "/api/v1/reports/daily/{symbol}",
+                    "/api/v1/alerts",
+                    "/api/v1/system/health",
+                    "/api/v1/integration/status",
+                ],
+                "docs": ["/api/docs", "/api/redoc", "/api/openapi.json"],
+            },
             "backend": {
                 "framework": "fastapi",
                 "asgi": "uvicorn",
@@ -330,3 +346,25 @@ def db_package(request: Request, symbol: str = "BTCUSDT"):
 
     request_id = getattr(request.state, "request_id", None)
     return success(build_data_package(symbol=symbol), request_id=request_id)
+
+
+@router.get("/system/health")
+def system_health(request: Request):
+    """Platform health alias (Ch.18 §18.7)."""
+    from src import __version__
+
+    request_id = getattr(request.state, "request_id", None)
+    return success(
+        {
+            "status": "ok",
+            "version": __version__,
+            "product": "decision-support-system",
+            "phase": "rewrite-ch18",
+            "chapter": "18-api-integration",
+            "database": "postgresql" if settings.is_postgres else "sqlite",
+            "redis_configured": bool(settings.redis_url),
+            "timezone": settings.timezone,
+            "api_base": "/api/v1/",
+        },
+        request_id=request_id,
+    )

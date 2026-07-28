@@ -1,6 +1,20 @@
-"""API routers (Ch.5)."""
+"""API routers (Ch.5 / Ch.18)."""
 
-from src.api.routers import collection, dashboard, events, features, health, market, risk, system, validation
+from src.api.routers import (
+    alerts,
+    assets,
+    collection,
+    dashboard,
+    events,
+    features,
+    health,
+    integration,
+    market,
+    reports,
+    risk,
+    system,
+    validation,
+)
 
 __all__ = [
     "health",
@@ -11,5 +25,9 @@ __all__ = [
     "risk",
     "events",
     "dashboard",
+    "assets",
+    "reports",
+    "alerts",
+    "integration",
     "market",
 ]

@@ -33,6 +33,12 @@ class WebSocketHub:
         await websocket.accept()
         async with self._lock:
             self.clients.add(websocket)
+        try:
+            from src.api_spec.observability import api_metrics
+
+            api_metrics.set_ws_connections(len(self.clients))
+        except Exception:  # noqa: BLE001
+            pass
         log.info("WS client connected (n={})", len(self.clients))
         # Push hot cache snapshot on connect
         await self.send_personal(
@@ -54,6 +60,12 @@ class WebSocketHub:
     async def disconnect(self, websocket: WebSocket) -> None:
         async with self._lock:
             self.clients.discard(websocket)
+        try:
+            from src.api_spec.observability import api_metrics
+
+            api_metrics.set_ws_connections(len(self.clients))
+        except Exception:  # noqa: BLE001
+            pass
         log.info("WS client disconnected (n={})", len(self.clients))
 
     async def send_personal(self, websocket: WebSocket, message: dict[str, Any]) -> None:
@@ -90,8 +102,27 @@ class WebSocketHub:
 hub = WebSocketHub()
 
 
-async def websocket_endpoint(websocket: WebSocket) -> None:
+async def websocket_endpoint(websocket: WebSocket, symbol: str | None = None) -> None:
     await hub.connect(websocket)
+    if symbol:
+        await hub.send_personal(
+            websocket,
+            {
+                "type": "subscribed",
+                "timestamp": _utc(),
+                "data": {
+                    "symbol": symbol.upper(),
+                    "streams": [
+                        "Live Price",
+                        "Market Intelligence",
+                        "Alerts",
+                        "Confidence Updates",
+                        "Market Regime Changes",
+                        "Data Quality Updates",
+                    ],
+                },
+            },
+        )
     try:
         while True:
             raw = await websocket.receive_text()

@@ -62,10 +62,18 @@ class Settings(BaseSettings):
     telegram_bot_token: str = ""
     telegram_chat_id: str = ""
 
-    # API (Ch.5)
+    # API (Ch.5 / Ch.18)
     api_host: str = "0.0.0.0"
     api_port: int = 8000
     api_rate_limit_per_minute: int = 120
+    api_rate_limit_authenticated: int = 600
+    api_auth_enabled: bool = False
+    api_keys: str = ""  # comma-separated keys; optional role suffix key:role
+    api_jwt_secret: str = "btc-analyzer-dev-secret-change-me"
+    api_jwt_ttl_sec: int = 3600
+    api_webhook_signing_secret: str = ""
+    default_symbol: str = "BTCUSDT"
+    supported_assets: str = "BTCUSDT,ETHUSDT"
 
     # Scoring (Ch.9 §9.15)
     scoring_min_dqs: float = 60.0

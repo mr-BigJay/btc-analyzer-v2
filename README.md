@@ -34,7 +34,8 @@ python -m src.main report     # executive markdown
 | 15 | Risk Management & Capital Preservation | ✅ |
 | 16 | Alerting, Notification & Event Processing | ✅ |
 | 17 | Dashboard, Visualization & User Experience | ✅ |
+| 18 | API Specification & Integration Guide | ✅ |
 
 ## Status
 
-Chapters 1–17 applied on the rewrite branch.
+Chapters 1–18 applied on the rewrite branch.

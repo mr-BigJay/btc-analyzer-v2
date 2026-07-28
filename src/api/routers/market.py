@@ -96,3 +96,22 @@ def patterns(request: Request):
 def technical(request: Request):
     request_id = getattr(request.state, "request_id", None)
     return success(AnalysisService().refresh_technical(), request_id=request_id)
+
+
+@router.get("/{symbol}")
+def market_by_symbol(symbol: str, request: Request):
+    """Canonical market intelligence for an asset (Ch.18 §18.7 / §18.25)."""
+    request_id = getattr(request.state, "request_id", None)
+    from src.services.integration import IntegrationService
+
+    data = IntegrationService().market_intelligence(symbol)
+    if data is None:
+        from src.api.responses import failure
+
+        return failure(
+            "Requested asset is not supported.",
+            code="INVALID_SYMBOL",
+            request_id=request_id,
+            status_code=404,
+        )
+    return success(data, request_id=request_id)

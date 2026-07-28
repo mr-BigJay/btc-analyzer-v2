@@ -1,4 +1,4 @@
-"""FastAPI application — modular backend (Ch.5)."""
+"""FastAPI application — modular backend (Ch.5 / Ch.18)."""
 
 from __future__ import annotations
 
@@ -6,11 +6,26 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.utils import get_openapi
 from fastapi.staticfiles import StaticFiles
 
 from src import __version__
 from src.api.middleware import RateLimitMiddleware, RequestContextMiddleware
-from src.api.routers import collection, dashboard, events, features, health, market, risk, system, validation
+from src.api.routers import (
+    alerts,
+    assets,
+    collection,
+    dashboard,
+    events,
+    features,
+    health,
+    integration,
+    market,
+    reports,
+    risk,
+    system,
+    validation,
+)
 from src.config import BASE_DIR, settings
 from src.db.models import init_db
 from src.logging_setup import get_logger, setup_logging
@@ -23,14 +38,18 @@ log = get_logger("api")
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     init_db()
-    log.info("API started chapter=17 timezone={}", settings.timezone)
+    log.info("API started chapter=18 timezone={}", settings.timezone)
     yield
 
 
 app = FastAPI(
-    title="BTC Analyzer",
+    title="BTC Analyzer API",
     version=__version__,
-    description="Market intelligence & decision support — rewrite v3 (Ch.5 backend)",
+    description=(
+        "BTC Analyzer Decision Support System — versioned REST, WebSocket, and webhook integrations. "
+        "All external clients must use published `/api/v1/` contracts. "
+        "See Design Book Chapter 18."
+    ),
     docs_url="/api/docs",
     redoc_url="/api/redoc",
     openapi_url="/api/openapi.json",
@@ -54,13 +73,46 @@ app.include_router(validation.router)
 app.include_router(risk.router)
 app.include_router(events.router)
 app.include_router(dashboard.router)
+app.include_router(assets.router)
+app.include_router(reports.router)
+app.include_router(alerts.router)
+app.include_router(integration.router)
 app.include_router(market.router)
 
 
 @app.websocket("/ws")
 @app.websocket("/api/v1/ws")
-async def ws_route(websocket: WebSocket):
-    await websocket_endpoint(websocket)
+@app.websocket("/ws/v1/market/{symbol}")
+async def ws_route(websocket: WebSocket, symbol: str | None = None):
+    await websocket_endpoint(websocket, symbol=symbol)
+
+
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+    schema = get_openapi(
+        title=app.title,
+        version=app.version,
+        description=app.description,
+        routes=app.routes,
+    )
+    schema["info"]["x-api-spec-version"] = "1.0"
+    schema["info"]["x-compatibility-policy"] = {
+        "fields_never_repurposed": True,
+        "optional_fields_may_be_added": True,
+        "breaking_changes_require_major_version": True,
+    }
+    schema.setdefault("components", {}).setdefault("securitySchemes", {}).update(
+        {
+            "ApiKeyAuth": {"type": "apiKey", "in": "header", "name": "X-API-Key"},
+            "BearerAuth": {"type": "http", "scheme": "bearer", "bearerFormat": "JWT"},
+        }
+    )
+    app.openapi_schema = schema
+    return app.openapi_schema
+
+
+app.openapi = custom_openapi  # type: ignore[method-assign]
 
 
 frontend_dir = BASE_DIR / "frontend"

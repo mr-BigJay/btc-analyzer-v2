@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 class BinanceFuturesCollector(BaseCollector[FlowObject]):
     MODULE = "Binance"
+    MARKET = "Futures"
 
     def __init__(self, repository: CentralRepository | None = None) -> None:
         super().__init__(repository)

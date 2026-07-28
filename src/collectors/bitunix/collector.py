@@ -37,6 +37,7 @@ class BitunixSnapshot:
 
 class BitunixCollector(BaseCollector[BitunixSnapshot]):
     MODULE = "Bitunix"
+    MARKET = "Futures"
 
     def __init__(self, repository: CentralRepository | None = None) -> None:
         super().__init__(repository)

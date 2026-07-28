@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 
 class CoinExCollector(BaseCollector[NarrativeObject]):
     MODULE = "CoinEx"
+    MARKET = "Narrative"
 
     def __init__(self, repository: CentralRepository | None = None) -> None:
         super().__init__(repository)

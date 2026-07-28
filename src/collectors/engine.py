@@ -223,30 +223,58 @@ class DataCollectionEngine:
         persist_narrative: bool = False,
         extra_warnings: list[str] | None = None,
     ) -> CollectionCycleResult:
+        import time
+
+        from src.collectors.contract import latency_ms, stamp_contract, stamp_timestamps
+        from src.collectors.events import event_bus
+        from src.collectors.health import health_monitor
+        from src.collectors.metrics import metrics_registry
+        from src.collectors.quarantine import quarantine_store
+
         warnings = list(extra_warnings or [])
         validations: dict[str, ValidationReport] = {}
         quality: dict[str, QualityAssessment] = {}
         validated_payloads: dict[str, dict] = {}
+        market_by_source = {
+            "binance": "Futures",
+            "deribit": "Options",
+            "coinex": "Narrative",
+            "bitunix": "Futures",
+            "spot": "Spot",
+        }
 
         for name, result in results.items():
             data = result.data
             if data is None:
                 warnings.append(f"{name}: no data")
+                health_monitor.record_error(name, result.warning or "no data")
+                metrics_registry.record(name, success=False)
                 continue
             payload = asdict(data) if hasattr(data, "__dataclass_fields__") else dict(data)
             payload.setdefault("exchange", name.lower())
             payload.setdefault("timestamp", result.timestamp)
+            payload = stamp_timestamps(payload, exchange_timestamp=payload.get("timestamp"))
             # Do not inject ModuleStatus into API status field (Ch.3 §3.10 checks HTTP/API status separately)
             if result.source_live and result.status == ModuleStatus.OK:
                 payload.setdefault("api_status", "OK")
             if "symbol" not in payload:
                 payload["symbol"] = settings.binance_symbol
 
+            t_val = time.perf_counter()
             report = self.validator.validate(name, payload)
+            validation_ms = (time.perf_counter() - t_val) * 1000.0
             validations[name] = report
             hard_errors = [i for i in report.issues if i.severity == "error"]
             if hard_errors:
                 warnings.append(f"{name}: validation rejected ({len(hard_errors)} errors)")
+                quarantine_store.add(
+                    source=name,
+                    payload=payload,
+                    codes=[i.code for i in hard_errors],
+                    reason=f"{len(hard_errors)} validation errors",
+                )
+                health_monitor.record_error(name, hard_errors[0].message)
+                metrics_registry.record(name, success=False, validation_ms=validation_ms)
                 # Invalid records must never enter the database
                 continue
 
@@ -259,6 +287,22 @@ class DataCollectionEngine:
             if q.degraded:
                 warnings.append(f"{name}: quality degraded conf={q.confidence:.2f}")
             validated_payloads[name] = payload
+
+            t_norm = time.perf_counter()
+            market = market_by_source.get(name, "Futures")
+            contract = stamp_contract(payload, source=name.title(), market=market, asset=payload.get("symbol"))
+            normalization_ms = (time.perf_counter() - t_norm) * 1000.0
+            lat = latency_ms(contract)
+            event_name = f"market.{market.lower()}.updated"
+            event_bus.publish(event_name, asset=contract["asset"], payload=contract, source=name)
+            health_monitor.record_success(name, latency_ms=lat or result.response_time_ms)
+            metrics_registry.record(
+                name,
+                success=True,
+                latency_ms=lat or result.response_time_ms,
+                validation_ms=validation_ms,
+                normalization_ms=normalization_ms,
+            )
 
             # Append-only persistence
             try:

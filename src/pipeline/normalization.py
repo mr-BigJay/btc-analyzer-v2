@@ -102,6 +102,8 @@ class DataNormalizer:
         volume_key: str = "volume",
         timestamp_key: str = "timestamp",
     ) -> NormalizedRecord:
+        from src.collectors.symbols import symbol_registry
+
         ts = payload.get(timestamp_key) or utc_now_iso()
         if isinstance(ts, (int, float)):
             tsf = float(ts)
@@ -113,10 +115,12 @@ class DataNormalizer:
 
         reserved = {symbol_key, price_key, volume_key, timestamp_key, "exchange", "source_id"}
         extra = {k: v for k, v in payload.items() if k not in reserved and not str(k).startswith("_")}
+        external = payload.get(symbol_key)
+        internal = symbol_registry.to_internal(exchange, str(external or "BTCUSDT"))
 
         return NormalizedRecord(
             timestamp=str(ts),
-            symbol=normalize_symbol(payload.get(symbol_key)),
+            symbol=internal,
             exchange=exchange.lower(),
             price=_to_float(payload.get(price_key)),
             volume=_to_float(payload.get(volume_key)),

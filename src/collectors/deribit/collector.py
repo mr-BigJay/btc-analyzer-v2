@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 class DeribitOptionsCollector(BaseCollector[OptionsObject]):
     MODULE = "Deribit"
+    MARKET = "Options"
 
     def __init__(self, repository: CentralRepository | None = None) -> None:
         super().__init__(repository)

@@ -4,6 +4,7 @@ from src.services.analysis import AnalysisService
 from src.services.collection import CollectionService
 from src.services.dashboard import DashboardService
 from src.services.decision import DecisionService
+from src.services.deploy import DeployService
 from src.services.events import EventService
 from src.services.features import FeatureService
 from src.services.integration import IntegrationService
@@ -30,4 +31,5 @@ __all__ = [
     "DashboardService",
     "IntegrationService",
     "SecurityService",
+    "DeployService",
 ]

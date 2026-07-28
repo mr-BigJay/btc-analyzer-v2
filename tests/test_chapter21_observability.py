@@ -146,8 +146,8 @@ def test_observability_service_and_api():
     assert r9.status_code == 200
 
     health = client.get("/api/v1/health").json()["data"]
-    assert health["chapter"] == "22-testing-qa"
-    assert health["phase"] == "rewrite-ch22"
+    assert health["chapter"] == "23-governance-roadmap"
+    assert health["phase"] == "rewrite-ch23"
 
     arch = client.get("/api/v1/architecture").json()["data"]
     assert arch["observability"]["chapter"] == 21

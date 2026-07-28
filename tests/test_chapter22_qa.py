@@ -155,8 +155,8 @@ def test_qa_api_and_chapter_tags():
         assert resp.status_code == 200, path
 
     health = client.get("/api/v1/health").json()["data"]
-    assert health["chapter"] == "22-testing-qa"
-    assert health["phase"] == "rewrite-ch22"
+    assert health["chapter"] == "23-governance-roadmap"
+    assert health["phase"] == "rewrite-ch23"
 
     arch = client.get("/api/v1/architecture").json()["data"]
     assert arch["testing_qa"]["chapter"] == 22

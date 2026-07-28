@@ -39,7 +39,8 @@ python -m src.main report     # executive markdown
 | 20 | Deployment, DevOps & Infrastructure | ✅ |
 | 21 | Monitoring, Logging & Observability | ✅ |
 | 22 | Testing Strategy & Quality Assurance | ✅ |
+| 23 | Roadmap, Future Evolution & AI Governance | ✅ |
 
 ## Status
 
-Chapters 1–22 applied on the rewrite branch.
+**Enterprise Design Book complete (Chapters 1–23)** on the rewrite branch.

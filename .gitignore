@@ -1,4 +1,10 @@
 .env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+.secrets/
 data/
 __pycache__/
 *.pyc

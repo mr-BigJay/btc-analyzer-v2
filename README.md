@@ -35,7 +35,8 @@ python -m src.main report     # executive markdown
 | 16 | Alerting, Notification & Event Processing | ✅ |
 | 17 | Dashboard, Visualization & User Experience | ✅ |
 | 18 | API Specification & Integration Guide | ✅ |
+| 19 | Security, Authentication & Operational Hardening | ✅ |
 
 ## Status
 
-Chapters 1–18 applied on the rewrite branch.
+Chapters 1–19 applied on the rewrite branch.

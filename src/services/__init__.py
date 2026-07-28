@@ -12,6 +12,7 @@ from src.services.market import MarketService
 from src.services.reports import ReportService
 from src.services.risk import RiskService
 from src.services.scoring import ScoringService
+from src.services.security import SecurityService
 from src.services.validation import ValidationService
 
 __all__ = [
@@ -28,4 +29,5 @@ __all__ = [
     "EventService",
     "DashboardService",
     "IntegrationService",
+    "SecurityService",
 ]

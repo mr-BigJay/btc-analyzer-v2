@@ -1,4 +1,4 @@
-"""FastAPI application — modular backend (Ch.5 / Ch.18)."""
+"""FastAPI application — modular backend (Ch.5 / Ch.18 / Ch.19)."""
 
 from __future__ import annotations
 
@@ -23,6 +23,7 @@ from src.api.routers import (
     market,
     reports,
     risk,
+    security,
     system,
     validation,
 )
@@ -38,7 +39,7 @@ log = get_logger("api")
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     init_db()
-    log.info("API started chapter=18 timezone={}", settings.timezone)
+    log.info("API started chapter=19 timezone={}", settings.timezone)
     yield
 
 
@@ -47,8 +48,8 @@ app = FastAPI(
     version=__version__,
     description=(
         "BTC Analyzer Decision Support System — versioned REST, WebSocket, and webhook integrations. "
-        "All external clients must use published `/api/v1/` contracts. "
-        "See Design Book Chapter 18."
+        "Security by default: RBAC, audit trail, secure headers (Ch.19). "
+        "All external clients must use published `/api/v1/` contracts."
     ),
     docs_url="/api/docs",
     redoc_url="/api/redoc",
@@ -77,6 +78,7 @@ app.include_router(assets.router)
 app.include_router(reports.router)
 app.include_router(alerts.router)
 app.include_router(integration.router)
+app.include_router(security.router)
 app.include_router(market.router)
 
 
@@ -97,6 +99,7 @@ def custom_openapi():
         routes=app.routes,
     )
     schema["info"]["x-api-spec-version"] = "1.0"
+    schema["info"]["x-security-schema-version"] = "1.0"
     schema["info"]["x-compatibility-policy"] = {
         "fields_never_repurposed": True,
         "optional_fields_may_be_added": True,

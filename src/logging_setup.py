@@ -29,6 +29,15 @@ class _InterceptHandler(logging.Handler):
 def _patcher(record: dict) -> None:
     record["extra"].setdefault("module_name", record.get("name", "app"))
     record["extra"].setdefault("correlation_id", correlation_id_var.get() or "-")
+    # Ch.19 §19.15 — never log secrets / tokens
+    try:
+        from src.security.secrets import mask_secrets
+
+        msg = record.get("message")
+        if isinstance(msg, str):
+            record["message"] = mask_secrets(msg)
+    except Exception:  # noqa: BLE001
+        pass
 
 
 def setup_logging() -> None:

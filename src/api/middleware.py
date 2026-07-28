@@ -1,4 +1,4 @@
-"""API middleware — request IDs, secure headers, rate limiting (Ch.5 / Ch.18)."""
+"""API middleware — request IDs, secure headers, rate limiting (Ch.5 / Ch.18 / Ch.19)."""
 
 from __future__ import annotations
 
@@ -15,6 +15,8 @@ from src.api_spec.auth import authenticate_headers, effective_rate_limit
 from src.api_spec.observability import api_metrics
 from src.config import settings
 from src.logging_setup import correlation_id_var, get_logger
+from src.security.contracts import AuditAction
+from src.security.hardening import apply_security_headers
 
 log = get_logger("api.middleware")
 
@@ -23,14 +25,18 @@ def _is_streaming_path(path: str) -> bool:
     return path.startswith("/ws") or path.startswith("/api/v1/ws")
 
 
+def _is_https(request: Request) -> bool:
+    proto = request.headers.get("x-forwarded-proto") or request.url.scheme
+    return str(proto).lower() == "https"
+
+
 class RequestContextMiddleware(BaseHTTPMiddleware):
-    """Attach request_id / correlation_id and secure headers."""
+    """Attach request_id / correlation_id and secure headers (Ch.19 §19.23)."""
 
     async def dispatch(self, request: Request, call_next) -> Response:
         request_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
         token = correlation_id_var.set(request_id)
         request.state.request_id = request_id
-        # Resolve auth early for rate-limit differentiation
         request.state.principal = authenticate_headers(request.headers)
         started = time.monotonic()
         status_code = 500
@@ -54,16 +60,14 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
         response.headers["X-Request-ID"] = request_id
         response.headers["X-Response-Time-Ms"] = f"{duration_ms:.1f}"
         response.headers["X-API-Version"] = "v1"
-        # Secure headers (Ch.5 §5.14)
-        response.headers.setdefault("X-Content-Type-Options", "nosniff")
-        response.headers.setdefault("X-Frame-Options", "DENY")
-        response.headers.setdefault("Referrer-Policy", "no-referrer")
+        apply_security_headers(response.headers, https=_is_https(request))
+        # Legacy XSS header retained for older browsers
         response.headers.setdefault("X-XSS-Protection", "1; mode=block")
         return response
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
-    """Sliding-window rate limiter with authenticated higher limits (Ch.18 §18.14)."""
+    """Sliding-window rate limiter with authenticated higher limits + abuse audit."""
 
     def __init__(self, app, *, limit: int | None = None, window_sec: float = 60.0) -> None:
         super().__init__(app)
@@ -78,7 +82,6 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         principal = authenticate_headers(request.headers)
         limit = effective_rate_limit(principal) if principal else self.default_limit
         client = request.client.host if request.client else "unknown"
-        # Bucket by client + auth subject when present
         bucket_key = f"{client}:{getattr(principal, 'subject', 'anon')}"
         now = time.monotonic()
         bucket = self._hits[bucket_key]
@@ -87,6 +90,20 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if len(bucket) >= limit:
             request_id = getattr(request.state, "request_id", None) or str(uuid.uuid4())
             api_metrics.record_rate_limit()
+            try:
+                from src.security.audit import audit_trail
+
+                audit_trail.append(
+                    AuditAction.RATE_LIMIT,
+                    actor=getattr(principal, "subject", "anonymous") if principal else "anonymous",
+                    outcome="denied",
+                    resource=request.url.path,
+                    detail=f"limit={limit}",
+                    request_id=request_id,
+                    ip=client,
+                )
+            except Exception:  # noqa: BLE001
+                pass
             resp = failure(
                 "Rate limit exceeded",
                 code="RATE_LIMIT",

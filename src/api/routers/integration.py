@@ -28,14 +28,51 @@ def integration_metrics(request: Request):
 @router.post("/auth/token")
 def issue_token(request: Request, payload: dict[str, Any] = Body(default_factory=dict)):
     request_id = getattr(request.state, "request_id", None)
+    subject = str(payload.get("subject") or "client")
+    ip = request.client.host if request.client else ""
+    from src.security.accounts import clear_auth_failures, is_locked, record_auth_failure
+    from src.security.audit import audit_trail
+    from src.security.contracts import AuditAction
+
+    if is_locked(subject):
+        audit_trail.append(
+            AuditAction.LOCKOUT,
+            actor=subject,
+            outcome="denied",
+            resource="/api/v1/integration/auth/token",
+            request_id=request_id or "",
+            ip=ip,
+        )
+        return failure("Account temporarily locked", code="LOCKED", request_id=request_id, status_code=403)
     try:
         data = IntegrationService().issue_token(
-            subject=str(payload.get("subject") or "client"),
+            subject=subject,
             role=payload.get("role"),
             api_key=payload.get("api_key") or request.headers.get("X-API-Key"),
         )
+        clear_auth_failures(subject)
+        audit_trail.append(
+            AuditAction.TOKEN_ISSUED,
+            actor=subject,
+            role=str(data.get("role") or ""),
+            outcome="success",
+            resource="/api/v1/integration/auth/token",
+            request_id=request_id or "",
+            ip=ip,
+        )
+        # Do not echo secrets in logs — response omits nothing needed; tokens are expected in body
         return success(data, request_id=request_id, status_code=201)
     except PermissionError as exc:
+        info = record_auth_failure(subject)
+        audit_trail.append(
+            AuditAction.AUTH_FAILED,
+            actor=subject,
+            outcome="failure",
+            resource="/api/v1/integration/auth/token",
+            detail=f"failures={info.get('failures')}",
+            request_id=request_id or "",
+            ip=ip,
+        )
         return failure(str(exc), code="UNAUTHORIZED", request_id=request_id, status_code=401)
     except Exception as exc:  # noqa: BLE001
         return failure(str(exc), code="TOKEN_FAILED", request_id=request_id, status_code=500)
@@ -47,9 +84,26 @@ def refresh_token(request: Request, payload: dict[str, Any] = Body(...)):
     token = str(payload.get("refresh_token") or "")
     if not token:
         return failure("refresh_token required", code="VALIDATION_ERROR", request_id=request_id, status_code=422)
+    from src.security.audit import audit_trail
+    from src.security.contracts import AuditAction
+
     try:
-        return success(IntegrationService().refresh_token(token), request_id=request_id)
+        data = IntegrationService().refresh_token(token)
+        audit_trail.append(
+            AuditAction.TOKEN_REFRESH,
+            actor=str(data.get("role") or "user"),
+            outcome="success",
+            resource="/api/v1/integration/auth/refresh",
+            request_id=request_id or "",
+        )
+        return success(data, request_id=request_id)
     except PermissionError as exc:
+        audit_trail.append(
+            AuditAction.AUTH_FAILED,
+            outcome="failure",
+            resource="/api/v1/integration/auth/refresh",
+            request_id=request_id or "",
+        )
         return failure(str(exc), code="UNAUTHORIZED", request_id=request_id, status_code=401)
 
 

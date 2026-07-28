@@ -1,4 +1,4 @@
-"""API routers (Ch.5 / Ch.18)."""
+"""API routers (Ch.5 / Ch.18 / Ch.19)."""
 
 from src.api.routers import (
     alerts,
@@ -12,6 +12,7 @@ from src.api.routers import (
     market,
     reports,
     risk,
+    security,
     system,
     validation,
 )
@@ -29,5 +30,6 @@ __all__ = [
     "reports",
     "alerts",
     "integration",
+    "security",
     "market",
 ]

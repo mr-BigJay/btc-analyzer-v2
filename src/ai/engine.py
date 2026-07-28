@@ -27,6 +27,7 @@ from src.config import settings
 from src.intelligence.contracts import MarketIntelligenceOutput
 from src.intelligence.engine import MarketIntelligenceEngine
 from src.logging_setup import get_logger
+from src.risk.engine import RiskEngine
 from src.scoring.contracts import DecisionObject
 from src.scoring.engine import ScoringEngine
 from src.storage.redis_cache import redis_cache
@@ -36,13 +37,14 @@ log = get_logger("ai.engine")
 
 
 class AIDecisionEngine:
-    """Cognitive pipeline Ch.7 — grounded by Ch.8 intelligence + Ch.9 scoring."""
+    """Cognitive pipeline Ch.7 — grounded by Ch.8–9 + Risk Engine (Ch.15)."""
 
     def __init__(self, repository: CentralRepository | None = None) -> None:
         self.repository = repository or CentralRepository()
         self.analysis_engine = AnalysisEngine(self.repository)
         self.intelligence_engine = MarketIntelligenceEngine(self.repository)
         self.scoring_engine = ScoringEngine(self.repository)
+        self.risk_engine = RiskEngine()
 
     def decide(
         self,
@@ -115,8 +117,8 @@ class AIDecisionEngine:
         )
         scenarios, distribution = _apply_intelligence_to_scenarios(scenarios, distribution, intel)
 
-        # 6 Risk assessment — prefer Ch.9 Risk Score; keep drivers from assess_risk
-        risk_level, major_risks, risk_explanation = assess_risk(
+        # 6 Qualitative risk drivers (Ch.7) — Ch.15 CRS becomes published risk_level
+        _, major_risks, risk_explanation = assess_risk(
             analysis_dict,
             evidence,
             near_options_expiry=near_options_expiry,
@@ -124,10 +126,6 @@ class AIDecisionEngine:
             intelligence=intel,
         )
         rs = float(decision_dict.get("risk_score") or 0)
-        risk_level = _risk_label_from_score(rs, fallback=risk_level)
-        risk_explanation = (
-            f"Ch.9 Risk Score={rs:.0f}/100. {risk_explanation}"
-        )
 
         # 7 Confidence — prefer Ch.9 Confidence Score as canonical numeric
         confidence = float(decision_dict.get("confidence_score") or 50)
@@ -144,49 +142,12 @@ class AIDecisionEngine:
         market_regime = str(intel.get("market_regime") or analysis_dict.get("market_regime") or "Range")
         layer_results = list(analysis_dict.get("layer_results") or [])
 
-        reasoning = build_reasoning(
-            market_bias=market_bias,
-            primary_narrative=narrative,
-            confidence=confidence,
-            confidence_explanation=conf_explanation,
-            evidence=evidence,
-            conflicts=conflicts,
-            risk_explanation=risk_explanation,
-            scenarios=scenarios,
-        )
-        reasoning.primary_conclusion = (
-            f"{reasoning.primary_conclusion} "
-            f"Scoring: MBS={decision_dict.get('market_bias_score')}, "
-            f"CS={decision_dict.get('confidence_score')}, RS={decision_dict.get('risk_score')}, "
-            f"publish={decision_dict.get('publish')}. "
-            f"Strategic context: cycle={intel.get('market_cycle')}, "
-            f"dominant={intel.get('dominant_participant')}, "
-            f"MHI={intel.get('market_health_index')}, MSI={intel.get('market_stress_index')}."
-        )
-        for note in decision_dict.get("publication_notes") or []:
-            if note and note not in reasoning.uncertainty_note:
-                reasoning.uncertainty_note = (reasoning.uncertainty_note + " " + note).strip()
-        if str(analysis_dict.get("market_bias")) == "High Uncertainty":
-            note = (
-                "Analysis Engine flagged High Uncertainty — evidence is insufficient "
-                "for aggressive recommendations; uncertainty is elevated."
-            )
-            reasoning.uncertainty_note = (reasoning.uncertainty_note + " " + note).strip()
-
-        key_drivers = key_drivers_from_evidence(evidence, narrative_bullets)
-        if intel.get("derivatives_thesis"):
-            key_drivers.insert(0, f"Derivatives: {intel['derivatives_thesis']}")
-        key_drivers.insert(
-            0,
-            f"MBS={decision_dict.get('market_bias_score')} · "
-            f"weights={decision_dict.get('weight_regime')}",
-        )
-
-        # 8 Trading plan — suppress when publish=False or high RS
+        # 8 Trading plan — scoring gates first, then mandatory Ch.15 Risk Engine
+        provisional_risk = _risk_label_from_score(rs, fallback=RiskCategory.MODERATE.value)
         plan = build_trading_plan(
             market_bias=market_bias,
             confidence=confidence,
-            risk_level=risk_level,
+            risk_level=provisional_risk,
             scenarios=scenarios,
             layer_results=layer_results,
             intelligence=intel,
@@ -203,6 +164,76 @@ class AIDecisionEngine:
                 "or Analysis Engine flagged High Uncertainty — no-trade."
             ).strip()
             plan.position_sizing_guidance = "Flat — scoring/risk/uncertainty gate active."
+
+        risk_object = self.risk_engine.evaluate(
+            decision=decision_dict,
+            intelligence=intel,
+            analysis=analysis_dict,
+            macro_event=macro_event,
+            near_options_expiry=near_options_expiry,
+            persist=persist,
+        )
+        plan_dict = self.risk_engine.apply_to_trading_plan(plan.to_dict(), risk_object)
+        # Published risk_level is CRS-based (Ch.15); Ch.9 RS retained in scoring payload
+        risk_level = risk_object.risk_level
+        risk_explanation = (
+            f"Ch.15 CRS={risk_object.composite_risk_score:.0f}/100 ({risk_object.risk_level}). "
+            f"Ch.9 Risk Score={rs:.0f}/100. {risk_object.explanation} {risk_explanation}"
+        ).strip()
+        if risk_object.explanation and risk_object.explanation not in major_risks:
+            major_risks = [risk_object.explanation] + list(major_risks)
+
+        reasoning = build_reasoning(
+            market_bias=market_bias,
+            primary_narrative=narrative,
+            confidence=confidence,
+            confidence_explanation=conf_explanation,
+            evidence=evidence,
+            conflicts=conflicts,
+            risk_explanation=risk_explanation,
+            scenarios=scenarios,
+        )
+        reasoning.primary_conclusion = (
+            f"{reasoning.primary_conclusion} "
+            f"Scoring: MBS={decision_dict.get('market_bias_score')}, "
+            f"CS={decision_dict.get('confidence_score')}, RS={decision_dict.get('risk_score')}, "
+            f"publish={decision_dict.get('publish')}. "
+            f"CRS={risk_object.composite_risk_score}, NTZ={risk_object.no_trade_zone}. "
+            f"Strategic context: cycle={intel.get('market_cycle')}, "
+            f"dominant={intel.get('dominant_participant')}, "
+            f"MHI={intel.get('market_health_index')}, MSI={intel.get('market_stress_index')}."
+        )
+        for note in decision_dict.get("publication_notes") or []:
+            if note and note not in reasoning.uncertainty_note:
+                reasoning.uncertainty_note = (reasoning.uncertainty_note + " " + note).strip()
+        if str(analysis_dict.get("market_bias")) == "High Uncertainty":
+            note = (
+                "Analysis Engine flagged High Uncertainty — evidence is insufficient "
+                "for aggressive recommendations; uncertainty is elevated."
+            )
+            reasoning.uncertainty_note = (reasoning.uncertainty_note + " " + note).strip()
+        if risk_object.no_trade_zone or risk_object.suppressed:
+            ntz_note = "Risk Engine capital preservation active — new exposure suppressed."
+            reasoning.uncertainty_note = (reasoning.uncertainty_note + " " + ntz_note).strip()
+
+        key_drivers = key_drivers_from_evidence(evidence, narrative_bullets)
+        if intel.get("derivatives_thesis"):
+            key_drivers.insert(0, f"Derivatives: {intel['derivatives_thesis']}")
+        key_drivers.insert(
+            0,
+            f"MBS={decision_dict.get('market_bias_score')} · "
+            f"weights={decision_dict.get('weight_regime')}",
+        )
+        if risk_object.confidence_risk_guidance:
+            key_drivers.insert(0, f"Risk matrix: {risk_object.confidence_risk_guidance}")
+
+        # Rebuild plan object fields onto TradingPlanSpec for outlook NLG
+        plan.preferred_direction = str(plan_dict.get("preferred_direction") or plan.preferred_direction)
+        plan.position_sizing_guidance = str(
+            plan_dict.get("position_sizing_guidance") or plan.position_sizing_guidance
+        )
+        plan.session_notes = str(plan_dict.get("session_notes") or plan.session_notes)
+        plan.confirmation_conditions = list(plan_dict.get("confirmation_conditions") or plan.confirmation_conditions)
 
         # 9 Daily Outlook NLG
         outlook = build_daily_outlook(
@@ -233,13 +264,14 @@ class AIDecisionEngine:
             scenarios=[s.to_dict() for s in scenarios],
             key_drivers=key_drivers,
             major_risks=major_risks,
-            trading_plan=plan.to_dict(),
+            trading_plan=plan_dict,
             reasoning=reasoning.to_dict(),
             daily_outlook=outlook.to_dict(),
             evidence=[e.to_dict() for e in evidence],
             probability_distribution=distribution,
             market_intelligence=intel,
             scoring=decision_dict,
+            risk_object=risk_object.to_dict(),
             symbol=symbol,
             analysis_fingerprint=fingerprint,
         )
@@ -248,12 +280,14 @@ class AIDecisionEngine:
             self._persist(report, analysis_dict)
 
         log.info(
-            "ai decision bias={} conf={:.1f} mbs={} narrative={} risk={} publish={}",
+            "ai decision bias={} conf={:.1f} mbs={} narrative={} risk={} crs={} ntz={} publish={}",
             report.market_bias,
             report.confidence,
             decision_dict.get("market_bias_score"),
             report.primary_narrative,
             report.risk_level,
+            (report.risk_object or {}).get("composite_risk_score"),
+            (report.risk_object or {}).get("no_trade_zone"),
             decision_dict.get("publish"),
         )
         return report
@@ -263,6 +297,8 @@ class AIDecisionEngine:
         redis_cache.set(CacheKeys.LATEST_DAILY_OUTLOOK, payload.get("daily_outlook"), ttl_sec=86400)
         redis_cache.set(CacheKeys.ACTIVE_TRADING_PLAN, payload.get("trading_plan"), ttl_sec=86400)
         redis_cache.set("latest_ai_decision", payload, ttl_sec=86400)
+        if payload.get("risk_object"):
+            redis_cache.set(CacheKeys.LATEST_RISK_OBJECT, payload["risk_object"], ttl_sec=86400)
         try:
             self.repository.save_daily_outlook(payload)
         except Exception as exc:  # noqa: BLE001
@@ -392,6 +428,7 @@ def _fingerprint(analysis: dict[str, Any], intel: dict[str, Any], decision: dict
             "risk_score": (decision or {}).get("risk_score"),
             "data_quality_score": (decision or {}).get("data_quality_score"),
             "weight_regime": (decision or {}).get("weight_regime"),
+            "publish": (decision or {}).get("publish"),
         },
     }
     raw = json.dumps(stable, sort_keys=True, default=str)

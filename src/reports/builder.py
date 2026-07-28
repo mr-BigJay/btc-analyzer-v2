@@ -110,11 +110,19 @@ def build_report(
             "state": intel.get("liquidity_state"),
         },
         "risk_assessment": {
-            "risk_level": ai.get("risk_level") or decision.get("risk_score"),
+            "risk_level": (ai.get("risk_object") or {}).get("risk_level")
+            or ai.get("risk_level")
+            or decision.get("risk_score"),
             "risk_score": decision.get("risk_score"),
+            "composite_risk_score": (ai.get("risk_object") or {}).get("composite_risk_score"),
             "msi": intel.get("market_stress_index"),
             "factors": risks,
-            "explanation": reasoning.get("risk_explanation"),
+            "explanation": (ai.get("risk_object") or {}).get("explanation")
+            or reasoning.get("risk_explanation"),
+            "risk_object": ai.get("risk_object") or plan.get("risk_object") or {},
+            "no_trade_zone": (ai.get("risk_object") or {}).get("no_trade_zone"),
+            "suggested_exposure": (ai.get("risk_object") or {}).get("suggested_exposure"),
+            "capital_preservation_mode": (ai.get("risk_object") or {}).get("capital_preservation_mode"),
         },
         "primary_scenario": primary,
         "alternative_scenarios": alternatives,
@@ -294,6 +302,11 @@ def _trading_plan_format(plan: dict[str, Any]) -> dict[str, Any]:
 
 def _risk_factors(ai: dict[str, Any], intel: dict[str, Any], decision: dict[str, Any]) -> list[str]:
     risks = list(ai.get("major_risks") or [])
+    risk_obj = ai.get("risk_object") or {}
+    if risk_obj.get("explanation"):
+        risks.insert(0, str(risk_obj["explanation"]))
+    for reason in risk_obj.get("no_trade_reasons") or []:
+        risks.append(f"NTZ: {reason}")
     catalog = []
     if intel.get("macro_bias") in ("Cautious", "Risk-Off", "Uncertain"):
         catalog.append("Macro event / macro uncertainty")
@@ -308,7 +321,7 @@ def _risk_factors(ai: dict[str, Any], intel: dict[str, Any], decision: dict[str,
     catalog.append("False breakout")
     # Prefer AI risks then fill from catalog
     out = list(dict.fromkeys(risks + catalog))
-    return out[:6]
+    return out[:8]
 
 
 def _confidence_breakdown(decision: dict[str, Any], ai: dict[str, Any], intel: dict[str, Any]) -> list[dict[str, Any]]:

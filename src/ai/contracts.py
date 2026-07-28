@@ -153,6 +153,7 @@ class AIDecisionReport:
     probability_distribution: dict[str, float] = field(default_factory=dict)
     market_intelligence: dict[str, Any] = field(default_factory=dict)
     scoring: dict[str, Any] = field(default_factory=dict)
+    risk_object: dict[str, Any] = field(default_factory=dict)
     symbol: str = "BTCUSDT"
     analyzed_at: str = field(default_factory=utc_now_iso)
     analysis_fingerprint: str = ""

@@ -80,6 +80,36 @@ def architecture(request: Request):
                     "/api/v1/validation/approve",
                 ],
             },
+            "risk_management": {
+                "chapter": 15,
+                "composite_risk_score": "0-100",
+                "categories": [
+                    "market",
+                    "liquidity",
+                    "volatility",
+                    "leverage",
+                    "event",
+                    "data",
+                    "execution",
+                ],
+                "controls": [
+                    "exposure_sizing",
+                    "no_trade_zone",
+                    "volatility_adjustment",
+                    "confidence_risk_matrix",
+                ],
+                "governance": [
+                    "deterministic",
+                    "ai_cannot_override",
+                    "suppression_logged",
+                ],
+                "endpoints": [
+                    "/api/v1/risk/status",
+                    "/api/v1/risk/latest",
+                    "/api/v1/risk/evaluate",
+                    "/api/v1/risk/apply-plan",
+                ],
+            },
             "backend": {
                 "framework": "fastapi",
                 "asgi": "uvicorn",

@@ -32,7 +32,7 @@ def test_health_envelope_and_request_id():
     assert body["status"] == "success"
     assert body["request_id"] == "test-cid-1"
     assert "timestamp" in body
-    assert body["data"]["chapter"] == "14-validation"
+    assert body["data"]["chapter"] == "15-risk-management"
     assert r.headers.get("X-Request-ID") == "test-cid-1"
     assert "X-Content-Type-Options" in r.headers
 

@@ -6,8 +6,9 @@ Professional AI-powered **crypto market intelligence** platform.
 ## Pipeline
 
 ```
-Analysis → Intelligence → Scoring → AI Decision → Report Generator
-        → API / Dashboard / Telegram / Export / Alerts
+Collect → Features → Analysis → Intelligence → Scoring → Risk Engine → AI Decision → Reports
+                                                              ↓
+                                                         Validation archive
 ```
 
 ## CLI
@@ -29,7 +30,8 @@ python -m src.main report     # executive markdown
 | 12 | Data Collection & Exchange Integration | ✅ |
 | 13 | Feature Engineering | ✅ |
 | 14 | Backtesting & Continuous Validation | ✅ |
+| 15 | Risk Management & Capital Preservation | ✅ |
 
 ## Status
 
-Chapters 1–14 applied on the rewrite branch.
+Chapters 1–15 applied on the rewrite branch.

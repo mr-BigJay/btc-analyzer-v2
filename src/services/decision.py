@@ -21,12 +21,14 @@ class DecisionService:
         timeframe: str = "1h",
         multi_timeframe: bool = True,
         near_options_expiry: bool = False,
+        macro_event: bool = False,
         persist: bool = True,
     ) -> dict[str, Any]:
         report = self.engine.decide(
             timeframe=timeframe,
             multi_timeframe=multi_timeframe,
             near_options_expiry=near_options_expiry,
+            macro_event=macro_event,
             persist=persist,
         )
         return report.to_dict()

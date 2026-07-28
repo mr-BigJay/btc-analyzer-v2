@@ -27,7 +27,8 @@ python -m src.main report     # executive markdown
 | 01–10 | Intro → Report Generation | ✅ |
 | 11 | Data Model & Database Architecture | ✅ |
 | 12 | Data Collection & Exchange Integration | ✅ |
+| 13 | Feature Engineering | ✅ |
 
 ## Status
 
-Chapters 1–12 applied on the rewrite branch.
+Chapters 1–13 applied on the rewrite branch.

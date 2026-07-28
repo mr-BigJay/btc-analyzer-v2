@@ -40,6 +40,27 @@ def architecture(request: Request):
                     "/api/v1/collection/backfill",
                 ],
             },
+            "feature_engineering": {
+                "chapter": 13,
+                "categories": [
+                    "price",
+                    "volume",
+                    "derivatives",
+                    "options",
+                    "technical",
+                    "structural",
+                    "liquidity",
+                    "volatility",
+                    "composite",
+                ],
+                "normalization": {"directional": [-100, 100], "probability": [0, 100], "ratio": [0, 1]},
+                "endpoints": [
+                    "/api/v1/features/status",
+                    "/api/v1/features/latest",
+                    "/api/v1/features/engineer",
+                    "/api/v1/features/quarantine",
+                ],
+            },
             "backend": {
                 "framework": "fastapi",
                 "asgi": "uvicorn",

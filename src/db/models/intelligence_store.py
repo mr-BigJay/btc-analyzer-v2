@@ -197,3 +197,24 @@ class AlertRecord(Base):
     delivered: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     payload: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+
+
+class FeatureStoreRecord(Base):
+    """Validated engineered feature snapshots (Ch.13 §13.18)."""
+
+    __tablename__ = "feature_store"
+    __table_args__ = (
+        Index("ix_feature_store_asset_timeframe_ts", "asset_id", "timeframe", "timestamp"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    asset_id: Mapped[int] = mapped_column(ForeignKey("symbols.id"), nullable=False, index=True)
+    timeframe: Mapped[str] = mapped_column(String(16), nullable=False, default="1h", index=True)
+    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    feature_set_version: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    calculation_engine: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    schema_version: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    data_quality: Mapped[float | None] = mapped_column(Float, nullable=True)
+    missing_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    payload: Mapped[str] = mapped_column(Text, nullable=False)  # JSON FeatureSet
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)

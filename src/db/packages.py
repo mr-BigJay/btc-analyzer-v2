@@ -16,9 +16,10 @@ from src.db.models import (
     Symbol,
     TechnicalIndicator,
 )
-from src.db.models.intelligence_store import FuturesData, SpotData
+from src.db.models.intelligence_store import FeatureStoreRecord, FuturesData, SpotData
 from src.db.session import get_session
 from src.db.seed import resolve_symbol_id
+from src.features.store import feature_store_memory
 
 
 def _row_dict(obj: Any, fields: list[str]) -> dict[str, Any]:
@@ -128,6 +129,27 @@ def build_data_package(*, symbol: str = "BTCUSDT", timestamp: datetime | None = 
             analysis["technical"] = _row_dict(
                 tech, ["timestamp", "timeframe", "rsi", "macd", "atr", "adx", "signal", "ema20", "ema50"]
             )
+        feat_mem = feature_store_memory.get(sym.symbol, "1h")
+        if feat_mem is not None:
+            analysis["features"] = {
+                "outputs": feat_mem.outputs,
+                "composites": feat_mem.composites,
+                "data_quality": feat_mem.data_quality,
+                "feature_version": feat_mem.feature_version,
+                "missing_count": feat_mem.missing_count,
+            }
+        else:
+            feat_row = (
+                session.query(FeatureStoreRecord)
+                .filter_by(asset_id=symbol_id)
+                .order_by(FeatureStoreRecord.timestamp.desc())
+                .first()
+            )
+            if feat_row and feat_row.payload:
+                try:
+                    analysis["features"] = json.loads(feat_row.payload)
+                except Exception:  # noqa: BLE001
+                    analysis["features"] = {"payload": feat_row.payload}
 
         scores: dict[str, Any] = {}
         if score:

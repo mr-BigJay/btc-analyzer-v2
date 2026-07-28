@@ -39,6 +39,10 @@ WRITE_PERMISSIONS: dict[str, set[str]] = {
         "market_structure",
         "liquidity_zones",
         "volatility_data",
+        "feature_store",
+    },
+    "features": {
+        "feature_store",
     },
     "scoring": {
         "market_scores",

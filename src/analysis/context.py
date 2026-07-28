@@ -46,6 +46,9 @@ class MarketContext:
     spot_volume: float | None = None
     # Meta
     source_flags: dict[str, bool] = field(default_factory=dict)
+    # Ch.13 engineered features (optional hydration)
+    features: dict[str, Any] = field(default_factory=dict)
+    feature_data_quality: float | None = None
 
     @property
     def closes(self) -> list[float]:
@@ -146,6 +149,12 @@ def build_market_context(
     # Also try loading from DB last candles if ohlcv empty
     if not ctx.ohlcv:
         ctx.ohlcv = _load_candles_from_db(repo, symbol, timeframe)
+
+    feat = redis_cache.get("latest_feature_set")
+    if isinstance(feat, dict):
+        ctx.features = feat.get("outputs") or {}
+        ctx.feature_data_quality = feat.get("data_quality")
+        ctx.source_flags["features"] = True
 
     return ctx
 

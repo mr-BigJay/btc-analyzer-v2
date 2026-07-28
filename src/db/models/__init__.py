@@ -5,6 +5,7 @@ from src.db.models.config_domain import Asset, Exchange, Symbol, SystemSetting
 from src.db.models.intelligence_store import (
     AIDecisionRecord,
     AlertRecord,
+    FeatureStoreRecord,
     FuturesData,
     LiquidityZone,
     MarketScore,
@@ -58,6 +59,7 @@ __all__ = [
     "AIDecisionRecord",
     "ReportRecord",
     "AlertRecord",
+    "FeatureStoreRecord",
     "CoinExAnalysis",
     "DailyOutlook",
     "TradingPlan",

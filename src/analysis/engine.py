@@ -42,6 +42,21 @@ class AnalysisEngine:
         symbol = symbol or settings.binance_symbol
         ctx = context or build_market_context(self.repository, symbol=symbol, timeframe=timeframe)
 
+        # Ch.13 — engineer features before layers (deterministic; never fabricates)
+        try:
+            from src.features.engine import FeatureEngineeringEngine
+
+            fs = FeatureEngineeringEngine(self.repository).engineer(
+                ctx, symbol=symbol, timeframe=timeframe, persist=True, multi_timeframe=False
+            )
+            if not isinstance(fs, dict):
+                ctx.features = fs.outputs
+                ctx.feature_data_quality = fs.data_quality
+                # Stash full set on redis for downstream DQS
+                redis_cache.set("latest_feature_set", fs.to_dict(), ttl_sec=settings.redis_hot_ttl_sec)
+        except Exception as exc:  # noqa: BLE001
+            log.warning("feature engineering skipped: {}", exc)
+
         layer_results = self._run_layers(ctx)
         weights = compute_weights(layer_results, near_options_expiry=near_options_expiry)
         resolution = resolve_conflicts(layer_results, weights)

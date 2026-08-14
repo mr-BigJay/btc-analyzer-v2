@@ -73,10 +73,11 @@ parse_args() {
 }
 
 run_root() {
+    # Use env so VAR=value prefixes work when running as root (not only via sudo).
     if [[ "${EUID:-$(id -u)}" -eq 0 ]]; then
-        "$@"
+        env "$@"
     else
-        sudo "$@"
+        sudo env "$@"
     fi
 }
 

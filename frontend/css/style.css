@@ -762,6 +762,126 @@ body {
   cursor: wait;
 }
 
+.advisor-setup {
+  margin-bottom: 1.25rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid rgba(163, 113, 247, 0.22);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.advisor-setup.collapsed {
+  display: none;
+}
+
+.advisor-setup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.advisor-setup-header h3 {
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.advisor-setup-badge {
+  font-size: 0.72rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+
+.advisor-setup-badge.ok {
+  color: #7ee787;
+  border-color: rgba(126, 231, 135, 0.35);
+}
+
+.advisor-setup-badge.warn {
+  color: #f0b429;
+  border-color: rgba(240, 180, 41, 0.35);
+}
+
+.advisor-setup-form {
+  margin-top: 0.75rem;
+}
+
+.advisor-setup-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem 1rem;
+}
+
+.advisor-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.82rem;
+}
+
+.advisor-field span {
+  color: var(--muted);
+}
+
+.advisor-field input[type="text"],
+.advisor-field input[type="password"],
+.advisor-field input[type="url"],
+.advisor-field input[type="number"] {
+  width: 100%;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.85rem;
+}
+
+.advisor-field-check {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  padding-top: 1.4rem;
+}
+
+.advisor-field-check input {
+  width: auto;
+}
+
+.advisor-setup-actions {
+  display: flex;
+  gap: 0.65rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+
+.advisor-save-btn {
+  border: 1px solid rgba(126, 231, 135, 0.35);
+  background: rgba(126, 231, 135, 0.12);
+  color: #7ee787;
+  border-radius: 8px;
+  padding: 0.45rem 0.9rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.advisor-save-btn:disabled,
+.advisor-save-btn:disabled + .advisor-refresh-btn {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.advisor-setup-message {
+  margin-top: 0.75rem;
+  font-size: 0.82rem;
+  min-height: 1.2rem;
+}
+
+.advisor-setup-message.ok { color: #7ee787; }
+.advisor-setup-message.err { color: #ff7b72; }
+
 .advisor-headline {
   font-size: 1.05rem;
   font-weight: 600;
@@ -798,6 +918,8 @@ body {
   .advisor-grid { grid-template-columns: 1fr; }
   .advisor-header { flex-direction: column; }
   .advisor-meta { align-items: flex-start; }
+  .advisor-setup-grid { grid-template-columns: 1fr; }
+  .advisor-field-check { padding-top: 0; }
 }
 
 .guide-chevron { color: var(--muted); font-size: 0.85rem; }

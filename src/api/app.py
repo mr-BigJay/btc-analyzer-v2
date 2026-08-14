@@ -7,6 +7,8 @@ from starlette.requests import Request
 from starlette.responses import Response
 
 from src.api.options_routes import router as options_router
+from src.advisor.settings_routes import router as advisor_settings_router
+from src.advisor.service import AdvisorService
 from src.analyzer.forecast import ForecastEngine, forecast_to_dict
 from src.analyzer.serialize import analysis_to_dict
 from src.analyzer.service import AnalysisService
@@ -49,11 +51,15 @@ forecast_engine = ForecastEngine()
 advisor_service = AdvisorService()
 
 app.include_router(options_router)
+app.include_router(advisor_settings_router)
 
 
 @app.on_event("startup")
 def startup() -> None:
+    from src.advisor.settings_store import apply_from_disk
+
     init_db()
+    apply_from_disk()
 
 
 @app.get("/api/health")

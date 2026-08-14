@@ -99,6 +99,9 @@ def cmd_optimize() -> int:
 
 def cmd_init_db() -> int:
     init_db()
+    from src.advisor.settings_store import apply_from_disk
+
+    apply_from_disk()
     logger.info("Database initialized at %s", settings.database_url)
     return 0
 
@@ -110,7 +113,11 @@ def cmd_serve() -> int:
 
 
 def cmd_run() -> int:
+    from src.advisor.settings_store import apply_from_disk
     from src.scheduler import AppScheduler
+
+    init_db()
+    apply_from_disk()
 
     telegram = None
     if settings.telegram_bot_token:
@@ -129,8 +136,11 @@ def cmd_run() -> int:
 
 
 def cmd_telegram() -> int:
+    from src.advisor.settings_store import apply_from_disk
     from src.notifier.telegram_bot import run_telegram_bot
 
+    init_db()
+    apply_from_disk()
     run_telegram_bot()
     return 0
 
@@ -139,9 +149,11 @@ def cmd_start() -> int:
     """Run scheduler (background) + API server (foreground)."""
     import threading
 
+    from src.advisor.settings_store import apply_from_disk
     from src.scheduler import AppScheduler
 
     init_db()
+    apply_from_disk()
 
     telegram = None
     if settings.telegram_bot_token:

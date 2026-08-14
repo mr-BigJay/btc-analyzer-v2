@@ -42,6 +42,34 @@ async function fetchAdvisor(refresh = false) {
   return res.json();
 }
 
+async function fetchAdvisorSettings() {
+  const res = await fetch("/api/v1/advisor/settings");
+  if (!res.ok) throw new Error("advisor settings failed");
+  return res.json();
+}
+
+async function saveAdvisorSettings(payload) {
+  const res = await fetch("/api/v1/advisor/settings", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.detail || "save failed");
+  return data;
+}
+
+async function testAdvisorSettings(payload) {
+  const res = await fetch("/api/v1/advisor/settings/test", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.detail || "test failed");
+  return data;
+}
+
 function formatPrice(n) {
   return "$" + Number(n).toLocaleString("en-US", { maximumFractionDigits: 2 });
 }
@@ -585,6 +613,90 @@ function updateAdvisor(data) {
   renderAdvisorList("advisor-levels", levels, "سطحی ثبت نشده");
 }
 
+function setAdvisorSetupMessage(text, type = "") {
+  const el = document.getElementById("advisor-setup-message");
+  if (!el) return;
+  el.textContent = text || "";
+  el.className = `advisor-setup-message ${type}`.trim();
+}
+
+function updateAdvisorSetupStatus(cfg) {
+  const badge = document.getElementById("advisor-setup-status");
+  if (!badge) return;
+  if (cfg.configured) {
+    badge.textContent = `متصل · ${cfg.advisor_model}`;
+    badge.className = "advisor-setup-badge ok";
+  } else if (cfg.advisor_enabled) {
+    badge.textContent = "فعال — بدون API Key (rule-based)";
+    badge.className = "advisor-setup-badge warn";
+  } else {
+    badge.textContent = "غیرفعال";
+    badge.className = "advisor-setup-badge warn";
+  }
+}
+
+function fillAdvisorSetupForm(cfg) {
+  document.getElementById("cfg-advisor-enabled").checked = cfg.advisor_enabled !== false;
+  document.getElementById("cfg-advisor-api-base").value = cfg.advisor_api_base || "https://api.openai.com/v1";
+  document.getElementById("cfg-advisor-model").value = cfg.advisor_model || "gpt-4o-mini";
+  document.getElementById("cfg-advisor-cache").value = cfg.advisor_cache_minutes || 15;
+  document.getElementById("cfg-advisor-history").value = cfg.advisor_chat_history_limit || 12;
+  document.getElementById("cfg-advisor-telegram").checked = cfg.advisor_telegram_enabled !== false;
+  document.getElementById("cfg-advisor-proactive").checked = cfg.advisor_telegram_proactive !== false;
+  document.getElementById("cfg-telegram-chat-id").value = cfg.telegram_chat_id || "";
+
+  const keyHint = document.getElementById("cfg-advisor-api-key-hint");
+  keyHint.textContent = cfg.advisor_api_key_set
+    ? `ذخیره‌شده: ${cfg.advisor_api_key_masked}`
+    : "هنوز API Key ذخیره نشده";
+
+  const tokenHint = document.getElementById("cfg-telegram-token-hint");
+  tokenHint.textContent = cfg.telegram_bot_token_set
+    ? `ذخیره‌شده: ${cfg.telegram_bot_token_masked}`
+    : "اختیاری — برای گفتگو و هشدار در تلگرام";
+
+  document.getElementById("cfg-advisor-api-key").value = "";
+  document.getElementById("cfg-telegram-token").value = "";
+
+  const setup = document.getElementById("advisor-setup");
+  if (setup && !cfg.configured) {
+    setup.classList.remove("collapsed");
+  } else if (setup) {
+    setup.classList.add("collapsed");
+  }
+
+  updateAdvisorSetupStatus(cfg);
+}
+
+async function loadAdvisorSetup() {
+  try {
+    const cfg = await fetchAdvisorSettings();
+    fillAdvisorSetupForm(cfg);
+  } catch (e) {
+    console.error(e);
+    setAdvisorSetupMessage("خطا در بارگذاری تنظیمات", "err");
+  }
+}
+
+function collectAdvisorSetupPayload() {
+  const payload = {
+    advisor_enabled: document.getElementById("cfg-advisor-enabled").checked,
+    advisor_api_base: document.getElementById("cfg-advisor-api-base").value.trim(),
+    advisor_model: document.getElementById("cfg-advisor-model").value.trim(),
+    advisor_cache_minutes: Number(document.getElementById("cfg-advisor-cache").value),
+    advisor_chat_history_limit: Number(document.getElementById("cfg-advisor-history").value),
+    advisor_telegram_enabled: document.getElementById("cfg-advisor-telegram").checked,
+    advisor_telegram_proactive: document.getElementById("cfg-advisor-proactive").checked,
+    telegram_chat_id: document.getElementById("cfg-telegram-chat-id").value.trim(),
+  };
+
+  const apiKey = document.getElementById("cfg-advisor-api-key").value.trim();
+  const telegramToken = document.getElementById("cfg-telegram-token").value.trim();
+  if (apiKey) payload.advisor_api_key = apiKey;
+  if (telegramToken) payload.telegram_bot_token = telegramToken;
+  return payload;
+}
+
 async function refresh() {
   try {
     const [overview, backtest, liq, optParams, forecast, advisor] = await Promise.all([
@@ -610,8 +722,54 @@ async function refresh() {
 }
 
 initChart();
+loadAdvisorSetup();
 refresh();
 setInterval(refresh, 5 * 60 * 1000);
+
+document.getElementById("advisor-setup-toggle")?.addEventListener("click", () => {
+  document.getElementById("advisor-setup")?.classList.toggle("collapsed");
+});
+
+document.getElementById("advisor-setup-form")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById("advisor-save-btn");
+  btn.disabled = true;
+  setAdvisorSetupMessage("در حال ذخیره...");
+  try {
+    const payload = collectAdvisorSetupPayload();
+    const cfg = await saveAdvisorSettings(payload);
+    fillAdvisorSetupForm(cfg);
+    setAdvisorSetupMessage("تنظیمات ذخیره شد ✓", "ok");
+    const advisor = await fetchAdvisor(true);
+    updateAdvisor(advisor);
+  } catch (err) {
+    console.error(err);
+    setAdvisorSetupMessage(err.message || "خطا در ذخیره", "err");
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+document.getElementById("advisor-test-btn")?.addEventListener("click", async () => {
+  const btn = document.getElementById("advisor-test-btn");
+  btn.disabled = true;
+  setAdvisorSetupMessage("در حال تست اتصال...");
+  try {
+    const payload = collectAdvisorSetupPayload();
+    const testPayload = {
+      advisor_api_base: payload.advisor_api_base,
+      advisor_model: payload.advisor_model,
+    };
+    if (payload.advisor_api_key) testPayload.advisor_api_key = payload.advisor_api_key;
+    const result = await testAdvisorSettings(testPayload);
+    setAdvisorSetupMessage(`${result.message} · ${result.reply_preview || ""}`, "ok");
+  } catch (err) {
+    console.error(err);
+    setAdvisorSetupMessage(err.message || "تست ناموفق", "err");
+  } finally {
+    btn.disabled = false;
+  }
+});
 
 document.getElementById("advisor-refresh")?.addEventListener("click", async () => {
   const btn = document.getElementById("advisor-refresh");

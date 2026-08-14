@@ -36,6 +36,16 @@
 
 ## نصب روی Ubuntu 24 (یک دستور)
 
+### نصب با یک خط (پیشنهادی — root یا کاربر عادی)
+
+```bash
+bash -c 'set -euo pipefail; D="${BTC_ANALYZER_DIR:-$HOME/btc-analyzer-v2}"; R="https://github.com/mr-BigJay/btc-analyzer-v2.git"; B="${BTC_ANALYZER_BRANCH:-main}"; if ! command -v git >/dev/null 2>&1; then export DEBIAN_FRONTEND=noninteractive; apt-get update -qq; apt-get install -y git; fi; if [[ -d "$D/.git" ]]; then git -C "$D" fetch origin "$B"; git -C "$D" checkout "$B"; git -C "$D" reset --hard "origin/$B"; else git clone --branch "$B" "$R" "$D"; fi; chmod +x "$D/install.sh"; exec "$D/install.sh" "$@"' sh
+```
+
+اگر پوشه از قبل وجود دارد، خودکار آپدیت و نصب می‌کند. با `root` هم کار می‌کند.
+
+### نصب دستی (۴ خط)
+
 ```bash
 git clone https://github.com/mr-BigJay/btc-analyzer-v2.git
 cd btc-analyzer-v2

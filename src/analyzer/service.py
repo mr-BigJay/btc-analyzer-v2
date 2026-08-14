@@ -628,47 +628,67 @@ class AnalysisService:
         liquidations: LiquidationContext | None = None,
     ) -> str:
         tf_order = ["1w", "1d", "4h"]
+        tf_labels = {"1w": "هفتگی", "1d": "روزانه", "4h": "4h"}
+        trend_fa = {"bullish": "صعودی", "bearish": "نزولی", "neutral": "خنثی"}
         trends = {tf: timeframes[tf].trend.value for tf in tf_order if tf in timeframes}
 
-        if mtf_aligned and all(t == "bullish" for t in trends.values()):
-            base = "روند صعودی قوی در همه تایم‌فریم‌ها"
-        elif mtf_aligned and all(t == "bearish" for t in trends.values()):
-            base = "روند نزولی قوی در همه تایم‌فریم‌ها"
+        bearish_n = sum(1 for t in trends.values() if t == "bearish")
+        bullish_n = sum(1 for t in trends.values() if t == "bullish")
+
+        if mtf_aligned and bullish_n == 3:
+            verdict = "فشار صعودی قوی — هر سه تایم‌فریم هم‌جهت"
+        elif mtf_aligned and bearish_n == 3:
+            verdict = "فشار نزولی قوی — هر سه تایم‌فریم هم‌جهت"
+        elif bearish_n >= 2 and trends.get("1w") != "bullish":
+            verdict = "فشار نزولی غالب در کوتاه‌مدت"
+        elif bullish_n >= 2 and trends.get("1w") != "bearish":
+            verdict = "فشار صعودی غالب در کوتاه‌مدت"
         elif trends.get("1w") == "bullish" and trends.get("4h") == "bearish":
-            base = "روند کلی صعودی، اصلاح کوتاه‌مدت"
+            verdict = "روند بلندمدت صعودی — اصلاح کوتاه‌مدت در جریان"
         elif trends.get("1w") == "bearish" and trends.get("4h") == "bullish":
-            base = "روند کلی نزولی، بازگشت کوتاه‌مدت"
+            verdict = "روند بلندمدت نزولی — بازگشت کوتاه‌مدت محتمل"
         else:
-            base = "بازار بدون هم‌راستایی مشخص بین تایم‌فریم‌ها"
+            verdict = "بازار بدون جهت مشخص — تایم‌فریم‌ها ناهماهنگ"
 
-        if derivatives.funding_signal == "overleveraged_long":
-            base += " — هشدار: فاندینگ بالا"
-        elif derivatives.funding_signal == "overleveraged_short":
-            base += " — فاندینگ منفی شدید"
+        trend_line = "، ".join(
+            f"{tf_labels[tf]} {trend_fa.get(trends[tf], trends[tf])}"
+            for tf in tf_order
+            if tf in trends
+        )
 
-        if onchain and onchain.mvrv_signal == "overvalued":
-            base += " — MVRV بالا"
-        elif onchain and onchain.mvrv_signal == "undervalued":
-            base += " — MVRV پایین (ارزشمند)"
-
-        if macro:
-            if macro.macro_bias == "bullish_crypto":
-                base += " — ماکرو: محیط ریسک‌پذیر"
-            elif macro.macro_bias == "bearish_crypto":
-                base += " — ماکرو: فشار دلار/ریسک‌گریز"
-
-        if liquidations and liquidations.signal == "liq_cluster_above":
-            base += " — خوشه لیکوئیدیشن بالای قیمت"
-        elif liquidations and liquidations.signal == "liq_cluster_below":
-            base += " — خوشه لیکوئیدیشن زیر قیمت"
+        drivers: list[str] = []
+        if liquidations and liquidations.signal == "liq_cluster_below":
+            drivers.append("لیکوئیدیشن لانگ زیر قیمت")
+        elif liquidations and liquidations.signal == "liq_cluster_above":
+            drivers.append("لیکوئیدیشن شورت بالای قیمت")
 
         tf4h = timeframes.get("4h")
-        if tf4h and tf4h.levels.get("smc_signal") in ("bos_bullish", "choch_bullish"):
-            base += " — SMC صعودی"
-        elif tf4h and tf4h.levels.get("smc_signal") in ("bos_bearish", "choch_bearish"):
-            base += " — SMC نزولی"
+        if tf4h:
+            smc = tf4h.levels.get("smc_signal")
+            if smc in ("bos_bullish", "choch_bullish"):
+                drivers.append("سیگنال SMC صعودی در 4h")
+            elif smc in ("bos_bearish", "choch_bearish"):
+                drivers.append("سیگنال SMC نزولی در 4h")
 
-        return base
+        if derivatives.funding_signal == "overleveraged_long":
+            drivers.append("فاندینگ مثبت بالا")
+        elif derivatives.funding_signal == "overleveraged_short":
+            drivers.append("فاندینگ منفی شدید")
+
+        if onchain and onchain.mvrv_signal == "overvalued":
+            drivers.append("MVRV بالای میانگین")
+        elif onchain and onchain.mvrv_signal == "undervalued":
+            drivers.append("MVRV پایین (ارزش نسبی)")
+
+        if macro and macro.macro_bias == "bearish_crypto":
+            drivers.append("ماکرو منفی برای ریسک")
+        elif macro and macro.macro_bias == "bullish_crypto":
+            drivers.append("ماکرو مثبت برای ریسک")
+
+        parts = [verdict, trend_line]
+        if drivers:
+            parts.append("عوامل کلیدی: " + " · ".join(drivers[:3]))
+        return " — ".join(parts)
 
     def analyze(self, session: Session) -> OverviewAnalysis:
         timeframes: dict[str, TimeframeAnalysis] = {}

@@ -52,7 +52,96 @@ function regimeFa(regime) {
   return { trending: "روندی", ranging: "رنج", volatile: "پرنوسان" }[regime] || regime;
 }
 
-function buildTechnicalBrief(data, liq, backtest) {
+function buildScenarioText(data, forecast) {
+  if (!forecast) return "پیش‌بینی در دسترس نیست.";
+
+  const price = data.price;
+  const dir = forecast.direction;
+  const conf = forecast.confidence;
+  const support = forecast.support;
+  const resistance = forecast.resistance;
+  const target = forecast.primary_target;
+  const invalidation = forecast.invalidation;
+
+  const lines = [];
+
+  if (dir === "bearish") {
+    lines.push(
+      `در ۴ ساعت آینده، مدل حرکت <strong class="bear">نزولی</strong> را محتمل‌تر می‌داند (اعتماد ${conf.toFixed(0)}٪).`
+    );
+    if (target && target < price) {
+      const pct = (((target - price) / price) * 100).toFixed(1);
+      lines.push(
+        `مسیر محتمل: افت قیمت از ${formatPrice(price)} به سمت ${formatPrice(target)} (حدود ${pct}٪).`
+      );
+    } else if (support) {
+      lines.push(`مسیر محتمل: فشار فروش تا حمایت ${formatPrice(support)}.`);
+    }
+    if (invalidation) {
+      lines.push(
+        `باطل‌کننده: بسته شدن و تثبیت بالای ${formatPrice(invalidation)} — سناریوی نزولی لغو می‌شود.`
+      );
+    }
+  } else if (dir === "bullish") {
+    lines.push(
+      `در ۴ ساعت آینده، مدل حرکت <strong class="bull">صعودی</strong> را محتمل‌تر می‌داند (اعتماد ${conf.toFixed(0)}٪).`
+    );
+    if (target && target > price) {
+      const pct = (((target - price) / price) * 100).toFixed(1);
+      lines.push(
+        `مسیر محتمل: رشد قیمت از ${formatPrice(price)} به سمت ${formatPrice(target)} (حدود +${pct}٪).`
+      );
+    } else if (resistance) {
+      lines.push(`مسیر محتمل: صعود تا مقاومت ${formatPrice(resistance)}.`);
+    }
+    if (invalidation) {
+      lines.push(
+        `باطل‌کننده: شکست زیر ${formatPrice(invalidation)} — سناریوی صعودی لغو می‌شود.`
+      );
+    }
+  } else {
+    lines.push(
+      `در ۴ ساعت آینده، بازار احتمالاً <strong class="warn">رنج</strong> می‌ماند (اعتماد ${conf.toFixed(0)}٪).`
+    );
+    if (support && resistance) {
+      lines.push(
+        `مسیر محتمل: نوسان بین ${formatPrice(support)} (کف) و ${formatPrice(resistance)} (سقف).`
+      );
+    }
+    if (target) {
+      lines.push(`هدف میانی: ${formatPrice(target)}.`);
+    }
+  }
+
+  if (support || resistance) {
+    const levels = [];
+    if (support) levels.push(`حمایت: ${formatPrice(support)}`);
+    if (resistance) levels.push(`مقاومت: ${formatPrice(resistance)}`);
+    lines.push(levels.join(" · "));
+  }
+
+  return lines.join("<br>");
+}
+
+function buildVerdict(data) {
+  const score = data.overall_score;
+  const conf = data.overall_confidence;
+  let bias = "خنثی";
+  let cls = "warn";
+  if (score >= 58) {
+    bias = "صعودی";
+    cls = "bull";
+  } else if (score <= 42) {
+    bias = "نزولی";
+    cls = "bear";
+  }
+  return {
+    text: `حکم کلی: بازار <strong class="${cls}">${bias}</strong> — امتیاز ${score.toFixed(0)}/100 · اعتماد ${conf.toFixed(0)}٪`,
+    cls,
+  };
+}
+
+function buildTechnicalBrief(data, liq, backtest, forecast) {
   const tf4h = data.timeframes["4h"];
   const tf1d = data.timeframes["1d"];
   const tf1w = data.timeframes["1w"];
@@ -61,80 +150,100 @@ function buildTechnicalBrief(data, liq, backtest) {
   const oc = data.onchain;
   const macro = data.macro;
   const lv = tf4h.levels || {};
+  const verdict = buildVerdict(data);
 
   const mtfNote = data.mtf_aligned
-    ? "سه تایم‌فریم در یک جهت هم‌راستا هستند و سیگنال MTF Confluence تقویت می‌شود"
-    : "تایم‌فریم‌ها در یک جهت نیستند؛ سیگنال کوتاه‌مدت ممکن است با روند بلندمدت در تضاد باشد";
+    ? "هر سه تایم‌فریم هم‌جهت هستند — سیگنال قوی‌تر"
+    : "تایم‌فریم‌ها ناهماهنگ — احتیاط در معامله کوتاه‌مدت";
 
-  const funding =
-    d.funding_rate != null
-      ? chip(`${(d.funding_rate * 100).toFixed(4)}% funding`, d.funding_signal === "bullish" ? "bull" : d.funding_signal === "bearish" ? "bear" : "dim")
-      : chip("funding نامشخص", "dim");
+  const factors = [];
+  if (d.funding_rate != null) {
+    factors.push(`فاندینگ ${(d.funding_rate * 100).toFixed(4)}٪`);
+  }
+  if (d.open_interest_change_pct != null) {
+    factors.push(`OI ${d.open_interest_change_pct > 0 ? "+" : ""}${d.open_interest_change_pct.toFixed(2)}٪`);
+  }
+  if (d.long_short_ratio != null) {
+    factors.push(`L/S ${d.long_short_ratio.toFixed(2)}`);
+  }
+  if (s.fear_greed_value != null) {
+    factors.push(`F&G ${s.fear_greed_value} (${s.fear_greed_label || ""})`);
+  }
+  if (oc?.mvrv != null) {
+    factors.push(`MVRV ${oc.mvrv}`);
+  }
+  if (macro?.macro_bias) {
+    factors.push(`ماکرو: ${BIAS_FA[macro.macro_bias] || macro.macro_bias}`);
+  }
+  if (liq?.zones?.length) {
+    factors.push(`لیکوئیدیشن: ${liq.zones.length} زون نزدیک قیمت`);
+  }
 
-  const oi =
-    d.open_interest_change_pct != null
-      ? chip(`OI ${d.open_interest_change_pct > 0 ? "+" : ""}${d.open_interest_change_pct}%`, d.oi_signal === "bullish" ? "bull" : d.oi_signal === "bearish" ? "bear" : "dim")
-      : "";
+  const bt = backtest?.find((r) => r.timeframe === "1d") || backtest?.[0];
+  let btNote = "";
+  if (bt) {
+    const quality = bt.profit_factor >= 1.3 && bt.win_rate >= 50 ? "قابل اتکا" : "با احتیاط";
+    btNote = `بک‌تست ${bt.timeframe}: WR ${bt.win_rate}٪ · PF ${bt.profit_factor} — ${quality}`;
+  }
 
-  const ls =
-    d.long_short_ratio != null
-      ? chip(`L/S ${d.long_short_ratio.toFixed(2)}`, d.ls_signal === "bullish" ? "bull" : d.ls_signal === "bearish" ? "bear" : "dim")
-      : "";
+  const SMC_FA = {
+    bos_bullish: "BOS صعودی",
+    bos_bearish: "BOS نزولی",
+    choch_bullish: "CHoCH صعودی",
+    choch_bearish: "CHoCH نزولی",
+  };
+  const smcLabel = SMC_FA[lv.smc_signal] || null;
 
-  const fg =
-    s.fear_greed_value != null
-      ? chip(`F&G ${s.fear_greed_value}`, s.signal === "bullish" ? "bull" : s.signal === "bearish" ? "bear" : "warn")
-      : "";
+  return `
+    <div class="brief-report">
+      <div class="brief-verdict ${verdict.cls}">${verdict.text}</div>
+      <p class="brief-summary">${data.summary}</p>
 
-  const mvrv =
-    oc?.mvrv != null
-      ? chip(`MVRV ${oc.mvrv}`, oc.mvrv_signal === "bullish" ? "bull" : oc.mvrv_signal === "bearish" ? "bear" : "dim")
-      : "";
+      <div class="brief-section">
+        <h3>وضعیت تایم‌فریم‌ها</h3>
+        <table class="brief-table">
+          <thead><tr><th>تایم‌فریم</th><th>روند</th><th>امتیاز</th><th>اعتماد</th></tr></thead>
+          <tbody>
+            <tr><td>هفتگی</td><td class="${trendClass(tf1w.trend)}">${TREND_FA[tf1w.trend]}</td><td>${tf1w.score.toFixed(0)}</td><td>${tf1w.confidence.toFixed(0)}٪</td></tr>
+            <tr><td>روزانه</td><td class="${trendClass(tf1d.trend)}">${TREND_FA[tf1d.trend]}</td><td>${tf1d.score.toFixed(0)}</td><td>${tf1d.confidence.toFixed(0)}٪</td></tr>
+            <tr><td>4 ساعته</td><td class="${trendClass(tf4h.trend)}">${TREND_FA[tf4h.trend]}</td><td>${tf4h.score.toFixed(0)}</td><td>${tf4h.confidence.toFixed(0)}٪</td></tr>
+          </tbody>
+        </table>
+        <p class="brief-note">${mtfNote}</p>
+      </div>
 
-  const macroPart =
-    macro && macro.dxy_change_7d != null && macro.spx_change_7d != null
-      ? `محیط ماکرو با بایاس ${chip(BIAS_FA[macro.macro_bias] || macro.macro_bias, macro.macro_bias === "bullish_crypto" ? "bull" : macro.macro_bias === "bearish_crypto" ? "bear" : "warn")} — DXY هفتگی ${chip((macro.dxy_change_7d >= 0 ? "+" : "") + macro.dxy_change_7d.toFixed(1) + "%", macro.dxy_change_7d > 0 ? "bear" : "bull")} و SPX ${chip((macro.spx_change_7d >= 0 ? "+" : "") + macro.spx_change_7d.toFixed(1) + "%", macro.spx_change_7d > 0 ? "bull" : "bear")}`
-      : "";
+      <div class="brief-section">
+        <h3>سطوح و ساختار (4h)</h3>
+        <ul class="brief-list">
+          ${lv.support ? `<li>حمایت: <strong>${formatPrice(lv.support)}</strong></li>` : ""}
+          ${lv.resistance ? `<li>مقاومت: <strong>${formatPrice(lv.resistance)}</strong></li>` : ""}
+          ${lv.fib_nearest ? `<li>فیبوناچی نزدیک: <strong>${lv.fib_nearest}</strong></li>` : ""}
+          ${smcLabel ? `<li>SMC: <strong>${smcLabel}</strong></li>` : "<li>SMC: بدون شکست ساختاری معنادار</li>"}
+        </ul>
+      </div>
 
-  const smcPart = lv.smc_signal && lv.smc_signal !== "none"
-    ? `ساختار SMC در 4h نشان‌دهنده ${chip(lv.smc_signal.replace(/_/g, " "), lv.smc_signal.includes("bull") ? "bull" : "bear")} است`
-    : "ساختار SMC فعلاً بدون شکست ساختاری معنادار است";
+      ${
+        factors.length
+          ? `<div class="brief-section"><h3>فاکتورهای محیطی</h3><ul class="brief-list">${factors.map((f) => `<li>${f}</li>`).join("")}</ul></div>`
+          : ""
+      }
 
-  const liqPart =
-    liq?.zones?.length
-      ? `نقشه لیکوئیدیشن OKX تمرکز نقدینگی اجباری را در محدوده‌های نزدیک قیمت فعلی نشان می‌دهد — ${chip(liq.zones.length + " زون", "dim")}`
-      : data.liquidations?.signal
-        ? chip(data.liquidations.signal, "warn")
-        : "";
+      <div class="brief-section brief-scenario">
+        <h3>سناریوی پیش‌رو (۴ ساعت آینده)</h3>
+        <div class="brief-scenario-body">${buildScenarioText(data, forecast)}</div>
+        ${forecast?.summary ? `<p class="brief-scenario-summary">${forecast.summary}</p>` : ""}
+      </div>
 
-  const bt = backtest?.[0];
-  const btPart = bt
-    ? `بک‌تست walk-forward روی ${chip(bt.timeframe, "dim")} با Win Rate ${chip(bt.win_rate + "%", bt.win_rate >= 55 ? "bull" : "warn")} و Profit Factor ${chip(String(bt.profit_factor), bt.profit_factor >= 1.5 ? "bull" : "warn")} اعتبار سیگنال را ${bt.profit_factor >= 1.5 ? "تأیید" : "با احتیاط"} می‌کند`
-    : "";
-
-  return [
-    `نگاه کلی بازار: امتیاز ${chip(data.overall_score.toFixed(0) + "/100", data.overall_score >= 55 ? "bull" : data.overall_score <= 45 ? "bear" : "warn")} با اعتماد ${chip(data.overall_confidence.toFixed(0) + "%", "dim")} (ترکیب 4h+روزانه+هفتگی).`,
-    `روند فعلی — هفتگی: ${chip(TREND_FA[tf1w.trend], trendClass(tf1w.trend))}، روزانه: ${chip(TREND_FA[tf1d.trend], trendClass(tf1d.trend))}، 4h: ${chip(TREND_FA[tf4h.trend], trendClass(tf4h.trend))}؛ ${mtfNote}.`,
-    `ساختار 4h: ${smcPart}${lv.fib_nearest ? " — فیبو " + chip(lv.fib_nearest, "warn") : ""}.`,
-    `مشتقات: ${funding}${oi ? "، " + oi : ""}${ls ? "، " + ls : ""}.`,
-    macroPart ? macroPart + "." : "",
-    oc
-      ? `آنچین: ${mvrv || chip("—", "dim")}${oc.active_addresses != null ? " و آدرس‌های فعال " + chip(oc.active_addresses.toLocaleString(), "dim") : ""}${fg ? "؛ احساسات بازار " + fg : ""}.`
-      : fg
-        ? `احساسات بازار ${fg}.`
-        : "",
-    liqPart ? liqPart + "." : "",
-    btPart ? btPart + "." : "",
-    `⚠️ گزارش زمینه‌ای — برای تصمیم ۴ ساعت آینده بخش ۲ (پیش‌بینی) را ببینید.`
-  ]
-    .filter(Boolean)
-    .join(" ");
+      ${btNote ? `<p class="brief-footnote">${btNote}</p>` : ""}
+      <p class="brief-disclaimer">⚠️ تحلیل است، نه توصیه سرمایه‌گذاری</p>
+    </div>
+  `;
 }
 
-function updateTechnicalBrief(data, liq, backtest) {
+function updateTechnicalBrief(data, liq, backtest, forecast) {
   const el = document.getElementById("tech-brief");
   if (!el) return;
-  el.innerHTML = buildTechnicalBrief(data, liq, backtest);
+  el.innerHTML = buildTechnicalBrief(data, liq, backtest, forecast);
   el.classList.remove("muted");
 }
 
@@ -389,7 +498,7 @@ async function refresh() {
     updateBacktest(backtest);
     renderLiquidations(liq);
     updateOptimizedParams(optParams);
-    updateTechnicalBrief(overview, liq, backtest);
+    updateTechnicalBrief(overview, liq, backtest, forecast);
     await loadChart(currentTf);
   } catch (e) {
     console.error(e);

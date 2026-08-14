@@ -47,7 +47,7 @@ ensure_git() {
     if ! command -v apt-get >/dev/null 2>&1; then
         die "git peida nashod. avval git ro nasb konid."
     fi
-    log "git peida nashod — dar hale nasb..."
+    log "git peida nashod - dar hale nasb..."
     run_root apt-get update -qq
     run_root DEBIAN_FRONTEND=noninteractive apt-get install -y git curl ca-certificates
 }
@@ -62,7 +62,7 @@ sync_repo() {
                 git -C "$INSTALL_DIR" reset --hard "origin/$GIT_BRANCH"
                 git -C "$INSTALL_DIR" clean -fd -e data -e .env -e .venv
             else
-                log "update code skip shod — faghat install edame peyda mikone"
+                log "update code skip shod - faghat install edame peyda mikone"
             fi
         fi
         return

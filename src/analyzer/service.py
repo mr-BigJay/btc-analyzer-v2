@@ -463,47 +463,47 @@ class AnalysisService:
 
         if row.premium_pct > 0.03:
             score += 12
-            notes.append(f"پریمیوم مثبت {row.premium_pct:.3f}%")
+            notes.append(f"premium mosbat {row.premium_pct:.3f}%")
         elif row.premium_pct < -0.03:
             score -= 12
-            notes.append(f"پریمیوم منفی {row.premium_pct:.3f}%")
+            notes.append(f"premium manfi {row.premium_pct:.3f}%")
 
         if row.funding_rate > 0.0001:
             score += 8
-            notes.append(f"فاندینگ مثبت {row.funding_rate * 100:.4f}%")
+            notes.append(f"funding mosbat {row.funding_rate * 100:.4f}%")
         elif row.funding_rate < -0.0001:
             score -= 8
-            notes.append(f"فاندینگ منفی {row.funding_rate * 100:.4f}%")
+            notes.append(f"funding manfi {row.funding_rate * 100:.4f}%")
 
         if row.taker_buy_sell_ratio > 1.1:
             score += 18
-            notes.append("خرید تیکر غالب در CoinEx")
+            notes.append("kharid ticker ghalab dar CoinEx")
         elif row.taker_buy_sell_ratio < 0.9:
             score -= 18
-            notes.append("فروش تیکر غالب در CoinEx")
+            notes.append("forush ticker ghalab dar CoinEx")
 
         if row.oi_change_pct is not None:
             if row.oi_change_pct > 2:
                 score += 8
-                notes.append(f"OI رو به رشد {row.oi_change_pct:+.1f}%")
+                notes.append(f"OI ro be roshd {row.oi_change_pct:+.1f}%")
             elif row.oi_change_pct < -2:
                 score -= 8
-                notes.append(f"OI رو به کاهش {row.oi_change_pct:+.1f}%")
+                notes.append(f"OI ro be kahesh {row.oi_change_pct:+.1f}%")
 
         if score >= 12:
             signal = "bullish"
-            bias_label = "فشار صعودی CoinEx Futures"
+            bias_label = "feshar soudi CoinEx Futures"
         elif score <= -12:
             signal = "bearish"
-            bias_label = "فشار نزولی CoinEx Futures"
+            bias_label = "feshar nozooli CoinEx Futures"
         else:
             signal = "neutral"
-            bias_label = "خنثی CoinEx Futures"
+            bias_label = "konsi CoinEx Futures"
 
         if not notes:
-            research_note = "داده CoinEx بدون سیگنال قوی"
+            research_note = "dade CoinEx bedoon signal ghavi"
         else:
-            research_note = " · ".join(notes)
+            research_note = " | ".join(notes)
 
         return CoinExContext(
             market=row.market,
@@ -707,62 +707,62 @@ class AnalysisService:
         coinex: CoinExContext | None = None,
     ) -> str:
         tf_order = ["1w", "1d", "4h"]
-        tf_labels = {"1w": "هفتگی", "1d": "روزانه", "4h": "4h"}
-        trend_fa = {"bullish": "صعودی", "bearish": "نزولی", "neutral": "خنثی"}
+        tf_labels = {"1w": "1w", "1d": "1d", "4h": "4h"}
+        trend_txt = {"bullish": "soudi", "bearish": "nozooli", "neutral": "konsi"}
         trends = {tf: timeframes[tf].trend.value for tf in tf_order if tf in timeframes}
 
         bearish_n = sum(1 for t in trends.values() if t == "bearish")
         bullish_n = sum(1 for t in trends.values() if t == "bullish")
 
         if mtf_aligned and bullish_n == 3:
-            verdict = "فشار صعودی قوی — هر سه تایم‌فریم هم‌جهت"
+            verdict = "feshar soudi ghavi - se timeframe hamjahat"
         elif mtf_aligned and bearish_n == 3:
-            verdict = "فشار نزولی قوی — هر سه تایم‌فریم هم‌جهت"
+            verdict = "feshar nozooli ghavi - se timeframe hamjahat"
         elif bearish_n >= 2 and trends.get("1w") != "bullish":
-            verdict = "فشار نزولی غالب در کوتاه‌مدت"
+            verdict = "feshar nozooli ghalab dar kohtah-madat"
         elif bullish_n >= 2 and trends.get("1w") != "bearish":
-            verdict = "فشار صعودی غالب در کوتاه‌مدت"
+            verdict = "feshar soudi ghalab dar kohtah-madat"
         elif trends.get("1w") == "bullish" and trends.get("4h") == "bearish":
-            verdict = "روند بلندمدت صعودی — اصلاح کوتاه‌مدت در جریان"
+            verdict = "rend bolandmodat soudi - eslah kohtah-madat"
         elif trends.get("1w") == "bearish" and trends.get("4h") == "bullish":
-            verdict = "روند بلندمدت نزولی — بازگشت کوتاه‌مدت محتمل"
+            verdict = "rend bolandmodat nozooli - bazgasht kohtah-madat"
         else:
-            verdict = "بازار بدون جهت مشخص — تایم‌فریم‌ها ناهماهنگ"
+            verdict = "bazaar bedoon jahat - timeframe ha na hamahang"
 
-        trend_line = "، ".join(
-            f"{tf_labels[tf]} {trend_fa.get(trends[tf], trends[tf])}"
+        trend_line = ", ".join(
+            f"{tf_labels[tf]} {trend_txt.get(trends[tf], trends[tf])}"
             for tf in tf_order
             if tf in trends
         )
 
         drivers: list[str] = []
         if liquidations and liquidations.signal == "liq_cluster_below":
-            drivers.append("لیکوئیدیشن لانگ زیر قیمت")
+            drivers.append("liquidation long zir gheymat")
         elif liquidations and liquidations.signal == "liq_cluster_above":
-            drivers.append("لیکوئیدیشن شورت بالای قیمت")
+            drivers.append("liquidation short bala gheymat")
 
         tf4h = timeframes.get("4h")
         if tf4h:
             smc = tf4h.levels.get("smc_signal")
             if smc in ("bos_bullish", "choch_bullish"):
-                drivers.append("سیگنال SMC صعودی در 4h")
+                drivers.append("SMC soudi dar 4h")
             elif smc in ("bos_bearish", "choch_bearish"):
-                drivers.append("سیگنال SMC نزولی در 4h")
+                drivers.append("SMC nozooli dar 4h")
 
         if derivatives.funding_signal == "overleveraged_long":
-            drivers.append("فاندینگ مثبت بالا")
+            drivers.append("funding mosbat bala")
         elif derivatives.funding_signal == "overleveraged_short":
-            drivers.append("فاندینگ منفی شدید")
+            drivers.append("funding manfi shadid")
 
         if onchain and onchain.mvrv_signal == "overvalued":
-            drivers.append("MVRV بالای میانگین")
+            drivers.append("MVRV bala az miyangin")
         elif onchain and onchain.mvrv_signal == "undervalued":
-            drivers.append("MVRV پایین (ارزش نسبی)")
+            drivers.append("MVRV paiin (arzesh nesbi)")
 
         if macro and macro.macro_bias == "bearish_crypto":
-            drivers.append("ماکرو منفی برای ریسک")
+            drivers.append("macro manfi baraye risk")
         elif macro and macro.macro_bias == "bullish_crypto":
-            drivers.append("ماکرو مثبت برای ریسک")
+            drivers.append("macro mosbat baraye risk")
 
         if coinex and coinex.signal == "bullish":
             drivers.append(f"CoinEx: {coinex.bias_label}")
@@ -771,8 +771,8 @@ class AnalysisService:
 
         parts = [verdict, trend_line]
         if drivers:
-            parts.append("عوامل کلیدی: " + " · ".join(drivers[:3]))
-        return " — ".join(parts)
+            parts.append("avamel kelidi: " + " | ".join(drivers[:3]))
+        return " - ".join(parts)
 
     def analyze(self, session: Session) -> OverviewAnalysis:
         timeframes: dict[str, TimeframeAnalysis] = {}

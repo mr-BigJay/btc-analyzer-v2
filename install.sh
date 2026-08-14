@@ -182,7 +182,7 @@ interactive_preflight() {
             NO_SYSTEMD=0
         else
             NO_SYSTEMD=1
-            log "systemd skip shod — ejraye mostaghim"
+            log "systemd skip shod - ejraye mostaghim"
         fi
     fi
 }
@@ -206,13 +206,13 @@ interactive_telegram() {
 
     token="$(read_tty "TELEGRAM_BOT_TOKEN (az @BotFather):" "")"
     if [[ -z "$token" ]]; then
-        warn "token khali bud — telegram skip shod"
+        warn "token khali bud - telegram skip shod"
         return
     fi
 
     chat_id="$(read_tty "TELEGRAM_CHAT_ID:" "")"
     if [[ -z "$chat_id" ]]; then
-        warn "chat id khali bud — telegram skip shod"
+        warn "chat id khali bud - telegram skip shod"
         return
     fi
 
@@ -223,7 +223,7 @@ interactive_telegram() {
 
 install_system_packages() {
     if ! command -v apt-get >/dev/null 2>&1; then
-        warn "apt-get vojud nadarad — nasb package systemi skip shod"
+        warn "apt-get vojud nadarad - nasb package systemi skip shod"
         return
     fi
 
@@ -245,7 +245,7 @@ ensure_project_dir() {
     fi
 
     if [[ -d "$PROJECT_DIR/.git" ]]; then
-        die "repo dar $PROJECT_DIR naqes ast — src/main.py peida nashod"
+        die "repo dar $PROJECT_DIR naqes ast - src/main.py peida nashod"
     fi
 
     log "clone repo az $REPO_URL (branch: $GIT_BRANCH)..."
@@ -256,7 +256,7 @@ ensure_project_dir() {
 git_update() {
     cd "$PROJECT_DIR"
     if [[ ! -d .git ]]; then
-        warn "pooshe git nist — git pull skip shod"
+        warn "pooshe git nist - git pull skip shod"
         return
     fi
 
@@ -280,7 +280,7 @@ detect_python() {
     elif command -v python3 >/dev/null 2>&1; then
         PYTHON_BIN="python3"
     else
-        die "python3 peida nashod — apt install python3-venv ro ejra konid"
+        die "python3 peida nashod - apt install python3-venv ro ejra konid"
     fi
     log "Python: $($PYTHON_BIN --version)"
 }
@@ -322,15 +322,15 @@ run_pipeline() {
     log "init-db..."
     python -m src.main init-db
 
-    log "jam-avari dade..."
+    log "jam-avari dade (collect)..."
     python -m src.main collect
 
-    log "tahlel..."
+    log "tahlel (analyze)..."
     python -m src.main analyze
 
     if [[ "$SKIP_OPTIMIZE" -eq 0 ]]; then
-        log "behbood backtest..."
-        python -m src.main optimize || warn "behbood backtest ba khata movajeh shod"
+        log "behbood backtest (optimize)..."
+        python -m src.main optimize || warn "optimize ba khata movajeh shod - edame midim"
     fi
 }
 
@@ -472,13 +472,13 @@ verify_deploy() {
     for attempt in $(seq 1 20); do
         health=$(curl -sf "http://127.0.0.1:${port}/api/health" 2>/dev/null || true)
         if echo "$health" | grep -qi "$EXPECTED_BUILD"; then
-            log "OK — dashboard faal ast (Clarity v1)"
+            log "OK - dashboard faal ast (Clarity v1)"
             log "  http://${ip:-localhost}:${port}"
             log "  http://${ip:-localhost}:${port}/options.html"
             return 0
         fi
         if [[ -n "$health" ]]; then
-            warn "service pasokh dad vali noskhe ghadimi — talash $attempt/20"
+            warn "service pasokh dad vali noskhe ghadimi - talash $attempt/20"
         fi
         sleep 2
     done
@@ -487,7 +487,7 @@ verify_deploy() {
         warn "log service:"
         run_root journalctl -u "${SERVICE_NAME}.service" -n 20 --no-pager 2>/dev/null || true
     fi
-    die "dashboard bala nayamad — health: ${health:-bedoon pasokh}"
+    die "dashboard bala nayamad - health: ${health:-bedoon pasokh}"
 }
 
 print_done() {
@@ -527,15 +527,22 @@ deploy() {
     local mode="${1:-update}"
     log "=== ${mode^^} BTC Analyzer ==="
 
+    cd "$PROJECT_DIR" 2>/dev/null || mkdir -p "$PROJECT_DIR"
+
+    # Pull latest code FIRST so install.sh and app code are current.
+    if [[ -d "$PROJECT_DIR/.git" ]]; then
+        if [[ "$mode" == "update" ]]; then
+            stop_all
+        fi
+        git_update
+    fi
+
     interactive_preflight "$mode"
     install_system_packages
     ensure_project_dir
     cd "$PROJECT_DIR"
 
-    if [[ "$mode" == "update" ]]; then
-        stop_all
-        git_update
-    elif [[ -d .git ]]; then
+    if [[ "$mode" != "update" ]] && [[ -d .git ]]; then
         git_update
     fi
 
@@ -546,7 +553,7 @@ deploy() {
     verify_deploy
     print_done
 
-    log "=== ${mode^^} TAMOM SHOD ==="
+    log "=== ${mode^^} DONE ==="
 }
 
 status_all() {

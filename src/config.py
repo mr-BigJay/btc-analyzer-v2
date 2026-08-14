@@ -62,6 +62,12 @@ class Settings(BaseSettings):
     coinex_enabled: bool = True
     coinex_ai_enabled: bool = True
 
+    advisor_enabled: bool = True
+    advisor_api_key: str = ""
+    advisor_api_base: str = "https://api.openai.com/v1"
+    advisor_model: str = "gpt-4o-mini"
+    advisor_cache_minutes: int = 15
+
     @property
     def deribit_configured(self) -> bool:
         return bool(self.deribit_client_id and self.deribit_client_secret)

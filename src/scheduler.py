@@ -10,6 +10,7 @@ from src.analyzer.optimize import BacktestOptimizer
 from src.analyzer.serialize import analysis_to_json
 from src.analyzer.service import AnalysisService
 from src.collector.orchestrator import CollectionOrchestrator
+from src.advisor.service import AdvisorService
 from src.config import settings
 from src.db.models import AnalysisSnapshot, get_session, init_db
 from src.notifier.formatters import overview_message, signal_alert
@@ -21,6 +22,7 @@ class AppScheduler:
     def __init__(self, telegram_service=None) -> None:
         self.collector = CollectionOrchestrator()
         self.analysis = AnalysisService()
+        self.advisor = AdvisorService()
         self.telegram = telegram_service
         self._last_trends: dict[str, str] = {}
         self.scheduler = BlockingScheduler(timezone="UTC")
@@ -74,6 +76,13 @@ class AppScheduler:
 
             if notify and self.telegram:
                 self._check_alerts(analysis, session)
+
+            if settings.advisor_enabled:
+                try:
+                    self.advisor.generate(session, force=True)
+                    logger.info("Advisor insight generated")
+                except Exception:
+                    logger.exception("Advisor generation failed")
         except Exception:
             logger.exception("Analysis failed")
         finally:

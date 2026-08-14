@@ -36,6 +36,12 @@ async function fetchOptimizedParams() {
   return res.json();
 }
 
+async function fetchAdvisor(refresh = false) {
+  const res = await fetch(`/api/v1/advisor${refresh ? "?refresh=true" : ""}`);
+  if (!res.ok) throw new Error("advisor failed");
+  return res.json();
+}
+
 function formatPrice(n) {
   return "$" + Number(n).toLocaleString("en-US", { maximumFractionDigits: 2 });
 }
@@ -544,14 +550,50 @@ function updateForecast(fc) {
   document.getElementById("fc-summary").textContent = fc.summary;
 }
 
+function renderAdvisorList(id, items, emptyText = "موردی نیست") {
+  const el = document.getElementById(id);
+  if (!items || !items.length) {
+    el.innerHTML = `<li class="muted">${emptyText}</li>`;
+    return;
+  }
+  el.innerHTML = items.map((item) => `<li>${item}</li>`).join("");
+}
+
+function updateAdvisor(data) {
+  if (!data || data.enabled === false) {
+    document.getElementById("advisor-headline").textContent = "مشاور AI غیرفعال است";
+    return;
+  }
+  document.getElementById("advisor-headline").textContent = data.headline || "—";
+  document.getElementById("advisor-confidence").textContent = data.confidence_note || "—";
+  const sourceLabel = data.source === "llm"
+    ? `LLM · ${data.model || "AI"}`
+    : data.configured
+      ? "قوانین داخلی (fallback)"
+      : "قوانین داخلی (بدون API Key)";
+  const timeLabel = data.generated_at
+    ? new Date(data.generated_at).toLocaleString("fa-IR")
+    : "—";
+  document.getElementById("advisor-source").textContent = `${sourceLabel} · ${timeLabel}`;
+  renderAdvisorList("advisor-problems", data.problems);
+  renderAdvisorList("advisor-ideas", data.ideas);
+  renderAdvisorList("advisor-conflicts", data.conflicts, "تضادی دیده نشد");
+  const levels = (data.watch_levels || []).map((lv) => {
+    const price = typeof lv.price === "number" ? `$${lv.price.toLocaleString()}` : lv.price;
+    return `${price} — ${lv.reason || ""}`;
+  });
+  renderAdvisorList("advisor-levels", levels, "سطحی ثبت نشده");
+}
+
 async function refresh() {
   try {
-    const [overview, backtest, liq, optParams, forecast] = await Promise.all([
+    const [overview, backtest, liq, optParams, forecast, advisor] = await Promise.all([
       fetchOverview(),
       fetchBacktest(),
       fetchLiquidations(),
       fetchOptimizedParams(),
       fetchForecast(),
+      fetchAdvisor().catch(() => null),
     ]);
     updateOverview(overview);
     updateForecast(forecast);
@@ -559,6 +601,7 @@ async function refresh() {
     renderLiquidations(liq);
     updateOptimizedParams(optParams);
     updateTechnicalBrief(overview, liq, backtest, forecast);
+    if (advisor) updateAdvisor(advisor);
     await loadChart(currentTf);
   } catch (e) {
     console.error(e);
@@ -569,6 +612,22 @@ async function refresh() {
 initChart();
 refresh();
 setInterval(refresh, 5 * 60 * 1000);
+
+document.getElementById("advisor-refresh")?.addEventListener("click", async () => {
+  const btn = document.getElementById("advisor-refresh");
+  btn.disabled = true;
+  btn.textContent = "در حال تحلیل...";
+  try {
+    const advisor = await fetchAdvisor(true);
+    updateAdvisor(advisor);
+  } catch (e) {
+    console.error(e);
+    document.getElementById("advisor-headline").textContent = "خطا در تحلیل AI";
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "بروزرسانی AI";
+  }
+});
 
 document.getElementById("guide-toggle")?.addEventListener("click", () => {
   const body = document.getElementById("guide-body");

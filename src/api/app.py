@@ -46,6 +46,7 @@ app.add_middleware(NoCacheHtmlMiddleware)
 
 analysis_service = AnalysisService()
 forecast_engine = ForecastEngine()
+advisor_service = AdvisorService()
 
 app.include_router(options_router)
 
@@ -196,6 +197,27 @@ def forecast_4h():
         analysis = analysis_service.analyze(session)
         forecast = forecast_engine.build(session, analysis)
         return forecast_to_dict(forecast)
+    finally:
+        session.close()
+
+
+@app.get("/api/v1/advisor")
+def advisor_insight(refresh: bool = False):
+    from src.config import settings as app_settings
+
+    if not app_settings.advisor_enabled:
+        return {"enabled": False, "message": "Advisor is disabled"}
+    session = get_session()
+    try:
+        if refresh:
+            insight = advisor_service.generate(session, force=True)
+        else:
+            insight = advisor_service.get_latest(session)
+            if not insight:
+                insight = advisor_service.generate(session, force=True)
+        return advisor_service.to_dict(insight)
+    except Exception as exc:
+        raise HTTPException(500, str(exc)) from exc
     finally:
         session.close()
 

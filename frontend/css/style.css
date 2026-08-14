@@ -718,6 +718,88 @@ body {
 
 .guide-toggle:hover { background: rgba(255, 255, 255, 0.03); }
 
+.advisor {
+  border-color: rgba(163, 113, 247, 0.28);
+  background: linear-gradient(135deg, rgba(163, 113, 247, 0.08), rgba(88, 166, 255, 0.05));
+}
+
+.advisor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.advisor-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.advisor-tag {
+  font-size: 0.75rem;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.2rem 0.65rem;
+}
+
+.advisor-refresh-btn {
+  border: 1px solid rgba(163, 113, 247, 0.35);
+  background: rgba(163, 113, 247, 0.12);
+  color: #d2b4ff;
+  border-radius: 8px;
+  padding: 0.35rem 0.75rem;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.advisor-refresh-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.advisor-headline {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+}
+
+.advisor-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.advisor-col h3 {
+  font-size: 0.85rem;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+
+.advisor-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.advisor-list li {
+  font-size: 0.88rem;
+  line-height: 1.7;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+@media (max-width: 900px) {
+  .advisor-grid { grid-template-columns: 1fr; }
+  .advisor-header { flex-direction: column; }
+  .advisor-meta { align-items: flex-start; }
+}
+
 .guide-chevron { color: var(--muted); font-size: 0.85rem; }
 
 .guide-body {

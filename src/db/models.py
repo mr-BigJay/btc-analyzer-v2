@@ -233,6 +233,21 @@ class CollectionLog(Base):
     finished_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
+class AdvisorSnapshot(Base):
+    __tablename__ = "advisor_snapshots"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    payload: Mapped[str] = mapped_column(Text, nullable=False)
+    headline: Mapped[str] = mapped_column(String(200), nullable=False, default="")
+    source: Mapped[str] = mapped_column(String(20), nullable=False, default="rules")
+    model: Mapped[str] = mapped_column(String(80), nullable=False, default="")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+
+
 class AnalysisSnapshot(Base):
     __tablename__ = "analysis_snapshots"
 

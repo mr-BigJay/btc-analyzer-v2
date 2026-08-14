@@ -112,15 +112,16 @@ def cmd_serve() -> int:
 def cmd_run() -> int:
     from src.scheduler import AppScheduler
 
-    try:
-        from src.notifier.telegram_bot import TelegramBotService
+    telegram = None
+    if settings.telegram_bot_token:
+        try:
+            from src.notifier.telegram_bot import TelegramBotService
 
-        telegram = TelegramBotService() if settings.telegram_bot_token else None
-        if telegram:
-            telegram.build_application()
-    except Exception:
-        logger.warning("Telegram bot not configured")
-        telegram = None
+            telegram = TelegramBotService()
+            telegram.start_polling_background()
+        except Exception:
+            logger.warning("Telegram bot not configured")
+            telegram = None
 
     scheduler = AppScheduler(telegram_service=telegram)
     scheduler.start()
@@ -148,7 +149,7 @@ def cmd_start() -> int:
             from src.notifier.telegram_bot import TelegramBotService
 
             telegram = TelegramBotService()
-            telegram.build_application()
+            telegram.start_polling_background()
         except Exception:
             logger.warning("Telegram alerts disabled")
 

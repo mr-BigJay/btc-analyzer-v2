@@ -25,6 +25,7 @@ class AppScheduler:
         self.advisor = AdvisorService()
         self.telegram = telegram_service
         self._last_trends: dict[str, str] = {}
+        self._last_advisor_alert: str = ""
         self.scheduler = BlockingScheduler(timezone="UTC")
 
     def collect_and_analyze(self) -> None:
@@ -79,8 +80,16 @@ class AppScheduler:
 
             if settings.advisor_enabled:
                 try:
-                    self.advisor.generate(session, force=True)
+                    insight = self.advisor.generate(session, force=True)
                     logger.info("Advisor insight generated")
+                    if (
+                        notify
+                        and self.telegram
+                        and settings.advisor_telegram_enabled
+                        and settings.advisor_telegram_proactive
+                        and self.advisor.has_actionable_issues(insight)
+                    ):
+                        self._send_advisor_alert(insight)
                 except Exception:
                     logger.exception("Advisor generation failed")
         except Exception:
@@ -114,6 +123,25 @@ class AppScheduler:
             asyncio.run(_send())
         except Exception:
             logger.exception("Failed to send alert")
+
+    def _send_advisor_alert(self, insight) -> None:
+        import asyncio
+
+        if not self.telegram:
+            return
+
+        fingerprint = "|".join(insight.conflicts + insight.problems[:3])
+        if fingerprint == self._last_advisor_alert:
+            return
+        self._last_advisor_alert = fingerprint
+
+        async def _send():
+            await self.telegram.send_advisor_alert(insight)
+
+        try:
+            asyncio.run(_send())
+        except Exception:
+            logger.exception("Failed to send advisor alert")
 
     def daily_report(self) -> None:
         import asyncio

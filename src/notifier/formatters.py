@@ -172,3 +172,70 @@ def signal_alert(analysis: OverviewAnalysis, tf: str) -> str:
         f"📌 {analysis.summary}\n\n"
         f"⚠️ تحلیل است، نه توصیه سرمایه‌گذاری"
     )
+
+
+def advisor_message(insight) -> str:
+    lines = [
+        "🤖 <b>مشاور هوش مصنوعی داشبورد</b>",
+        "",
+        f"📌 {insight.headline}",
+        f"<i>{insight.confidence_note}</i>",
+        "",
+    ]
+
+    if insight.problems:
+        lines.append("⚠️ <b>مشکلات</b>")
+        for p in insight.problems:
+            lines.append(f"  • {p}")
+        lines.append("")
+
+    if insight.conflicts:
+        lines.append("⚡ <b>تناقض‌ها</b>")
+        for c in insight.conflicts:
+            lines.append(f"  • {c}")
+        lines.append("")
+
+    if insight.ideas:
+        lines.append("💡 <b>ایده‌ها</b>")
+        for idea in insight.ideas:
+            lines.append(f"  • {idea}")
+        lines.append("")
+
+    if insight.watch_levels:
+        lines.append("🎯 <b>سطوح کلیدی</b>")
+        for lv in insight.watch_levels:
+            price = lv.get("price")
+            reason = lv.get("reason", "")
+            if price:
+                lines.append(f"  • ${price:,.0f} — {reason}")
+        lines.append("")
+
+    lines.append("💬 هر سوالی داری بپرس — من داشبورد رو می‌بینم.")
+    lines.append("⚠️ تحلیل است، نه توصیه سرمایه‌گذاری")
+    return "\n".join(lines)
+
+
+def advisor_alert_message(insight) -> str:
+    lines = [
+        "🔔 <b>هشدار مشاور — مشکل در داشبورد</b>",
+        "",
+        f"📌 {insight.headline}",
+        "",
+    ]
+
+    if insight.conflicts:
+        lines.append("⚡ <b>تناقض‌ها</b>")
+        for c in insight.conflicts[:3]:
+            lines.append(f"  • {c}")
+        lines.append("")
+
+    real_problems = [p for p in insight.problems if "مشکل بحرانی دیده نشد" not in p]
+    if real_problems:
+        lines.append("⚠️ <b>مشکلات</b>")
+        for p in real_problems[:4]:
+            lines.append(f"  • {p}")
+        lines.append("")
+
+    lines.append("برای جزئیات: /advisor")
+    lines.append("یا مستقیم سوالت رو بپرس 💬")
+    return "\n".join(lines)

@@ -10,7 +10,7 @@ from sqlalchemy import desc, select
 from sqlalchemy.orm import Session
 
 from src.advisor.models import AdvisorInsight
-from src.advisor.provider import generate_with_llm
+from src.advisor.provider import chat_with_llm, generate_with_llm
 from src.analyzer.forecast import ForecastEngine, forecast_to_dict
 from src.analyzer.optimize import BacktestOptimizer
 from src.analyzer.serialize import analysis_to_dict
@@ -260,3 +260,73 @@ class AdvisorService:
             "configured": bool(settings.advisor_api_key),
             "enabled": settings.advisor_enabled,
         }
+
+    def has_actionable_issues(self, insight: AdvisorInsight) -> bool:
+        if insight.conflicts:
+            return True
+        generic_ok = "مشکل بحرانی دیده نشد"
+        real_problems = [p for p in insight.problems if generic_ok not in p]
+        return bool(real_problems)
+
+    def chat(
+        self,
+        session: Session,
+        user_message: str,
+        history: list[dict[str, str]] | None = None,
+    ) -> str:
+        if not settings.advisor_enabled:
+            raise RuntimeError("Advisor is disabled")
+
+        context = self.build_context(session)
+        try:
+            if settings.advisor_api_key:
+                return chat_with_llm(context, user_message, history)
+        except Exception:
+            logger.exception("LLM chat failed, falling back to rules")
+
+        return self._chat_rules(context, user_message)
+
+    def _chat_rules(self, context: dict, user_message: str) -> str:
+        insight = self.generate_rules(context)
+        msg = user_message.strip().lower()
+        lines = [insight.headline, ""]
+
+        if any(k in msg for k in ("مشکل", "ریسک", "خطر", "conflict", "problem")):
+            lines.append("مشکلات:")
+            for p in insight.problems:
+                lines.append(f"• {p}")
+            if insight.conflicts:
+                lines.append("")
+                lines.append("تناقض‌ها:")
+                for c in insight.conflicts:
+                    lines.append(f"• {c}")
+        elif any(k in msg for k in ("ایده", "پیشنهاد", "idea", "چیکار", "چه کار")):
+            lines.append("ایده‌ها:")
+            for idea in insight.ideas:
+                lines.append(f"• {idea}")
+        elif any(k in msg for k in ("سطح", "قیمت", "level", "حمایت", "مقاومت")):
+            if insight.watch_levels:
+                lines.append("سطوح کلیدی:")
+                for lv in insight.watch_levels:
+                    price = lv.get("price")
+                    reason = lv.get("reason", "")
+                    if price:
+                        lines.append(f"• ${price:,.0f} — {reason}")
+            else:
+                lines.append("سطح مشخصی در داده فعلی نیست.")
+        else:
+            lines.append(insight.confidence_note)
+            lines.append("")
+            lines.append("مشکلات:")
+            for p in insight.problems[:3]:
+                lines.append(f"• {p}")
+            if insight.conflicts:
+                lines.append("")
+                lines.append("تناقض:")
+                lines.append(f"• {insight.conflicts[0]}")
+            lines.append("")
+            lines.append("می‌تونی بپرسی: «مشکلات چیه؟»، «ایده‌ها»، «سطوح کلیدی»")
+
+        lines.append("")
+        lines.append("(حالت rule-based — برای گفتگوی آزاد ADVISOR_API_KEY تنظیم کن)")
+        return "\n".join(lines)

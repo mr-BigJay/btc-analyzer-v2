@@ -67,6 +67,9 @@ class Settings(BaseSettings):
     advisor_api_base: str = "https://api.openai.com/v1"
     advisor_model: str = "gpt-4o-mini"
     advisor_cache_minutes: int = 15
+    advisor_telegram_enabled: bool = True
+    advisor_telegram_proactive: bool = True
+    advisor_chat_history_limit: int = 12
 
     @property
     def deribit_configured(self) -> bool:

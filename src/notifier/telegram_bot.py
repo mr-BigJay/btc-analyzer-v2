@@ -1,27 +1,37 @@
 import logging
 
-from telegram import Bot
-from telegram.ext import Application, CommandHandler, ContextTypes, Update
+from telegram import Bot, Update
+from telegram.ext import (
+    Application,
+    CommandHandler,
+    ContextTypes,
+    MessageHandler,
+    filters,
+)
 
+from src.advisor.service import AdvisorService
+from src.analyzer.forecast import ForecastEngine
 from src.analyzer.service import AnalysisService
 from src.config import settings
 from src.db.models import get_session, init_db
-from src.analyzer.forecast import ForecastEngine
-from src.notifier.formatters import forecast_4h_message, overview_message, timeframe_message
+from src.notifier.formatters import (
+    advisor_alert_message,
+    advisor_message,
+    forecast_4h_message,
+    overview_message,
+    timeframe_message,
+)
 
 logger = logging.getLogger(__name__)
 
-TF_COMMANDS = {
-    "4h": "4h",
-    "1d": "1d",
-    "1w": "1w",
-}
+CHAT_HISTORY_KEY = "advisor_history"
 
 
 class TelegramBotService:
     def __init__(self) -> None:
         self.analysis = AnalysisService()
         self.forecast = ForecastEngine()
+        self.advisor = AdvisorService()
         self._app: Application | None = None
         self._bot: Bot | None = None
 
@@ -43,6 +53,21 @@ class TelegramBotService:
         if update.message:
             await update.message.reply_text("دسترسی مجاز نیست.")
 
+    def _get_history(self, context: ContextTypes.DEFAULT_TYPE) -> list[dict[str, str]]:
+        return context.chat_data.setdefault(CHAT_HISTORY_KEY, [])
+
+    def _append_history(
+        self,
+        context: ContextTypes.DEFAULT_TYPE,
+        role: str,
+        content: str,
+    ) -> None:
+        history = self._get_history(context)
+        history.append({"role": role, "content": content})
+        limit = settings.advisor_chat_history_limit
+        if len(history) > limit:
+            del history[: len(history) - limit]
+
     async def cmd_start(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         if not self._allowed(update):
             return await self._deny(update)
@@ -53,11 +78,20 @@ class TelegramBotService:
             "/4h — پیش‌بینی ۴ ساعت آینده\n"
             "/1d — تحلیل روزانه\n"
             "/1w — تحلیل هفتگی\n"
-            "/help — راهنما"
+            "/advisor — تحلیل مشاور هوش مصنوعی\n"
+            "/clear — پاک کردن تاریخچه گفتگو\n"
+            "/help — راهنما\n\n"
+            "💬 هر پیام متنی هم می‌تونی بفرستی — مثل یک مشاور با داشبورد صحبت می‌کنی."
         )
 
     async def cmd_help(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         await self.cmd_start(update, context)
+
+    async def cmd_clear(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        if not self._allowed(update):
+            return await self._deny(update)
+        context.chat_data[CHAT_HISTORY_KEY] = []
+        await update.message.reply_text("تاریخچه گفتگو پاک شد. از نو شروع کن 💬")
 
     async def cmd_status(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         if not self._allowed(update):
@@ -69,6 +103,26 @@ class TelegramBotService:
                 overview_message(analysis),
                 parse_mode="HTML",
             )
+        finally:
+            session.close()
+
+    async def cmd_advisor(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        if not self._allowed(update):
+            return await self._deny(update)
+        if not settings.advisor_enabled:
+            await update.message.reply_text("مشاور هوش مصنوعی غیرفعال است.")
+            return
+
+        session = get_session()
+        try:
+            insight = self.advisor.generate(session, force=True)
+            await update.message.reply_text(
+                advisor_message(insight),
+                parse_mode="HTML",
+            )
+        except Exception:
+            logger.exception("Advisor command failed")
+            await update.message.reply_text("خطا در تولید تحلیل مشاور. بعداً دوباره امتحان کن.")
         finally:
             session.close()
 
@@ -105,6 +159,36 @@ class TelegramBotService:
     async def cmd_1w(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         await self._cmd_timeframe(update, "1w")
 
+    async def handle_chat(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        if not update.message or not update.message.text:
+            return
+        if not self._allowed(update):
+            return await self._deny(update)
+        if not settings.advisor_enabled or not settings.advisor_telegram_enabled:
+            await update.message.reply_text(
+                "گفتگوی آزاد غیرفعال است. از /status یا /advisor استفاده کن."
+            )
+            return
+
+        user_text = update.message.text.strip()
+        if user_text.startswith("/"):
+            return
+
+        await update.message.chat.send_action("typing")
+
+        session = get_session()
+        try:
+            history = list(self._get_history(context))
+            reply = self.advisor.chat(session, user_text, history)
+            self._append_history(context, "user", user_text)
+            self._append_history(context, "assistant", reply)
+            await update.message.reply_text(reply)
+        except Exception:
+            logger.exception("Advisor chat failed")
+            await update.message.reply_text("خطا در پاسخ‌دهی. دوباره امتحان کن یا /advisor بزن.")
+        finally:
+            session.close()
+
     def build_application(self) -> Application:
         if not settings.telegram_bot_token:
             raise RuntimeError("TELEGRAM_BOT_TOKEN is not set")
@@ -112,12 +196,29 @@ class TelegramBotService:
         app = Application.builder().token(settings.telegram_bot_token).build()
         app.add_handler(CommandHandler("start", self.cmd_start))
         app.add_handler(CommandHandler("help", self.cmd_help))
+        app.add_handler(CommandHandler("clear", self.cmd_clear))
         app.add_handler(CommandHandler("status", self.cmd_status))
+        app.add_handler(CommandHandler("advisor", self.cmd_advisor))
         app.add_handler(CommandHandler("4h", self.cmd_4h))
         app.add_handler(CommandHandler("1d", self.cmd_1d))
         app.add_handler(CommandHandler("1w", self.cmd_1w))
+        app.add_handler(
+            MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_chat),
+        )
         self._app = app
         return app
+
+    def start_polling_background(self) -> None:
+        import threading
+
+        app = self.build_application()
+
+        def _run() -> None:
+            logger.info("Starting Telegram bot polling in background...")
+            app.run_polling(drop_pending_updates=True, close_loop=False)
+
+        thread = threading.Thread(target=_run, name="telegram-bot", daemon=True)
+        thread.start()
 
     async def send_message(self, text: str) -> None:
         if not settings.telegram_chat_id:
@@ -137,6 +238,11 @@ class TelegramBotService:
             await self.send_message(overview_message(analysis))
         finally:
             session.close()
+
+    async def send_advisor_alert(self, insight) -> None:
+        if not settings.advisor_telegram_proactive:
+            return
+        await self.send_message(advisor_alert_message(insight))
 
 
 def run_telegram_bot() -> None:

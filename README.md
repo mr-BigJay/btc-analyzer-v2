@@ -34,17 +34,32 @@
 
 > **اصل طراحی:** هیچ ورودی دستی لازم نیست — scheduler همه داده‌ها را جمع و تحلیل می‌کند.
 
-## نصب روی Ubuntu 24 (یک دستور)
+## Nasb roye Ubuntu 24 (yek dastoor)
 
-### نصب با یک خط (پیشنهادی — root یا کاربر عادی)
+### Nasb ba yek khat (pishnahad shode)
 
 ```bash
-bash -c 'set -euo pipefail; D="${BTC_ANALYZER_DIR:-$HOME/btc-analyzer-v2}"; R="https://github.com/mr-BigJay/btc-analyzer-v2.git"; B="${BTC_ANALYZER_BRANCH:-main}"; if ! command -v git >/dev/null 2>&1; then export DEBIAN_FRONTEND=noninteractive; apt-get update -qq; apt-get install -y git; fi; if [[ -d "$D/.git" ]]; then git -C "$D" fetch origin "$B"; git -C "$D" checkout "$B"; git -C "$D" reset --hard "origin/$B"; else git clone --branch "$B" "$R" "$D"; fi; chmod +x "$D/install.sh"; exec "$D/install.sh" "$@"' sh
+curl -fsSL https://raw.githubusercontent.com/mr-BigJay/btc-analyzer-v2/main/bootstrap.sh | bash
 ```
 
-اگر پوشه از قبل وجود دارد، خودکار آپدیت و نصب می‌کند. با `root` هم کار می‌کند.
+Agar soal haye interactive kar nakard, in ra estefade konid:
 
-### نصب دستی (۴ خط)
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/mr-BigJay/btc-analyzer-v2/main/bootstrap.sh)
+```
+
+Script khodesh anjam midehad:
+- clone/update repo
+- soal haye interactive (telegram, optimize, systemd)
+- nasb kamel va namayesh address panel dar payan
+
+### Nasb bedoon soal (non-interactive)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/mr-BigJay/btc-analyzer-v2/main/bootstrap.sh | bash -s -- --yes
+```
+
+### Nasb dasti (4 khat)
 
 ```bash
 git clone https://github.com/mr-BigJay/btc-analyzer-v2.git

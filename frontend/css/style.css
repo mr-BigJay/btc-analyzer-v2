@@ -274,6 +274,9 @@ body {
   #chart-container { height: 280px; }
 }
 
+.metrics-grid span.bull { color: var(--bull); font-weight: 600; }
+.metrics-grid span.bear { color: var(--bear); font-weight: 600; }
+
 /* Technical brief footer */
 .tech-brief {
   position: relative;

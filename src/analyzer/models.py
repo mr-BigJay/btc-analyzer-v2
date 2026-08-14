@@ -46,6 +46,23 @@ class OnChainContext:
 
 
 @dataclass
+class CoinExContext:
+    market: str
+    last_price: float | None
+    mark_price: float | None
+    index_price: float | None
+    premium_pct: float | None
+    funding_rate: float | None
+    next_funding_rate: float | None
+    open_interest: float | None
+    oi_change_pct: float | None
+    taker_buy_sell_ratio: float | None
+    signal: str
+    bias_label: str
+    research_note: str
+
+
+@dataclass
 class DerivativesContext:
     funding_rate: float | None
     funding_signal: str
@@ -101,3 +118,4 @@ class OverviewAnalysis:
     onchain: OnChainContext | None = None
     macro: MacroContext | None = None
     liquidations: LiquidationContext | None = None
+    coinex: CoinExContext | None = None

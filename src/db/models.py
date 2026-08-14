@@ -129,6 +129,34 @@ class TakerVolume(Base):
     )
 
 
+class CoinExFuturesSnapshot(Base):
+    __tablename__ = "coinex_futures_snapshots"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    market: Mapped[str] = mapped_column(String(30), nullable=False)
+    last_price: Mapped[float] = mapped_column(Float, nullable=False)
+    mark_price: Mapped[float] = mapped_column(Float, nullable=False)
+    index_price: Mapped[float] = mapped_column(Float, nullable=False)
+    premium_pct: Mapped[float] = mapped_column(Float, nullable=False)
+    funding_rate: Mapped[float] = mapped_column(Float, nullable=False)
+    next_funding_rate: Mapped[float] = mapped_column(Float, nullable=False)
+    open_interest: Mapped[float] = mapped_column(Float, nullable=False)
+    oi_change_pct: Mapped[float | None] = mapped_column(Float, nullable=True)
+    volume_24h: Mapped[float] = mapped_column(Float, nullable=False)
+    volume_buy: Mapped[float] = mapped_column(Float, nullable=False)
+    volume_sell: Mapped[float] = mapped_column(Float, nullable=False)
+    taker_buy_sell_ratio: Mapped[float] = mapped_column(Float, nullable=False)
+    collected_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+
+    __table_args__ = (
+        Index("ix_coinex_market_time", "market", "collected_at"),
+    )
+
+
 class FearGreedIndex(Base):
     __tablename__ = "fear_greed_index"
 

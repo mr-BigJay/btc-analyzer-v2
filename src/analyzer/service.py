@@ -16,6 +16,7 @@ from src.analyzer.indicators import (
 )
 from src.analyzer.smc import analyze_smc
 from src.analyzer.models import (
+    CoinExContext,
     DerivativesContext,
     LayerScore,
     LiquidationContext,
@@ -29,6 +30,7 @@ from src.analyzer.models import (
 )
 from src.config import settings
 from src.db.models import (
+    CoinExFuturesSnapshot,
     FearGreedIndex,
     FundingRate,
     LongShortRatio,
@@ -443,6 +445,82 @@ class AnalysisService:
             taker_signal=taker_signal,
         )
 
+    def _coinex_context(self, session: Session) -> CoinExContext | None:
+        if not settings.coinex_enabled:
+            return None
+
+        row = session.execute(
+            select(CoinExFuturesSnapshot)
+            .where(CoinExFuturesSnapshot.market == settings.coinex_market)
+            .order_by(desc(CoinExFuturesSnapshot.collected_at))
+            .limit(1)
+        ).scalar_one_or_none()
+        if not row:
+            return None
+
+        score = 0.0
+        notes: list[str] = []
+
+        if row.premium_pct > 0.03:
+            score += 12
+            notes.append(f"پریمیوم مثبت {row.premium_pct:.3f}%")
+        elif row.premium_pct < -0.03:
+            score -= 12
+            notes.append(f"پریمیوم منفی {row.premium_pct:.3f}%")
+
+        if row.funding_rate > 0.0001:
+            score += 8
+            notes.append(f"فاندینگ مثبت {row.funding_rate * 100:.4f}%")
+        elif row.funding_rate < -0.0001:
+            score -= 8
+            notes.append(f"فاندینگ منفی {row.funding_rate * 100:.4f}%")
+
+        if row.taker_buy_sell_ratio > 1.1:
+            score += 18
+            notes.append("خرید تیکر غالب در CoinEx")
+        elif row.taker_buy_sell_ratio < 0.9:
+            score -= 18
+            notes.append("فروش تیکر غالب در CoinEx")
+
+        if row.oi_change_pct is not None:
+            if row.oi_change_pct > 2:
+                score += 8
+                notes.append(f"OI رو به رشد {row.oi_change_pct:+.1f}%")
+            elif row.oi_change_pct < -2:
+                score -= 8
+                notes.append(f"OI رو به کاهش {row.oi_change_pct:+.1f}%")
+
+        if score >= 12:
+            signal = "bullish"
+            bias_label = "فشار صعودی CoinEx Futures"
+        elif score <= -12:
+            signal = "bearish"
+            bias_label = "فشار نزولی CoinEx Futures"
+        else:
+            signal = "neutral"
+            bias_label = "خنثی CoinEx Futures"
+
+        if not notes:
+            research_note = "داده CoinEx بدون سیگنال قوی"
+        else:
+            research_note = " · ".join(notes)
+
+        return CoinExContext(
+            market=row.market,
+            last_price=row.last_price,
+            mark_price=row.mark_price,
+            index_price=row.index_price,
+            premium_pct=row.premium_pct,
+            funding_rate=row.funding_rate,
+            next_funding_rate=row.next_funding_rate,
+            open_interest=row.open_interest,
+            oi_change_pct=row.oi_change_pct,
+            taker_buy_sell_ratio=row.taker_buy_sell_ratio,
+            signal=signal,
+            bias_label=bias_label,
+            research_note=research_note,
+        )
+
     def _sentiment_context(self, session: Session) -> SentimentContext:
         fg = session.execute(
             select(FearGreedIndex).order_by(desc(FearGreedIndex.timestamp)).limit(1)
@@ -626,6 +704,7 @@ class AnalysisService:
         onchain: OnChainContext | None,
         macro: MacroContext | None = None,
         liquidations: LiquidationContext | None = None,
+        coinex: CoinExContext | None = None,
     ) -> str:
         tf_order = ["1w", "1d", "4h"]
         tf_labels = {"1w": "هفتگی", "1d": "روزانه", "4h": "4h"}
@@ -685,6 +764,11 @@ class AnalysisService:
         elif macro and macro.macro_bias == "bullish_crypto":
             drivers.append("ماکرو مثبت برای ریسک")
 
+        if coinex and coinex.signal == "bullish":
+            drivers.append(f"CoinEx: {coinex.bias_label}")
+        elif coinex and coinex.signal == "bearish":
+            drivers.append(f"CoinEx: {coinex.bias_label}")
+
         parts = [verdict, trend_line]
         if drivers:
             parts.append("عوامل کلیدی: " + " · ".join(drivers[:3]))
@@ -717,8 +801,9 @@ class AnalysisService:
         onchain = self._onchain_context(session)
         macro = self._macro_context(session)
         liquidations = self._liquidation_context(session, price)
+        coinex = self._coinex_context(session)
         summary = self._build_summary(
-            timeframes, mtf_aligned, derivatives, onchain, macro, liquidations
+            timeframes, mtf_aligned, derivatives, onchain, macro, liquidations, coinex
         )
 
         if derivatives.funding_signal == "overleveraged_long" and overall_score > 60:
@@ -731,6 +816,12 @@ class AnalysisService:
             overall_confidence = max(30, overall_confidence - 5)
         if macro and macro.macro_bias == "bullish_crypto" and overall_score > 55:
             overall_confidence = min(95, overall_confidence + 3)
+        if coinex and coinex.signal == "bullish" and overall_score > 50:
+            overall_confidence = min(95, overall_confidence + 4)
+        elif coinex and coinex.signal == "bearish" and overall_score < 50:
+            overall_confidence = min(95, overall_confidence + 4)
+        elif coinex and coinex.signal == "bearish" and overall_score > 55:
+            overall_confidence = max(30, overall_confidence - 5)
 
         return OverviewAnalysis(
             price=price,
@@ -746,4 +837,5 @@ class AnalysisService:
             onchain=onchain,
             macro=macro,
             liquidations=liquidations,
+            coinex=coinex,
         )

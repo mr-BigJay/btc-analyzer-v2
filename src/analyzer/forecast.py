@@ -55,22 +55,25 @@ class ForecastEngine:
         components: list[tuple[float, float, str]] = []
 
         tech = (tf4h.score - 50) * 2
-        components.append((tech, 0.32, "tech_4h"))
+        components.append((tech, 0.30, "tech_4h"))
 
         mom = self._momentum_score(tf4h)
-        components.append((mom, 0.14, "momentum"))
+        components.append((mom, 0.12, "momentum"))
 
         deriv = self._derivatives_score(analysis, cvd)
-        components.append((deriv, 0.20, "derivatives"))
+        components.append((deriv, 0.18, "derivatives"))
 
         liq = self._liquidation_score(analysis, price)
-        components.append((liq, 0.14, "liquidations"))
+        components.append((liq, 0.12, "liquidations"))
 
         opt_score = opts.get("flow_score", 0)
-        components.append((opt_score, 0.12, "options"))
+        components.append((opt_score, 0.10, "options"))
 
         macro_onchain = self._macro_onchain_score(analysis)
-        components.append((macro_onchain, 0.08, "macro"))
+        components.append((macro_onchain, 0.06, "macro"))
+
+        coinex_score = self._coinex_score(analysis)
+        components.append((coinex_score, 0.12, "coinex"))
 
         direction_score = sum(s * w for s, w, _ in components)
         direction_score = max(-100, min(100, direction_score))
@@ -184,6 +187,25 @@ class ForecastEngine:
                 score -= 10
             elif nearest["price"] > price and nearest.get("short_usd", 0) > nearest.get("long_usd", 0):
                 score += 10
+        return max(-100, min(100, score))
+
+    def _coinex_score(self, analysis: OverviewAnalysis) -> float:
+        cx = analysis.coinex
+        if not cx:
+            return 0.0
+        score = 0.0
+        if cx.premium_pct is not None:
+            score += max(-30, min(30, cx.premium_pct * 400))
+        if cx.funding_rate is not None:
+            score -= cx.funding_rate * 8000
+        if cx.taker_buy_sell_ratio is not None:
+            score += (cx.taker_buy_sell_ratio - 1) * 80
+        if cx.oi_change_pct is not None:
+            score += max(-20, min(20, cx.oi_change_pct * 3))
+        if cx.signal == "bullish":
+            score += 10
+        elif cx.signal == "bearish":
+            score -= 10
         return max(-100, min(100, score))
 
     def _macro_onchain_score(self, analysis: OverviewAnalysis) -> float:
@@ -474,6 +496,15 @@ class ForecastEngine:
             risks.append("ماکرو: فشار دلار / ریسک‌گریز")
         elif analysis.macro and analysis.macro.macro_bias == "bullish_crypto":
             bullish.append("ماکرو: محیط ریسک‌پذیر")
+
+        if analysis.coinex:
+            cx = analysis.coinex
+            if cx.signal == "bullish":
+                bullish.append(f"CoinEx Futures: {cx.research_note}")
+            elif cx.signal == "bearish":
+                risks.append(f"CoinEx Futures: {cx.research_note}")
+            elif cx.research_note and "بدون سیگنال" not in cx.research_note:
+                bullish.append(f"CoinEx: {cx.research_note}")
 
         if support and price < support * 1.01:
             bullish.append(f"نزدیک حمایت ${support:,.0f}")

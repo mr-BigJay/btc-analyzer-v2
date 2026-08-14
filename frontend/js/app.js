@@ -149,6 +149,7 @@ function buildTechnicalBrief(data, liq, backtest, forecast) {
   const s = data.sentiment;
   const oc = data.onchain;
   const macro = data.macro;
+  const cx = data.coinex;
   const lv = tf4h.levels || {};
   const verdict = buildVerdict(data);
 
@@ -177,6 +178,9 @@ function buildTechnicalBrief(data, liq, backtest, forecast) {
   }
   if (liq?.zones?.length) {
     factors.push(`لیکوئیدیشن: ${liq.zones.length} زون نزدیک قیمت`);
+  }
+  if (cx?.research_note) {
+    factors.push(`CoinEx: ${cx.bias_label} — ${cx.research_note}`);
   }
 
   const bt = backtest?.find((r) => r.timeframe === "1d") || backtest?.[0];
@@ -225,6 +229,18 @@ function buildTechnicalBrief(data, liq, backtest, forecast) {
       ${
         factors.length
           ? `<div class="brief-section"><h3>فاکتورهای محیطی</h3><ul class="brief-list">${factors.map((f) => `<li>${f}</li>`).join("")}</ul></div>`
+          : ""
+      }
+
+      ${
+        cx
+          ? `<div class="brief-section"><h3>تحقیق CoinEx Futures</h3><ul class="brief-list">
+              <li>سیگنال: <strong class="${trendClass(cx.signal)}">${cx.bias_label}</strong></li>
+              <li>فاندینگ: ${cx.funding_rate != null ? (cx.funding_rate * 100).toFixed(4) + "٪" : "—"} · پریمیوم: ${cx.premium_pct != null ? cx.premium_pct.toFixed(3) + "٪" : "—"}</li>
+              <li>OI: ${cx.open_interest != null ? cx.open_interest.toFixed(2) + " BTC" : "—"}${cx.oi_change_pct != null ? ` (${cx.oi_change_pct >= 0 ? "+" : ""}${cx.oi_change_pct}٪)` : ""}</li>
+              <li>تیکر خرید/فروش: ${cx.taker_buy_sell_ratio != null ? cx.taker_buy_sell_ratio.toFixed(2) : "—"}</li>
+              <li>${cx.research_note}</li>
+            </ul></div>`
           : ""
       }
 
@@ -305,6 +321,23 @@ function updateOverview(data) {
       macro.dxy != null ? `${macro.dxy.toFixed(2)} (${macro.dxy_change_7d >= 0 ? "+" : ""}${macro.dxy_change_7d.toFixed(1)}%)` : "—";
     document.getElementById("macro-bias").textContent =
       BIAS_FA[macro.macro_bias] || macro.macro_bias;
+  }
+
+  const cx = data.coinex;
+  if (cx) {
+    document.getElementById("coinex-funding").textContent =
+      cx.funding_rate != null ? `${(cx.funding_rate * 100).toFixed(4)}%` : "—";
+    document.getElementById("coinex-premium").textContent =
+      cx.premium_pct != null ? `${cx.premium_pct >= 0 ? "+" : ""}${cx.premium_pct.toFixed(3)}%` : "—";
+    document.getElementById("coinex-oi").textContent =
+      cx.open_interest != null
+        ? `${cx.open_interest.toFixed(2)} BTC${cx.oi_change_pct != null ? ` (${cx.oi_change_pct >= 0 ? "+" : ""}${cx.oi_change_pct}%)` : ""}`
+        : "—";
+    document.getElementById("coinex-taker").textContent =
+      cx.taker_buy_sell_ratio != null ? cx.taker_buy_sell_ratio.toFixed(2) : "—";
+    const sigEl = document.getElementById("coinex-signal");
+    sigEl.textContent = cx.bias_label || cx.signal;
+    sigEl.className = cx.signal === "bullish" ? "bull" : cx.signal === "bearish" ? "bear" : "";
   }
 
   const tf4h = data.timeframes["4h"];

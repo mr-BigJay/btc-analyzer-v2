@@ -579,6 +579,15 @@ main() {
     parse_args "$@"
     cd "$PROJECT_DIR" 2>/dev/null || true
 
+    # Auto-update install.sh from git before doing anything (fixes stale Persian scripts).
+    if [[ -z "${BTC_INSTALL_UPDATED:-}" ]] && [[ -d "$PROJECT_DIR/.git" ]]; then
+        export BTC_INSTALL_UPDATED=1
+        git -C "$PROJECT_DIR" fetch origin "$GIT_BRANCH" -q 2>/dev/null || true
+        git -C "$PROJECT_DIR" checkout "$GIT_BRANCH" -q 2>/dev/null || true
+        git -C "$PROJECT_DIR" reset --hard "origin/$GIT_BRANCH" -q 2>/dev/null || true
+        exec "$PROJECT_DIR/install.sh" "$@"
+    fi
+
     local mode
     mode="$(detect_mode)"
 

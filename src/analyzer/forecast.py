@@ -73,7 +73,10 @@ class ForecastEngine:
         components.append((macro_onchain, 0.06, "macro"))
 
         coinex_score = self._coinex_score(analysis)
-        components.append((coinex_score, 0.12, "coinex"))
+        components.append((coinex_score, 0.08, "coinex"))
+
+        coinex_ai_score = self._coinex_ai_score(analysis)
+        components.append((coinex_ai_score, 0.10, "coinex_ai"))
 
         direction_score = sum(s * w for s, w, _ in components)
         direction_score = max(-100, min(100, direction_score))
@@ -206,6 +209,25 @@ class ForecastEngine:
             score += 10
         elif cx.signal == "bearish":
             score -= 10
+        return max(-100, min(100, score))
+
+    def _coinex_ai_score(self, analysis: OverviewAnalysis) -> float:
+        ai = analysis.coinex_ai
+        if not ai:
+            return 0.0
+        score = 0.0
+        if ai.short_orientation == "up":
+            score += 20
+        elif ai.short_orientation == "down":
+            score -= 20
+        if ai.long_orientation == "up":
+            score += 25
+        elif ai.long_orientation == "down":
+            score -= 25
+        if ai.signal == "bullish":
+            score += 12
+        elif ai.signal == "bearish":
+            score -= 12
         return max(-100, min(100, score))
 
     def _macro_onchain_score(self, analysis: OverviewAnalysis) -> float:
@@ -505,6 +527,15 @@ class ForecastEngine:
                 risks.append(f"CoinEx Futures: {cx.research_note}")
             elif cx.research_note and "بدون سیگنال" not in cx.research_note:
                 bullish.append(f"CoinEx: {cx.research_note}")
+
+        if analysis.coinex_ai:
+            ai = analysis.coinex_ai
+            if ai.signal == "bullish":
+                bullish.append(f"CoinEx AI Research: {ai.summary}")
+            elif ai.signal == "bearish":
+                risks.append(f"CoinEx AI Research: {ai.summary}")
+            elif ai.summary:
+                bullish.append(f"CoinEx AI Research: {ai.summary}")
 
         if support and price < support * 1.01:
             bullish.append(f"نزدیک حمایت ${support:,.0f}")

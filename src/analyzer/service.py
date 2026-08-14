@@ -16,6 +16,7 @@ from src.analyzer.indicators import (
 )
 from src.analyzer.smc import analyze_smc
 from src.analyzer.models import (
+    CoinExAiResearchContext,
     CoinExContext,
     DerivativesContext,
     LayerScore,
@@ -30,6 +31,7 @@ from src.analyzer.models import (
 )
 from src.config import settings
 from src.db.models import (
+    CoinExAiResearchSnapshot,
     CoinExFuturesSnapshot,
     FearGreedIndex,
     FundingRate,
@@ -521,6 +523,63 @@ class AnalysisService:
             research_note=research_note,
         )
 
+    def _coinex_ai_research_context(self, session: Session) -> CoinExAiResearchContext | None:
+        if not settings.coinex_enabled or not settings.coinex_ai_enabled:
+            return None
+
+        row = session.execute(
+            select(CoinExAiResearchSnapshot)
+            .where(CoinExAiResearchSnapshot.asset == settings.coinex_ai_asset.lower())
+            .order_by(desc(CoinExAiResearchSnapshot.collected_at))
+            .limit(1)
+        ).scalar_one_or_none()
+        if not row:
+            return None
+
+        orientations = [row.short_orientation, row.long_orientation]
+        up_n = sum(1 for o in orientations if o == "up")
+        down_n = sum(1 for o in orientations if o == "down")
+
+        if down_n >= 2:
+            signal = "bearish"
+            bias_label = "AI Research CoinEx: nozooli"
+        elif up_n >= 2:
+            signal = "bullish"
+            bias_label = "AI Research CoinEx: soudi"
+        elif down_n == 1 and up_n == 0:
+            signal = "bearish"
+            bias_label = "AI Research CoinEx: kohtah-madat nozooli"
+        elif up_n == 1 and down_n == 0:
+            signal = "bullish"
+            bias_label = "AI Research CoinEx: kohtah-madat soudi"
+        else:
+            signal = "neutral"
+            bias_label = "AI Research CoinEx: konsi"
+
+        notes: list[str] = []
+        if row.summary:
+            notes.append(row.summary)
+        if row.short_trend:
+            notes.append(f"kohtah: {row.short_trend}")
+        if row.long_trend:
+            notes.append(f"boland: {row.long_trend}")
+        research_note = " | ".join(notes) if notes else row.core_content or row.trend_summary
+
+        return CoinExAiResearchContext(
+            asset=row.asset,
+            summary=row.summary,
+            core_content=row.core_content,
+            short_trend=row.short_trend,
+            long_trend=row.long_trend,
+            short_orientation=row.short_orientation,
+            long_orientation=row.long_orientation,
+            trend_summary=row.trend_summary,
+            signal=signal,
+            bias_label=bias_label,
+            research_note=research_note,
+            published_at=row.published_at.isoformat() if row.published_at else None,
+        )
+
     def _sentiment_context(self, session: Session) -> SentimentContext:
         fg = session.execute(
             select(FearGreedIndex).order_by(desc(FearGreedIndex.timestamp)).limit(1)
@@ -705,6 +764,7 @@ class AnalysisService:
         macro: MacroContext | None = None,
         liquidations: LiquidationContext | None = None,
         coinex: CoinExContext | None = None,
+        coinex_ai: CoinExAiResearchContext | None = None,
     ) -> str:
         tf_order = ["1w", "1d", "4h"]
         tf_labels = {"1w": "1w", "1d": "1d", "4h": "4h"}
@@ -769,6 +829,13 @@ class AnalysisService:
         elif coinex and coinex.signal == "bearish":
             drivers.append(f"CoinEx: {coinex.bias_label}")
 
+        if coinex_ai and coinex_ai.signal == "bullish":
+            drivers.append(f"CoinEx AI: {coinex_ai.summary}")
+        elif coinex_ai and coinex_ai.signal == "bearish":
+            drivers.append(f"CoinEx AI: {coinex_ai.summary}")
+        elif coinex_ai and coinex_ai.summary:
+            drivers.append(f"CoinEx AI: {coinex_ai.summary}")
+
         parts = [verdict, trend_line]
         if drivers:
             parts.append("avamel kelidi: " + " | ".join(drivers[:3]))
@@ -802,8 +869,9 @@ class AnalysisService:
         macro = self._macro_context(session)
         liquidations = self._liquidation_context(session, price)
         coinex = self._coinex_context(session)
+        coinex_ai = self._coinex_ai_research_context(session)
         summary = self._build_summary(
-            timeframes, mtf_aligned, derivatives, onchain, macro, liquidations, coinex
+            timeframes, mtf_aligned, derivatives, onchain, macro, liquidations, coinex, coinex_ai
         )
 
         if derivatives.funding_signal == "overleveraged_long" and overall_score > 60:
@@ -822,6 +890,14 @@ class AnalysisService:
             overall_confidence = min(95, overall_confidence + 4)
         elif coinex and coinex.signal == "bearish" and overall_score > 55:
             overall_confidence = max(30, overall_confidence - 5)
+        if coinex_ai and coinex_ai.signal == "bullish" and overall_score > 50:
+            overall_confidence = min(95, overall_confidence + 5)
+        elif coinex_ai and coinex_ai.signal == "bearish" and overall_score < 50:
+            overall_confidence = min(95, overall_confidence + 5)
+        elif coinex_ai and coinex_ai.signal == "bearish" and overall_score > 55:
+            overall_confidence = max(30, overall_confidence - 6)
+        elif coinex_ai and coinex_ai.signal == "bullish" and overall_score < 45:
+            overall_confidence = max(30, overall_confidence - 4)
 
         return OverviewAnalysis(
             price=price,
@@ -838,4 +914,5 @@ class AnalysisService:
             macro=macro,
             liquidations=liquidations,
             coinex=coinex,
+            coinex_ai=coinex_ai,
         )

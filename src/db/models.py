@@ -129,6 +129,32 @@ class TakerVolume(Base):
     )
 
 
+class CoinExAiResearchSnapshot(Base):
+    __tablename__ = "coinex_ai_research_snapshots"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    asset: Mapped[str] = mapped_column(String(20), nullable=False)
+    summary: Mapped[str] = mapped_column(Text, nullable=False)
+    core_content: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    content: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    short_trend: Mapped[str] = mapped_column(String(80), nullable=False, default="")
+    long_trend: Mapped[str] = mapped_column(String(80), nullable=False, default="")
+    short_orientation: Mapped[str] = mapped_column(String(20), nullable=False, default="")
+    long_orientation: Mapped[str] = mapped_column(String(20), nullable=False, default="")
+    trend_summary: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    asset_tier: Mapped[str] = mapped_column(String(20), nullable=False, default="")
+    published_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    collected_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+
+    __table_args__ = (
+        Index("ix_coinex_ai_asset_time", "asset", "collected_at"),
+    )
+
+
 class CoinExFuturesSnapshot(Base):
     __tablename__ = "coinex_futures_snapshots"
 

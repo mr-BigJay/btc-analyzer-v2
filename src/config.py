@@ -55,8 +55,12 @@ class Settings(BaseSettings):
     backtest_optimize_hour: int = 3
 
     coinex_api_base: str = "https://api.coinex.com/v2"
+    coinex_web_base: str = "https://www.coinex.com"
     coinex_market: str = "BTCUSDT"
+    coinex_ai_asset: str = "btc"
+    coinex_ai_lang: str = "en_US"
     coinex_enabled: bool = True
+    coinex_ai_enabled: bool = True
 
     @property
     def deribit_configured(self) -> bool:

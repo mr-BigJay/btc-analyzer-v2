@@ -150,6 +150,7 @@ function buildTechnicalBrief(data, liq, backtest, forecast) {
   const oc = data.onchain;
   const macro = data.macro;
   const cx = data.coinex;
+  const cai = data.coinex_ai;
   const lv = tf4h.levels || {};
   const verdict = buildVerdict(data);
 
@@ -180,7 +181,10 @@ function buildTechnicalBrief(data, liq, backtest, forecast) {
     factors.push(`لیکوئیدیشن: ${liq.zones.length} زون نزدیک قیمت`);
   }
   if (cx?.research_note) {
-    factors.push(`CoinEx: ${cx.bias_label} — ${cx.research_note}`);
+    factors.push(`CoinEx Futures: ${cx.bias_label} — ${cx.research_note}`);
+  }
+  if (cai?.summary) {
+    factors.push(`CoinEx AI Research: ${cai.bias_label} — ${cai.summary}`);
   }
 
   const bt = backtest?.find((r) => r.timeframe === "1d") || backtest?.[0];
@@ -229,6 +233,17 @@ function buildTechnicalBrief(data, liq, backtest, forecast) {
       ${
         factors.length
           ? `<div class="brief-section"><h3>فاکتورهای محیطی</h3><ul class="brief-list">${factors.map((f) => `<li>${f}</li>`).join("")}</ul></div>`
+          : ""
+      }
+
+      ${
+        cai
+          ? `<div class="brief-section"><h3>CoinEx AI Research</h3><ul class="brief-list">
+              <li>خلاصه: <strong class="${trendClass(cai.signal)}">${cai.summary}</strong></li>
+              <li>کوتاه‌مدت: ${cai.short_trend || "—"}${cai.short_orientation ? ` (${cai.short_orientation})` : ""}</li>
+              <li>بلندمدت: ${cai.long_trend || "—"}${cai.long_orientation ? ` (${cai.long_orientation})` : ""}</li>
+              <li>${cai.core_content || cai.trend_summary || cai.research_note}</li>
+            </ul></div>`
           : ""
       }
 
@@ -324,6 +339,7 @@ function updateOverview(data) {
   }
 
   const cx = data.coinex;
+  const cai = data.coinex_ai;
   if (cx) {
     document.getElementById("coinex-funding").textContent =
       cx.funding_rate != null ? `${(cx.funding_rate * 100).toFixed(4)}%` : "—";
@@ -338,6 +354,17 @@ function updateOverview(data) {
     const sigEl = document.getElementById("coinex-signal");
     sigEl.textContent = cx.bias_label || cx.signal;
     sigEl.className = cx.signal === "bullish" ? "bull" : cx.signal === "bearish" ? "bear" : "";
+  }
+
+  if (cai) {
+    document.getElementById("coinex-ai-summary").textContent = cai.summary || "—";
+    document.getElementById("coinex-ai-short").textContent = cai.short_trend || "—";
+    document.getElementById("coinex-ai-long").textContent = cai.long_trend || "—";
+    const aiSigEl = document.getElementById("coinex-ai-signal");
+    aiSigEl.textContent = cai.bias_label || cai.signal;
+    aiSigEl.className = cai.signal === "bullish" ? "bull" : cai.signal === "bearish" ? "bear" : "";
+    document.getElementById("coinex-ai-core").textContent =
+      cai.core_content || cai.trend_summary || "—";
   }
 
   const tf4h = data.timeframes["4h"];

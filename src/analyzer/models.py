@@ -46,6 +46,22 @@ class OnChainContext:
 
 
 @dataclass
+class CoinExAiResearchContext:
+    asset: str
+    summary: str
+    core_content: str
+    short_trend: str
+    long_trend: str
+    short_orientation: str
+    long_orientation: str
+    trend_summary: str
+    signal: str
+    bias_label: str
+    research_note: str
+    published_at: str | None = None
+
+
+@dataclass
 class CoinExContext:
     market: str
     last_price: float | None
@@ -119,3 +135,4 @@ class OverviewAnalysis:
     macro: MacroContext | None = None
     liquidations: LiquidationContext | None = None
     coinex: CoinExContext | None = None
+    coinex_ai: CoinExAiResearchContext | None = None

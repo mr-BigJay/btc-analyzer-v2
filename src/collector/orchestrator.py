@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 
 from src.collector.coinex import CoinExFuturesCollector
+from src.collector.coinex_ai_research import CoinExAiResearchCollector
 from src.collector.liquidations import LiquidationCollector
 from src.collector.macro import MacroCollector
 from src.collector.market import MarketDataCollector
@@ -27,6 +28,7 @@ class CollectionOrchestrator:
         self.liquidations = LiquidationCollector()
         self.options = OptionsPipeline()
         self.coinex = CoinExFuturesCollector()
+        self.coinex_ai = CoinExAiResearchCollector()
 
     def _log_collection(
         self,
@@ -64,6 +66,8 @@ class CollectionOrchestrator:
         ]
         if settings.coinex_enabled:
             collectors.append(("coinex", self._collect_coinex))
+        if settings.coinex_enabled and settings.coinex_ai_enabled:
+            collectors.append(("coinex_ai", self._collect_coinex_ai))
 
         for name, func in collectors:
             started = datetime.now(timezone.utc)
@@ -107,3 +111,6 @@ class CollectionOrchestrator:
 
     def _collect_coinex(self, session: Session) -> int:
         return self.coinex.collect(session)
+
+    def _collect_coinex_ai(self, session: Session) -> int:
+        return self.coinex_ai.collect(session)

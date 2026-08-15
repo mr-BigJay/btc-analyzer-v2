@@ -9,8 +9,9 @@ from telegram.ext import (
     filters,
 )
 
+from src.advisor.agent_tasks import create_task, format_task_summary, list_tasks
 from src.advisor.service import AdvisorService
-from src.advisor.settings_store import is_llm_configured, reload_runtime_settings, to_public_dict
+from src.advisor.settings_store import is_llm_configured, reload_runtime_settings, set_api_key, to_public_dict
 from src.analyzer.forecast import ForecastEngine
 from src.analyzer.service import AnalysisService
 from src.config import settings
@@ -81,9 +82,13 @@ class TelegramBotService:
             "/1w — تحلیل هفتگی\n"
             "/advisor — تحلیل مشاور هوش مصنوعی\n"
             "/config — وضعیت اتصال AI\n"
+            "/setkey — تنظیم API Key از تلگرام\n"
+            "/agent — ارسال درخواست اصلاح به Cursor\n"
+            "/tasks — لیست درخواست‌های اصلاح\n"
             "/clear — پاک کردن تاریخچه گفتگو\n"
             "/help — راهنما\n\n"
-            "💬 هر پیام متنی هم می‌تونی بفرستی — مثل یک مشاور با داشبورد صحبت می‌کنی."
+            "💬 هر پیام متنی = گفتگو با مشاور (نیاز به API Key)\n"
+            "⚠️ اتصال تلگرام ≠ هوش مصنوعی — برای AI باید API Key تنظیم شود."
         )
 
     async def cmd_help(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -126,9 +131,110 @@ class TelegramBotService:
         if not llm_ok:
             lines.extend([
                 "",
-                "برای گفتگوی آزاد:",
-                "داشبورد → «۰ · ستاپ ایجنت» → API Key → ذخیره",
+                "⚠️ تلگرام وصل است ولی LLM نیست!",
+                "",
+                "یکی از این روش‌ها:",
+                "۱) داشبورد → «۰ · ستاپ ایجنت» → API Key → ذخیره",
+                "۲) تلگرام: /setkey sk-...",
             ])
+        await update.message.reply_text("\n".join(lines), parse_mode="HTML")
+
+    async def cmd_setkey(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        if not self._allowed(update):
+            return await self._deny(update)
+        args = context.args or []
+        if not args:
+            await update.message.reply_text(
+                "استفاده:\n"
+                "/setkey sk-...\n"
+                "/setkey sk-... https://api.openai.com/v1 gpt-4o-mini\n\n"
+                "یا از داشبورد → بخش ۰ · ستاپ ایجنت"
+            )
+            return
+        api_key = args[0].strip()
+        api_base = args[1].strip() if len(args) > 1 else None
+        model = args[2].strip() if len(args) > 2 else None
+        if not api_key.startswith("sk-") and len(api_key) < 20:
+            await update.message.reply_text("فرمت API Key نامعتبر به نظر می‌رسد.")
+            return
+        try:
+            set_api_key(api_key, api_base, model)
+            await update.message.reply_text(
+                "✅ API Key ذخیره شد.\n"
+                f"مدل: {settings.advisor_model}\n"
+                "الان یک پیام آزاد بفرست تا تست کنی."
+            )
+            try:
+                await update.message.delete()
+            except Exception:
+                pass
+        except Exception:
+            logger.exception("setkey failed")
+            await update.message.reply_text("خطا در ذخیره API Key")
+
+    def _build_agent_context(self, session) -> dict:
+        reload_runtime_settings()
+        ctx = self.advisor.build_context(session)
+        try:
+            insight = self.advisor.generate_rules(ctx)
+            ctx["advisor"] = {
+                "headline": insight.headline,
+                "problems": insight.problems,
+                "ideas": insight.ideas,
+                "conflicts": insight.conflicts,
+            }
+        except Exception:
+            pass
+        return ctx
+
+    async def cmd_agent(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        if not self._allowed(update):
+            return await self._deny(update)
+        user_text = " ".join(context.args or []).strip()
+        if not user_text:
+            await update.message.reply_text(
+                "استفاده:\n"
+                "/agent توضیح مشکل یا درخواست اصلاح\n\n"
+                "مثال:\n"
+                "/agent بک‌تست ۴ ساعته ضعیف است، PF را بهبود بده"
+            )
+            return
+        session = get_session()
+        try:
+            agent_ctx = self._build_agent_context(session)
+            chat_id = str(update.effective_chat.id) if update.effective_chat else ""
+            task = create_task(
+                user_message=user_text,
+                source="telegram",
+                context=agent_ctx,
+                chat_id=chat_id,
+            )
+            await update.message.reply_text(
+                format_task_summary(task),
+                parse_mode="HTML",
+            )
+        except Exception:
+            logger.exception("agent task failed")
+            await update.message.reply_text("خطا در ثبت درخواست.")
+        finally:
+            session.close()
+
+    async def cmd_tasks(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        if not self._allowed(update):
+            return await self._deny(update)
+        tasks = list_tasks(5)
+        if not tasks:
+            await update.message.reply_text("درخواست اصلاحی ثبت نشده.")
+            return
+        lines = ["📋 <b>آخرین درخواست‌های اصلاح:</b>", ""]
+        for t in tasks:
+            status = t.get("status", "pending")
+            lines.append(f"• <code>{t.get('id')}</code> — {status}")
+            msg = (t.get("user_message") or "")[:60]
+            if msg:
+                lines.append(f"  {msg}...")
+        lines.append("")
+        lines.append("فایل‌ها در: data/agent_tasks/")
         await update.message.reply_text("\n".join(lines), parse_mode="HTML")
 
     async def cmd_advisor(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -189,6 +295,9 @@ class TelegramBotService:
             return
         if not self._allowed(update):
             return await self._deny(update)
+
+        reload_runtime_settings()
+
         if not settings.advisor_enabled or not settings.advisor_telegram_enabled:
             await update.message.reply_text(
                 "گفتگوی آزاد غیرفعال است. از /status یا /advisor استفاده کن."
@@ -199,10 +308,52 @@ class TelegramBotService:
         if user_text.startswith("/"):
             return
 
+        agent_triggers = (
+            "اصلاح کن", "درست کن", "fix", "cursor", "ایجنت", "agent",
+            "کد را", "مشکل را حل", "به cursor", "به کرسر",
+        )
+        if any(t in user_text.lower() for t in agent_triggers):
+            session = get_session()
+            try:
+                agent_ctx = self._build_agent_context(session)
+                chat_id = str(update.effective_chat.id) if update.effective_chat else ""
+                task = create_task(
+                    user_message=user_text,
+                    source="telegram",
+                    context=agent_ctx,
+                    chat_id=chat_id,
+                )
+                await update.message.reply_text(
+                    format_task_summary(task),
+                    parse_mode="HTML",
+                )
+            except Exception:
+                logger.exception("agent task from chat failed")
+                await update.message.reply_text("خطا در ثبت درخواست.")
+            finally:
+                session.close()
+            return
+
         await update.message.chat.send_action("typing")
 
         session = get_session()
         try:
+            if not settings.advisor_api_key:
+                await update.message.reply_text(
+                    "⚠️ API Key تنظیم نشده — الان فقط حالت ساده (rule-based) فعاله.\n\n"
+                    "برای گفتگوی هوشمند:\n"
+                    "• /setkey sk-...\n"
+                    "• یا داشبورد → ۰ · ستاپ ایجنت\n\n"
+                    "برای درخواست اصلاح کد:\n"
+                    "• /agent توضیح مشکل"
+                )
+                history = list(self._get_history(context))
+                reply = self.advisor.chat(session, user_text, history)
+                self._append_history(context, "user", user_text)
+                self._append_history(context, "assistant", reply)
+                await update.message.reply_text(reply)
+                return
+
             history = list(self._get_history(context))
             reply = self.advisor.chat(session, user_text, history)
             self._append_history(context, "user", user_text)
@@ -225,6 +376,9 @@ class TelegramBotService:
         app.add_handler(CommandHandler("status", self.cmd_status))
         app.add_handler(CommandHandler("advisor", self.cmd_advisor))
         app.add_handler(CommandHandler("config", self.cmd_config))
+        app.add_handler(CommandHandler("setkey", self.cmd_setkey))
+        app.add_handler(CommandHandler("agent", self.cmd_agent))
+        app.add_handler(CommandHandler("tasks", self.cmd_tasks))
         app.add_handler(CommandHandler("4h", self.cmd_4h))
         app.add_handler(CommandHandler("1d", self.cmd_1d))
         app.add_handler(CommandHandler("1w", self.cmd_1w))

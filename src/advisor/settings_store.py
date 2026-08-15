@@ -110,3 +110,13 @@ def update_from_request(payload: dict[str, Any]) -> dict[str, Any]:
 
     save_raw(current)
     return to_public_dict()
+
+
+def set_api_key(api_key: str, api_base: str | None = None, model: str | None = None) -> dict[str, Any]:
+    payload: dict[str, Any] = {"advisor_api_key": api_key.strip()}
+    if api_base:
+        payload["advisor_api_base"] = api_base.strip()
+    if model:
+        payload["advisor_model"] = model.strip()
+    payload["advisor_enabled"] = True
+    return update_from_request(payload)

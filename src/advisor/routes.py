@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
+from src.advisor.agent_tasks import create_task, list_tasks
 from src.advisor.service import AdvisorService
 from src.advisor.settings_store import to_public_dict, update_from_request
 from src.config import settings
@@ -118,3 +119,8 @@ def advisor_insight(refresh: bool = False):
         raise HTTPException(500, str(exc)) from exc
     finally:
         session.close()
+
+
+@router.get("/tasks")
+def advisor_tasks(limit: int = 20):
+    return {"tasks": list_tasks(limit=limit)}

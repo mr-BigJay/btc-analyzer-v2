@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from src.advisor.models import AdvisorInsight
 from src.advisor.provider import chat_with_llm, generate_with_llm
+from src.advisor.settings_store import is_llm_configured, reload_runtime_settings
 from src.analyzer.forecast import ForecastEngine, forecast_to_dict
 from src.analyzer.optimize import BacktestOptimizer
 from src.analyzer.serialize import analysis_to_dict
@@ -198,6 +199,8 @@ class AdvisorService:
         if not settings.advisor_enabled:
             raise RuntimeError("Advisor is disabled")
 
+        reload_runtime_settings()
+
         if not force:
             latest = self.get_latest(session)
             if latest and self._is_fresh(latest.generated_at):
@@ -277,6 +280,7 @@ class AdvisorService:
         if not settings.advisor_enabled:
             raise RuntimeError("Advisor is disabled")
 
+        reload_runtime_settings()
         context = self.build_context(session)
         try:
             if settings.advisor_api_key:
@@ -328,5 +332,12 @@ class AdvisorService:
             lines.append("می‌تونی بپرسی: «مشکلات چیه؟»، «ایده‌ها»، «سطوح کلیدی»")
 
         lines.append("")
-        lines.append("(حالت rule-based — برای گفتگوی آزاد ADVISOR_API_KEY تنظیم کن)")
+        if is_llm_configured():
+            lines.append("(خطا در اتصال LLM — دوباره امتحان کن یا Base URL/مدل را چک کن)")
+        else:
+            lines.append(
+                "⚠️ حالت rule-based فعال است.\n"
+                "از داشبورد → بخش «۰ · ستاپ ایجنت» → API Key را وارد کن → ذخیره.\n"
+                "بعد یک پیام جدید بفرست (نیازی به restart نیست)."
+            )
         return "\n".join(lines)

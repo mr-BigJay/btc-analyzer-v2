@@ -10,6 +10,7 @@ from telegram.ext import (
 )
 
 from src.advisor.service import AdvisorService
+from src.advisor.settings_store import is_llm_configured, reload_runtime_settings, to_public_dict
 from src.analyzer.forecast import ForecastEngine
 from src.analyzer.service import AnalysisService
 from src.config import settings
@@ -79,6 +80,7 @@ class TelegramBotService:
             "/1d — تحلیل روزانه\n"
             "/1w — تحلیل هفتگی\n"
             "/advisor — تحلیل مشاور هوش مصنوعی\n"
+            "/config — وضعیت اتصال AI\n"
             "/clear — پاک کردن تاریخچه گفتگو\n"
             "/help — راهنما\n\n"
             "💬 هر پیام متنی هم می‌تونی بفرستی — مثل یک مشاور با داشبورد صحبت می‌کنی."
@@ -105,6 +107,29 @@ class TelegramBotService:
             )
         finally:
             session.close()
+
+    async def cmd_config(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        if not self._allowed(update):
+            return await self._deny(update)
+        reload_runtime_settings()
+        cfg = to_public_dict()
+        llm_ok = is_llm_configured()
+        lines = [
+            "⚙️ <b>وضعیت مشاور AI</b>",
+            "",
+            f"مشاور: {'✅ فعال' if cfg['advisor_enabled'] else '❌ غیرفعال'}",
+            f"LLM: {'✅ متصل' if llm_ok else '❌ API Key نیست'}",
+            f"مدل: {cfg['advisor_model']}",
+            f"تلگرام: {'✅' if cfg['telegram_configured'] else '❌'}",
+            f"هشدار خودکار: {'✅' if cfg['advisor_telegram_proactive'] else '—'}",
+        ]
+        if not llm_ok:
+            lines.extend([
+                "",
+                "برای گفتگوی آزاد:",
+                "داشبورد → «۰ · ستاپ ایجنت» → API Key → ذخیره",
+            ])
+        await update.message.reply_text("\n".join(lines), parse_mode="HTML")
 
     async def cmd_advisor(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         if not self._allowed(update):
@@ -199,6 +224,7 @@ class TelegramBotService:
         app.add_handler(CommandHandler("clear", self.cmd_clear))
         app.add_handler(CommandHandler("status", self.cmd_status))
         app.add_handler(CommandHandler("advisor", self.cmd_advisor))
+        app.add_handler(CommandHandler("config", self.cmd_config))
         app.add_handler(CommandHandler("4h", self.cmd_4h))
         app.add_handler(CommandHandler("1d", self.cmd_1d))
         app.add_handler(CommandHandler("1w", self.cmd_1w))

@@ -60,6 +60,16 @@ def apply_from_disk() -> None:
             setattr(settings, key, data[key])
 
 
+def reload_runtime_settings() -> None:
+    """Reload dashboard-saved settings (API key, telegram, model)."""
+    apply_from_disk()
+
+
+def is_llm_configured() -> bool:
+    reload_runtime_settings()
+    return bool(settings.advisor_api_key)
+
+
 def to_public_dict() -> dict[str, Any]:
     return {
         "advisor_enabled": settings.advisor_enabled,

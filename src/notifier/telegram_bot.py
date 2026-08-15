@@ -87,8 +87,8 @@ class TelegramBotService:
             "/tasks — لیست درخواست‌های اصلاح\n"
             "/clear — پاک کردن تاریخچه گفتگو\n"
             "/help — راهنما\n\n"
-            "💬 هر پیام متنی = گفتگو با مشاور (نیاز به API Key)\n"
-            "⚠️ اتصال تلگرام ≠ هوش مصنوعی — برای AI باید API Key تنظیم شود."
+            "💬 هر پیام متنی = گفتگوی آزاد (نیاز به کلید API — /setkey)\n"
+            "⚠️ اتصال تلگرام ≠ هوش مصنوعی"
         )
 
     async def cmd_help(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -120,10 +120,10 @@ class TelegramBotService:
         cfg = to_public_dict()
         llm_ok = is_llm_configured()
         lines = [
-            "⚙️ <b>وضعیت مشاور AI</b>",
+            "⚙️ <b>وضعیت مشاور</b>",
             "",
             f"مشاور: {'✅ فعال' if cfg['advisor_enabled'] else '❌ غیرفعال'}",
-            f"LLM: {'✅ متصل' if llm_ok else '❌ API Key نیست'}",
+            f"هوش مصنوعی: {'✅ متصل' if llm_ok else '❌ کلید API نیست'}",
             f"مدل: {cfg['advisor_model']}",
             f"تلگرام: {'✅' if cfg['telegram_configured'] else '❌'}",
             f"هشدار خودکار: {'✅' if cfg['advisor_telegram_proactive'] else '—'}",
@@ -131,12 +131,14 @@ class TelegramBotService:
         if not llm_ok:
             lines.extend([
                 "",
-                "⚠️ تلگرام وصل است ولی LLM نیست!",
+                "⚠️ تلگرام وصل است ولی گفتگوی آزاد مثل ChatGPT فعال نیست.",
                 "",
-                "یکی از این روش‌ها:",
-                "۱) داشبورد → «۰ · ستاپ ایجنت» → API Key → ذخیره",
-                "۲) تلگرام: /setkey sk-...",
+                "برای فعال‌سازی:",
+                "۱) /setkey کلید-API-تو",
+                "۲) یا داشبورد → ۰ · ستاپ ایجنت",
             ])
+        else:
+            lines.extend(["", "✅ گفتگوی آزاد فعال — هر پیام متنی = پاسخ هوشمند"])
         await update.message.reply_text("\n".join(lines), parse_mode="HTML")
 
     async def cmd_setkey(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -154,15 +156,21 @@ class TelegramBotService:
         api_key = args[0].strip()
         api_base = args[1].strip() if len(args) > 1 else None
         model = args[2].strip() if len(args) > 2 else None
-        if not api_key.startswith("sk-") and len(api_key) < 20:
-            await update.message.reply_text("فرمت API Key نامعتبر به نظر می‌رسد.")
+        if len(api_key) < 8:
+            await update.message.reply_text("کلید API خیلی کوتاه است.")
             return
         try:
             set_api_key(api_key, api_base, model)
+            reload_runtime_settings()
+            # تست سریع اتصال
+            from src.advisor.provider import chat_with_llm
+            test_ctx = {"test": True, "note": "connection test"}
+            preview = chat_with_llm(test_ctx, "فقط بگو: اتصال برقرار است", [])
             await update.message.reply_text(
-                "✅ API Key ذخیره شد.\n"
+                "✅ کلید API ذخیره و تست شد.\n"
                 f"مدل: {settings.advisor_model}\n"
-                "الان یک پیام آزاد بفرست تا تست کنی."
+                f"نمونه پاسخ: {preview[:120]}\n\n"
+                "الان هر سوالی داری بپرس — گفتگوی آزاد فعال است."
             )
             try:
                 await update.message.delete()
@@ -340,18 +348,16 @@ class TelegramBotService:
         try:
             if not settings.advisor_api_key:
                 await update.message.reply_text(
-                    "⚠️ API Key تنظیم نشده — الان فقط حالت ساده (rule-based) فعاله.\n\n"
-                    "برای گفتگوی هوشمند:\n"
-                    "• /setkey sk-...\n"
-                    "• یا داشبورد → ۰ · ستاپ ایجنت\n\n"
-                    "برای درخواست اصلاح کد:\n"
-                    "• /agent توضیح مشکل"
+                    "🤖 برای گفتگوی آزاد مثل ChatGPT، اول کلید API لازم است.\n\n"
+                    "تلگرام وصل است ✅ ولی هوش مصنوعی هنوز فعال نیست ❌\n\n"
+                    "یکی از این دو:\n"
+                    "۱) همینجا بفرست:\n"
+                    "<code>/setkey کلید-API-تو</code>\n\n"
+                    "۲) داشبورد → بخش ۰ · ستاپ ایجنت → کلید API → ذخیره\n\n"
+                    "بعد از تنظیم، /config بزن تا وضعیت را ببینی.\n"
+                    "دستورات آماده: /status /4h /advisor",
+                    parse_mode="HTML",
                 )
-                history = list(self._get_history(context))
-                reply = self.advisor.chat(session, user_text, history)
-                self._append_history(context, "user", user_text)
-                self._append_history(context, "assistant", reply)
-                await update.message.reply_text(reply)
                 return
 
             history = list(self._get_history(context))
@@ -359,9 +365,13 @@ class TelegramBotService:
             self._append_history(context, "user", user_text)
             self._append_history(context, "assistant", reply)
             await update.message.reply_text(reply)
-        except Exception:
+        except Exception as exc:
             logger.exception("Advisor chat failed")
-            await update.message.reply_text("خطا در پاسخ‌دهی. دوباره امتحان کن یا /advisor بزن.")
+            err = str(exc)[:200]
+            await update.message.reply_text(
+                f"خطا در اتصال هوش مصنوعی:\n{err}\n\n"
+                "تنظیمات را با /config چک کن یا /setkey را دوباره بزن."
+            )
         finally:
             session.close()
 

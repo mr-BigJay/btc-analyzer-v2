@@ -281,14 +281,11 @@ class AdvisorService:
             raise RuntimeError("Advisor is disabled")
 
         reload_runtime_settings()
-        context = self.build_context(session)
-        try:
-            if settings.advisor_api_key:
-                return chat_with_llm(context, user_message, history)
-        except Exception:
-            logger.exception("LLM chat failed, falling back to rules")
+        if not settings.advisor_api_key:
+            raise RuntimeError("کلید API تنظیم نشده — از /setkey استفاده کن")
 
-        return self._chat_rules(context, user_message)
+        context = self.build_context(session)
+        return chat_with_llm(context, user_message, history)
 
     def _chat_rules(self, context: dict, user_message: str) -> str:
         insight = self.generate_rules(context)

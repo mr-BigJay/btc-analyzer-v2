@@ -1,15 +1,19 @@
-"""API routes for dashboard advisor setup."""
+"""All advisor API routes (insight + dashboard setup)."""
 
 from __future__ import annotations
 
 import httpx
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
+from sqlalchemy.orm import Session
 
+from src.advisor.service import AdvisorService
 from src.advisor.settings_store import to_public_dict, update_from_request
 from src.config import settings
 
 router = APIRouter(prefix="/api/v1/advisor", tags=["advisor"])
+
+advisor_service = AdvisorService()
 
 
 class AdvisorSettingsUpdate(BaseModel):
@@ -31,13 +35,20 @@ class AdvisorTestRequest(BaseModel):
     advisor_model: str | None = None
 
 
+def _get_session():
+    from src.db.models import get_session
+
+    return get_session()
+
+
 @router.get("/settings")
 def get_advisor_settings():
     return to_public_dict()
 
 
 @router.put("/settings")
-def put_advisor_settings(body: AdvisorSettingsUpdate):
+@router.post("/settings")
+def save_advisor_settings(body: AdvisorSettingsUpdate):
     try:
         return update_from_request(body.model_dump(exclude_none=True))
     except Exception as exc:
@@ -52,6 +63,9 @@ def test_advisor_settings(body: AdvisorTestRequest | None = None):
 
     if not api_key:
         raise HTTPException(400, "API key is required")
+
+    if not api_base.startswith("http"):
+        raise HTTPException(400, "API Base URL bayad ba http:// ya https:// shoro beshe")
 
     url = f"{api_base.rstrip('/')}/chat/completions"
     headers = {
@@ -84,3 +98,23 @@ def test_advisor_settings(body: AdvisorTestRequest | None = None):
         raise HTTPException(400, f"API error: {detail}") from exc
     except Exception as exc:
         raise HTTPException(400, f"Connection failed: {exc}") from exc
+
+
+@router.get("")
+def advisor_insight(refresh: bool = False):
+    if not settings.advisor_enabled:
+        return {"enabled": False, "message": "Advisor is disabled"}
+
+    session = _get_session()
+    try:
+        if refresh:
+            insight = advisor_service.generate(session, force=True)
+        else:
+            insight = advisor_service.get_latest(session)
+            if not insight:
+                insight = advisor_service.generate(session, force=True)
+        return advisor_service.to_dict(insight)
+    except Exception as exc:
+        raise HTTPException(500, str(exc)) from exc
+    finally:
+        session.close()

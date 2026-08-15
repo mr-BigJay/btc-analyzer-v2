@@ -7,8 +7,7 @@ from starlette.requests import Request
 from starlette.responses import Response
 
 from src.api.options_routes import router as options_router
-from src.advisor.settings_routes import router as advisor_settings_router
-from src.advisor.service import AdvisorService
+from src.advisor.routes import router as advisor_router
 from src.analyzer.forecast import ForecastEngine, forecast_to_dict
 from src.analyzer.serialize import analysis_to_dict
 from src.analyzer.service import AnalysisService
@@ -24,7 +23,7 @@ from src.db.models import (
 )
 
 app = FastAPI(title="BTC Analyzer", version="2.4.0")
-FRONTEND_BUILD = "2024.06-clarity-v1"
+FRONTEND_BUILD = "2024.06-advisor-setup-v2"
 
 app.add_middleware(
     CORSMiddleware,
@@ -48,10 +47,9 @@ app.add_middleware(NoCacheHtmlMiddleware)
 
 analysis_service = AnalysisService()
 forecast_engine = ForecastEngine()
-advisor_service = AdvisorService()
 
+app.include_router(advisor_router)
 app.include_router(options_router)
-app.include_router(advisor_settings_router)
 
 
 @app.on_event("startup")
@@ -203,27 +201,6 @@ def forecast_4h():
         analysis = analysis_service.analyze(session)
         forecast = forecast_engine.build(session, analysis)
         return forecast_to_dict(forecast)
-    finally:
-        session.close()
-
-
-@app.get("/api/v1/advisor")
-def advisor_insight(refresh: bool = False):
-    from src.config import settings as app_settings
-
-    if not app_settings.advisor_enabled:
-        return {"enabled": False, "message": "Advisor is disabled"}
-    session = get_session()
-    try:
-        if refresh:
-            insight = advisor_service.generate(session, force=True)
-        else:
-            insight = advisor_service.get_latest(session)
-            if not insight:
-                insight = advisor_service.generate(session, force=True)
-        return advisor_service.to_dict(insight)
-    except Exception as exc:
-        raise HTTPException(500, str(exc)) from exc
     finally:
         session.close()
 

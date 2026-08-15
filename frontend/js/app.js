@@ -50,12 +50,21 @@ async function fetchAdvisorSettings() {
 
 async function saveAdvisorSettings(payload) {
   const res = await fetch("/api/v1/advisor/settings", {
-    method: "PUT",
+    method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.detail || "save failed");
+  if (!res.ok) {
+    const detail = data.detail;
+    const msg = Array.isArray(detail)
+      ? detail.map((d) => d.msg || d).join(" · ")
+      : detail || `خطای سرور (${res.status})`;
+    if (res.status === 405) {
+      throw new Error("سرور قدیمی است — git pull و restart سرویس لازم است");
+    }
+    throw new Error(msg);
+  }
   return data;
 }
 
@@ -66,8 +75,21 @@ async function testAdvisorSettings(payload) {
     body: JSON.stringify(payload),
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.detail || "test failed");
+  if (!res.ok) {
+    const detail = data.detail;
+    const msg = Array.isArray(detail)
+      ? detail.map((d) => d.msg || d).join(" · ")
+      : detail || `خطای سرور (${res.status})`;
+    if (res.status === 405) {
+      throw new Error("سرور قدیمی است — git pull و restart سرویس لازم است");
+    }
+    throw new Error(msg);
+  }
   return data;
+}
+
+function isValidApiBase(url) {
+  return /^https?:\/\/.+/i.test((url || "").trim());
 }
 
 function formatPrice(n) {
@@ -670,11 +692,23 @@ function fillAdvisorSetupForm(cfg) {
 
 async function loadAdvisorSetup() {
   try {
-    const cfg = await fetchAdvisorSettings();
+    const res = await fetch("/api/v1/advisor/settings");
+    if (!res.ok) {
+      if (res.status === 405) {
+        throw new Error("سرور قدیمی است — git pull و restart سرویس");
+      }
+      throw new Error(`خطا در بارگذاری تنظیمات (${res.status})`);
+    }
+    const cfg = await res.json();
     fillAdvisorSetupForm(cfg);
   } catch (e) {
     console.error(e);
-    setAdvisorSetupMessage("خطا در بارگذاری تنظیمات", "err");
+    setAdvisorSetupMessage(e.message || "خطا در بارگذاری تنظیمات", "err");
+    const badge = document.getElementById("advisor-setup-status");
+    if (badge) {
+      badge.textContent = "نیاز به آپدیت سرور";
+      badge.className = "advisor-setup-badge warn";
+    }
   }
 }
 
@@ -737,6 +771,9 @@ document.getElementById("advisor-setup-form")?.addEventListener("submit", async 
   setAdvisorSetupMessage("در حال ذخیره...");
   try {
     const payload = collectAdvisorSetupPayload();
+    if (!isValidApiBase(payload.advisor_api_base)) {
+      throw new Error("API Base URL باید با http:// یا https:// شروع شود (مثلاً https://api.openai.com/v1)");
+    }
     const cfg = await saveAdvisorSettings(payload);
     fillAdvisorSetupForm(cfg);
     setAdvisorSetupMessage("تنظیمات ذخیره شد ✓", "ok");
@@ -756,6 +793,9 @@ document.getElementById("advisor-test-btn")?.addEventListener("click", async () 
   setAdvisorSetupMessage("در حال تست اتصال...");
   try {
     const payload = collectAdvisorSetupPayload();
+    if (!isValidApiBase(payload.advisor_api_base)) {
+      throw new Error("API Base URL باید با http:// یا https:// شروع شود (مثلاً https://api.openai.com/v1)");
+    }
     const testPayload = {
       advisor_api_base: payload.advisor_api_base,
       advisor_model: payload.advisor_model,

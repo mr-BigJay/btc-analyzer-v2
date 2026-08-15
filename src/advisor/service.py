@@ -333,11 +333,11 @@ class AdvisorService:
 
         lines.append("")
         if is_llm_configured():
-            lines.append("(خطا در اتصال LLM — دوباره امتحان کن یا Base URL/مدل را چک کن)")
+            lines.append("(خطا در اتصال هوش مصنوعی — دوباره امتحان کن یا تنظیمات API را بررسی کن)")
         else:
             lines.append(
-                "⚠️ حالت rule-based فعال است.\n"
-                "از داشبورد → بخش «۰ · ستاپ ایجنت» → API Key را وارد کن → ذخیره.\n"
-                "بعد یک پیام جدید بفرست (نیازی به restart نیست)."
+                "⚠️ حالت ساده فعال است.\n"
+                "از داشبورد → بخش «۰ · ستاپ ایجنت» → کلید API را وارد کن → ذخیره.\n"
+                "یا در تلگرام: /setkey کلید-تو"
             )
         return "\n".join(lines)

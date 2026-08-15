@@ -66,7 +66,7 @@ def test_advisor_settings(body: AdvisorTestRequest | None = None):
         raise HTTPException(400, "API key is required")
 
     if not api_base.startswith("http"):
-        raise HTTPException(400, "API Base URL bayad ba http:// ya https:// shoro beshe")
+        raise HTTPException(400, "آدرس پایه API باید با http:// یا https:// شروع شود")
 
     url = f"{api_base.rstrip('/')}/chat/completions"
     headers = {

@@ -81,7 +81,7 @@
 
       <section class="advisor-setup-card card" aria-label="ستاپ ایجنت AI">
         <div id="advisor-setup-banner" class="advisor-setup-banner" hidden>
-          ⚠️ برای فعال‌سازی مشاور هوشمند، API Key و تنظیمات تلگرام را در فرم زیر وارد و ذخیره کن.
+          ⚠️ برای فعال‌سازی مشاور هوشمند، کلید API و تنظیمات تلگرام را در فرم زیر وارد و ذخیره کن.
         </div>
 
         <div id="advisor-setup" class="advisor-setup advisor-setup--open">
@@ -89,23 +89,23 @@
             <h2>تنظیمات ایجنت هوش مصنوعی</h2>
             <span id="advisor-setup-status" class="advisor-setup-badge">در حال بارگذاری...</span>
           </div>
-          <p class="card-note">کلید API، مدل LLM و تنظیمات تلگرام را اینجا وارد کن — نیازی به ویرایش دستی <code>.env</code> نیست.</p>
+          <p class="card-note">کلید API، مدل هوش مصنوعی و تنظیمات تلگرام را اینجا وارد کن — نیازی به ویرایش دستی فایل تنظیمات نیست.</p>
 
           <form id="advisor-setup-form" class="advisor-setup-form">
             <div class="advisor-setup-grid">
               <label class="advisor-field advisor-field-check">
                 <input type="checkbox" id="cfg-advisor-enabled" checked>
-                <span>فعال‌سازی مشاور AI</span>
+                <span>فعال‌سازی مشاور هوشمند</span>
               </label>
 
               <label class="advisor-field">
-                <span>API Key (OpenAI-compatible)</span>
-                <input type="password" id="cfg-advisor-api-key" placeholder="sk-..." autocomplete="off">
+                <span>کلید API</span>
+                <input type="password" id="cfg-advisor-api-key" placeholder="کلید API را وارد کنید" autocomplete="off">
                 <small id="cfg-advisor-api-key-hint" class="muted">کلید API را اینجا وارد کن</small>
               </label>
 
               <label class="advisor-field">
-                <span>API Base URL</span>
+                <span>آدرس پایه API</span>
                 <input type="url" id="cfg-advisor-api-base" value="https://api.openai.com/v1" placeholder="https://api.openai.com/v1">
               </label>
 
@@ -141,13 +141,13 @@
               </label>
 
               <label class="advisor-field">
-                <span>Telegram Bot Token</span>
-                <input type="password" id="cfg-telegram-token" placeholder="123456:ABC..." autocomplete="off">
+                <span>توکن ربات تلگرام</span>
+                <input type="password" id="cfg-telegram-token" placeholder="توکن ربات را وارد کنید" autocomplete="off">
                 <small id="cfg-telegram-token-hint" class="muted">اختیاری — برای گفتگو و هشدار در تلگرام</small>
               </label>
 
               <label class="advisor-field">
-                <span>Telegram Chat ID</span>
+                <span>شناسه چت تلگرام</span>
                 <input type="text" id="cfg-telegram-chat-id" placeholder="مثلاً 488726370">
               </label>
             </div>
@@ -456,6 +456,6 @@
     </div>
   </main>
 
-  <script src="/js/app.js?v=202406-advisor-setup-v3"></script>
+  <script src="/js/app.js?v=202406-persian-v1"></script>
 </body>
 </html>

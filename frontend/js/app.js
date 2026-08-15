@@ -61,7 +61,7 @@ async function saveAdvisorSettings(payload) {
       ? detail.map((d) => d.msg || d).join(" · ")
       : detail || `خطای سرور (${res.status})`;
     if (res.status === 405) {
-      throw new Error("سرور قدیمی است — git pull و restart سرویس لازم است");
+      throw new Error("نسخه سرور قدیمی است — به‌روزرسانی و راه‌اندازی مجدد لازم است");
     }
     throw new Error(msg);
   }
@@ -81,7 +81,7 @@ async function testAdvisorSettings(payload) {
       ? detail.map((d) => d.msg || d).join(" · ")
       : detail || `خطای سرور (${res.status})`;
     if (res.status === 405) {
-      throw new Error("سرور قدیمی است — git pull و restart سرویس لازم است");
+      throw new Error("نسخه سرور قدیمی است — به‌روزرسانی و راه‌اندازی مجدد لازم است");
     }
     throw new Error(msg);
   }
@@ -494,7 +494,7 @@ function updateBacktest(rows) {
     <div class="backtest-item">
       <strong>${r.timeframe}</strong>
       <span>سیگنال: ${r.total_signals}</span>
-      <span>Win rate: ${r.win_rate}%</span>
+      <span>نرخ برد: ${r.win_rate}%</span>
       <span>PF: ${r.profit_factor}</span>
       <span>Avg: ${r.avg_return_pct}%</span>
     </div>`
@@ -617,10 +617,10 @@ function updateAdvisor(data) {
   document.getElementById("advisor-headline").textContent = data.headline || "—";
   document.getElementById("advisor-confidence").textContent = data.confidence_note || "—";
   const sourceLabel = data.source === "llm"
-    ? `LLM · ${data.model || "AI"}`
+    ? `هوش مصنوعی · ${data.model || ""}`
     : data.configured
-      ? "قوانین داخلی (fallback)"
-      : "قوانین داخلی (بدون API Key)";
+      ? "قوانین داخلی"
+      : "قوانین داخلی (بدون کلید API)";
   const timeLabel = data.generated_at
     ? new Date(data.generated_at).toLocaleString("fa-IR")
     : "—";
@@ -653,7 +653,7 @@ function updateAdvisorSetupStatus(cfg) {
     if (banner) banner.hidden = true;
   } else if (cfg.advisor_enabled) {
     if (badge) {
-      badge.textContent = "نیاز به API Key";
+      badge.textContent = "نیاز به کلید API";
       badge.className = "advisor-setup-badge warn";
     }
     if (banner) banner.hidden = false;
@@ -697,7 +697,7 @@ async function loadAdvisorSetup() {
     const res = await fetch("/api/v1/advisor/settings");
     if (!res.ok) {
       if (res.status === 405) {
-        throw new Error("سرور قدیمی است — git pull و restart سرویس");
+        throw new Error("نسخه سرور قدیمی است — به‌روزرسانی و راه‌اندازی مجدد لازم است");
       }
       throw new Error(`خطا در بارگذاری تنظیمات (${res.status})`);
     }
@@ -772,7 +772,7 @@ document.getElementById("advisor-setup-form")?.addEventListener("submit", async 
   try {
     const payload = collectAdvisorSetupPayload();
     if (!isValidApiBase(payload.advisor_api_base)) {
-      throw new Error("API Base URL باید با http:// یا https:// شروع شود (مثلاً https://api.openai.com/v1)");
+      throw new Error("آدرس پایه API باید با http:// یا https:// شروع شود");
     }
     const cfg = await saveAdvisorSettings(payload);
     fillAdvisorSetupForm(cfg);
@@ -794,7 +794,7 @@ document.getElementById("advisor-test-btn")?.addEventListener("click", async () 
   try {
     const payload = collectAdvisorSetupPayload();
     if (!isValidApiBase(payload.advisor_api_base)) {
-      throw new Error("API Base URL باید با http:// یا https:// شروع شود (مثلاً https://api.openai.com/v1)");
+      throw new Error("آدرس پایه API باید با http:// یا https:// شروع شود");
     }
     const testPayload = {
       advisor_api_base: payload.advisor_api_base,

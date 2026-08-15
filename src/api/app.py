@@ -23,7 +23,7 @@ from src.db.models import (
 )
 
 app = FastAPI(title="BTC Analyzer", version="2.4.0")
-FRONTEND_BUILD = "2024.06-advisor-setup-v2"
+FRONTEND_BUILD = "2024.06-advisor-setup-v3"
 
 app.add_middleware(
     CORSMiddleware,

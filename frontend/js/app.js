@@ -644,16 +644,25 @@ function setAdvisorSetupMessage(text, type = "") {
 
 function updateAdvisorSetupStatus(cfg) {
   const badge = document.getElementById("advisor-setup-status");
-  if (!badge) return;
+  const banner = document.getElementById("advisor-setup-banner");
   if (cfg.configured) {
-    badge.textContent = `متصل · ${cfg.advisor_model}`;
-    badge.className = "advisor-setup-badge ok";
+    if (badge) {
+      badge.textContent = `متصل · ${cfg.advisor_model}`;
+      badge.className = "advisor-setup-badge ok";
+    }
+    if (banner) banner.hidden = true;
   } else if (cfg.advisor_enabled) {
-    badge.textContent = "فعال — بدون API Key (rule-based)";
-    badge.className = "advisor-setup-badge warn";
+    if (badge) {
+      badge.textContent = "نیاز به API Key";
+      badge.className = "advisor-setup-badge warn";
+    }
+    if (banner) banner.hidden = false;
   } else {
-    badge.textContent = "غیرفعال";
-    badge.className = "advisor-setup-badge warn";
+    if (badge) {
+      badge.textContent = "غیرفعال";
+      badge.className = "advisor-setup-badge warn";
+    }
+    if (banner) banner.hidden = false;
   }
 }
 
@@ -670,7 +679,7 @@ function fillAdvisorSetupForm(cfg) {
   const keyHint = document.getElementById("cfg-advisor-api-key-hint");
   keyHint.textContent = cfg.advisor_api_key_set
     ? `ذخیره‌شده: ${cfg.advisor_api_key_masked}`
-    : "هنوز API Key ذخیره نشده";
+    : "کلید API را اینجا وارد کن";
 
   const tokenHint = document.getElementById("cfg-telegram-token-hint");
   tokenHint.textContent = cfg.telegram_bot_token_set
@@ -679,13 +688,6 @@ function fillAdvisorSetupForm(cfg) {
 
   document.getElementById("cfg-advisor-api-key").value = "";
   document.getElementById("cfg-telegram-token").value = "";
-
-  const setup = document.getElementById("advisor-setup");
-  if (setup && !cfg.configured) {
-    setup.classList.remove("collapsed");
-  } else if (setup) {
-    setup.classList.add("collapsed");
-  }
 
   updateAdvisorSetupStatus(cfg);
 }
@@ -705,10 +707,12 @@ async function loadAdvisorSetup() {
     console.error(e);
     setAdvisorSetupMessage(e.message || "خطا در بارگذاری تنظیمات", "err");
     const badge = document.getElementById("advisor-setup-status");
+    const banner = document.getElementById("advisor-setup-banner");
     if (badge) {
       badge.textContent = "نیاز به آپدیت سرور";
       badge.className = "advisor-setup-badge warn";
     }
+    if (banner) banner.hidden = false;
   }
 }
 
@@ -759,10 +763,6 @@ initChart();
 loadAdvisorSetup();
 refresh();
 setInterval(refresh, 5 * 60 * 1000);
-
-document.getElementById("advisor-setup-toggle")?.addEventListener("click", () => {
-  document.getElementById("advisor-setup")?.classList.toggle("collapsed");
-});
 
 document.getElementById("advisor-setup-form")?.addEventListener("submit", async (e) => {
   e.preventDefault();

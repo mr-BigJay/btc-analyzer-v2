@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>BTC Analyzer</title>
-  <link rel="stylesheet" href="/css/style.css?v=202406-clarity-v3" />
+  <link rel="stylesheet" href="/css/style.css?v=202406-advisor-setup-v3" />
   <script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
 </head>
 <body>
@@ -13,6 +13,7 @@
       <h1>BTC Analyzer</h1>
       <span class="version-badge" title="نسخه داشبورد">Clarity v1</span>
       <a href="/options.html" class="nav-link">Options →</a>
+      <a href="#advisor-setup" class="nav-link nav-link-ai">ستاپ AI</a>
     </div>
     <span id="updated-at" class="muted">در حال بارگذاری...</span>
   </header>
@@ -73,6 +74,93 @@
         <p class="guide-tip">💡 <strong>قانون طلایی:</strong> برای معامله کوتاه‌مدت فقط بخش ۲ (پیش‌بینی) را بخوان. بقیه برای درک زمینه است.</p>
       </div>
     </section>
+
+    <!-- ۰. ستاپ ایجنت هوش مصنوعی -->
+    <div class="section-group" id="advisor-setup-section">
+      <div class="section-label">۰ · ستاپ ایجنت هوش مصنوعی</div>
+
+      <section class="advisor-setup-card card" aria-label="ستاپ ایجنت AI">
+        <div id="advisor-setup-banner" class="advisor-setup-banner" hidden>
+          ⚠️ برای فعال‌سازی مشاور هوشمند، API Key و تنظیمات تلگرام را در فرم زیر وارد و ذخیره کن.
+        </div>
+
+        <div id="advisor-setup" class="advisor-setup advisor-setup--open">
+          <div class="advisor-setup-header">
+            <h2>تنظیمات ایجنت هوش مصنوعی</h2>
+            <span id="advisor-setup-status" class="advisor-setup-badge">در حال بارگذاری...</span>
+          </div>
+          <p class="card-note">کلید API، مدل LLM و تنظیمات تلگرام را اینجا وارد کن — نیازی به ویرایش دستی <code>.env</code> نیست.</p>
+
+          <form id="advisor-setup-form" class="advisor-setup-form">
+            <div class="advisor-setup-grid">
+              <label class="advisor-field advisor-field-check">
+                <input type="checkbox" id="cfg-advisor-enabled" checked>
+                <span>فعال‌سازی مشاور AI</span>
+              </label>
+
+              <label class="advisor-field">
+                <span>API Key (OpenAI-compatible)</span>
+                <input type="password" id="cfg-advisor-api-key" placeholder="sk-..." autocomplete="off">
+                <small id="cfg-advisor-api-key-hint" class="muted">کلید API را اینجا وارد کن</small>
+              </label>
+
+              <label class="advisor-field">
+                <span>API Base URL</span>
+                <input type="url" id="cfg-advisor-api-base" value="https://api.openai.com/v1" placeholder="https://api.openai.com/v1">
+              </label>
+
+              <label class="advisor-field">
+                <span>مدل</span>
+                <input type="text" id="cfg-advisor-model" value="gpt-4o-mini" list="advisor-model-list">
+                <datalist id="advisor-model-list">
+                  <option value="gpt-4o-mini"></option>
+                  <option value="gpt-4o"></option>
+                  <option value="gpt-4.1-mini"></option>
+                  <option value="deepseek-chat"></option>
+                </datalist>
+              </label>
+
+              <label class="advisor-field">
+                <span>کش تحلیل (دقیقه)</span>
+                <input type="number" id="cfg-advisor-cache" min="1" max="1440" value="15">
+              </label>
+
+              <label class="advisor-field">
+                <span>حد تاریخچه چت تلگرام</span>
+                <input type="number" id="cfg-advisor-history" min="2" max="50" value="12">
+              </label>
+
+              <label class="advisor-field advisor-field-check">
+                <input type="checkbox" id="cfg-advisor-telegram" checked>
+                <span>گفتگوی آزاد در تلگرام</span>
+              </label>
+
+              <label class="advisor-field advisor-field-check">
+                <input type="checkbox" id="cfg-advisor-proactive" checked>
+                <span>هشدار خودکار مشکلات در تلگرام</span>
+              </label>
+
+              <label class="advisor-field">
+                <span>Telegram Bot Token</span>
+                <input type="password" id="cfg-telegram-token" placeholder="123456:ABC..." autocomplete="off">
+                <small id="cfg-telegram-token-hint" class="muted">اختیاری — برای گفتگو و هشدار در تلگرام</small>
+              </label>
+
+              <label class="advisor-field">
+                <span>Telegram Chat ID</span>
+                <input type="text" id="cfg-telegram-chat-id" placeholder="مثلاً 488726370">
+              </label>
+            </div>
+
+            <div class="advisor-setup-actions">
+              <button type="button" id="advisor-test-btn" class="advisor-refresh-btn">تست اتصال API</button>
+              <button type="submit" id="advisor-save-btn" class="advisor-save-btn">ذخیره تنظیمات</button>
+            </div>
+            <p id="advisor-setup-message" class="advisor-setup-message muted" aria-live="polite"></p>
+          </form>
+        </div>
+      </section>
+    </div>
 
     <!-- ۱. وضعیت لحظه‌ای -->
     <div class="section-group">
@@ -339,85 +427,9 @@
           </div>
           <div class="advisor-meta">
             <span id="advisor-source" class="advisor-tag">—</span>
-            <button id="advisor-setup-toggle" type="button" class="advisor-refresh-btn">تنظیمات AI</button>
+            <a href="#advisor-setup" class="advisor-refresh-btn advisor-setup-link">تنظیمات AI</a>
             <button id="advisor-refresh" type="button" class="advisor-refresh-btn">بروزرسانی AI</button>
           </div>
-        </div>
-
-        <div id="advisor-setup" class="advisor-setup">
-          <div class="advisor-setup-header">
-            <h3>ستاپ ایجنت هوش مصنوعی</h3>
-            <span id="advisor-setup-status" class="advisor-setup-badge">در حال بارگذاری...</span>
-          </div>
-          <p class="card-note">کلید API و تنظیمات تلگرام را اینجا ذخیره کن — نیازی به ویرایش دستی <code>.env</code> نیست.</p>
-
-          <form id="advisor-setup-form" class="advisor-setup-form">
-            <div class="advisor-setup-grid">
-              <label class="advisor-field advisor-field-check">
-                <input type="checkbox" id="cfg-advisor-enabled" checked>
-                <span>فعال‌سازی مشاور AI</span>
-              </label>
-
-              <label class="advisor-field">
-                <span>API Key (OpenAI-compatible)</span>
-                <input type="password" id="cfg-advisor-api-key" placeholder="sk-..." autocomplete="off">
-                <small id="cfg-advisor-api-key-hint" class="muted">—</small>
-              </label>
-
-              <label class="advisor-field">
-                <span>API Base URL</span>
-                <input type="url" id="cfg-advisor-api-base" value="https://api.openai.com/v1">
-              </label>
-
-              <label class="advisor-field">
-                <span>مدل</span>
-                <input type="text" id="cfg-advisor-model" value="gpt-4o-mini" list="advisor-model-list">
-                <datalist id="advisor-model-list">
-                  <option value="gpt-4o-mini"></option>
-                  <option value="gpt-4o"></option>
-                  <option value="gpt-4.1-mini"></option>
-                  <option value="deepseek-chat"></option>
-                </datalist>
-              </label>
-
-              <label class="advisor-field">
-                <span>کش تحلیل (دقیقه)</span>
-                <input type="number" id="cfg-advisor-cache" min="1" max="1440" value="15">
-              </label>
-
-              <label class="advisor-field">
-                <span>حد تاریخچه چت تلگرام</span>
-                <input type="number" id="cfg-advisor-history" min="2" max="50" value="12">
-              </label>
-
-              <label class="advisor-field advisor-field-check">
-                <input type="checkbox" id="cfg-advisor-telegram" checked>
-                <span>گفتگوی آزاد در تلگرام</span>
-              </label>
-
-              <label class="advisor-field advisor-field-check">
-                <input type="checkbox" id="cfg-advisor-proactive" checked>
-                <span>هشدار خودکار مشکلات در تلگرام</span>
-              </label>
-
-              <label class="advisor-field">
-                <span>Telegram Bot Token</span>
-                <input type="password" id="cfg-telegram-token" placeholder="123456:ABC..." autocomplete="off">
-                <small id="cfg-telegram-token-hint" class="muted">—</small>
-              </label>
-
-              <label class="advisor-field">
-                <span>Telegram Chat ID</span>
-                <input type="text" id="cfg-telegram-chat-id" placeholder="مثلاً 123456789">
-              </label>
-            </div>
-
-            <div class="advisor-setup-actions">
-              <button type="button" id="advisor-test-btn" class="advisor-refresh-btn">تست اتصال API</button>
-              <button type="submit" id="advisor-save-btn" class="advisor-save-btn">ذخیره تنظیمات</button>
-            </div>
-            <p id="advisor-setup-message" class="advisor-setup-message muted" aria-live="polite"></p>
-          </form>
         </div>
 
         <div id="advisor-headline" class="advisor-headline muted">در حال تحلیل...</div>
@@ -444,6 +456,6 @@
     </div>
   </main>
 
-  <script src="/js/app.js?v=202406-advisor-setup-v2"></script>
+  <script src="/js/app.js?v=202406-advisor-setup-v3"></script>
 </body>
 </html>

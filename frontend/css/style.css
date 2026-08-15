@@ -763,15 +763,55 @@ body {
 }
 
 .advisor-setup {
-  margin-bottom: 1.25rem;
-  padding: 1rem 1.1rem;
-  border: 1px solid rgba(163, 113, 247, 0.22);
-  border-radius: 12px;
-  background: rgba(0, 0, 0, 0.18);
+  margin-bottom: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.advisor-setup-card {
+  border-color: rgba(163, 113, 247, 0.35);
+  background: linear-gradient(135deg, rgba(163, 113, 247, 0.12), rgba(88, 166, 255, 0.08));
+  scroll-margin-top: 80px;
+}
+
+.advisor-setup-banner {
+  margin-bottom: 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  background: rgba(240, 180, 41, 0.12);
+  border: 1px solid rgba(240, 180, 41, 0.35);
+  color: #f0d78c;
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+
+.advisor-setup-header h2 {
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+.nav-link-ai {
+  color: #d2b4ff !important;
+  border: 1px solid rgba(163, 113, 247, 0.35);
+  border-radius: 8px;
+  padding: 0.2rem 0.55rem;
+}
+
+.advisor-setup-link {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .advisor-setup.collapsed {
-  display: none;
+  display: block;
+}
+
+.advisor-setup--open {
+  display: block;
 }
 
 .advisor-setup-header {
